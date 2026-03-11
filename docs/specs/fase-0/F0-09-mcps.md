@@ -17,27 +17,27 @@ Configurar los MCP Servers (Model Context Protocol) que potencian el flujo de tr
 
 ## 2. Mapa de MCPs por Fase
 
-| MCP Server | Propósito | Fase |
-|------------|----------|------|
-| **GitHub MCP** | Gestión de repo, PRs, issues, code review | 0 ✅ |
-| **Context7** | Documentación actualizada de Next.js 15, Prisma 6, Amplify Gen 2 | 0 ✅ |
-| **Notion MCP** | Gestión de tareas, sprints, documentación de proyecto | 0 ✅ |
-| **Sequential Thinking** | Razonamiento estructurado para decisiones de arquitectura | 0 ✅ |
-| **PostgreSQL MCP** | Inspección de schema, queries de debug, verificar RLS | 1 (futuro) |
-| **Figma MCP** | Extraer design tokens y specs de componentes | 2 (futuro) |
+| MCP Server              | Propósito                                                        | Fase       |
+| ----------------------- | ---------------------------------------------------------------- | ---------- |
+| **GitHub MCP**          | Gestión de repo, PRs, issues, code review                        | 0 ✅       |
+| **Context7**            | Documentación actualizada de Next.js 15, Prisma 6, Amplify Gen 2 | 0 ✅       |
+| **Notion MCP**          | Gestión de tareas, sprints, documentación de proyecto            | 0 ✅       |
+| **Sequential Thinking** | Razonamiento estructurado para decisiones de arquitectura        | 0 ✅       |
+| **PostgreSQL MCP**      | Inspección de schema, queries de debug, verificar RLS            | 1 (futuro) |
+| **Figma MCP**           | Extraer design tokens y specs de componentes                     | 2 (futuro) |
 
 ---
 
 ## 3. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-06 completado | Repositorio GitHub creado | `gh repo view` |
-| Node.js 20+ | Para MCP servers basados en Node | `node --version` |
-| npx | Para ejecutar MCP servers | `npx --version` |
-| VS Code | Con extensión GitHub Copilot | Copilot funcional |
-| Cuenta Notion (opcional) | Para Notion MCP | Login en notion.so |
-| Token GitHub | Personal Access Token (Classic o Fine-grained) | `gh auth status` |
+| Requisito                | Detalle                                        | Verificación       |
+| ------------------------ | ---------------------------------------------- | ------------------ |
+| F0-06 completado         | Repositorio GitHub creado                      | `gh repo view`     |
+| Node.js 20+              | Para MCP servers basados en Node               | `node --version`   |
+| npx                      | Para ejecutar MCP servers                      | `npx --version`    |
+| VS Code                  | Con extensión GitHub Copilot                   | Copilot funcional  |
+| Cuenta Notion (opcional) | Para Notion MCP                                | Login en notion.so |
+| Token GitHub             | Personal Access Token (Classic o Fine-grained) | `gh auth status`   |
 
 ---
 
@@ -56,18 +56,18 @@ Los MCP Servers se configuran en VS Code settings o en archivos de configuració
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}"
-      }
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}",
+      },
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
+      "args": ["-y", "@upstash/context7-mcp@latest"],
     },
     "sequential-thinking": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-    }
-  }
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+    },
+  },
 }
 ```
 
@@ -109,6 +109,7 @@ npx -y @modelcontextprotocol/server-github --help
 ```
 
 **Capacidades del GitHub MCP:**
+
 - 🔍 Buscar código en el repositorio
 - 📝 Crear y gestionar Issues
 - 🔀 Crear y revisar Pull Requests
@@ -122,18 +123,18 @@ npx -y @modelcontextprotocol/server-github --help
 
 **Librerías principales indexadas en Context7:**
 
-| Librería | Uso en NexoERP |
-|----------|---------------|
-| Next.js 15 | App Router, Route Handlers, RSC, middleware |
-| React 19 | Hooks, Server Components, Suspense |
-| Prisma 6 | Schema, Client, Migrations, Extensions |
-| AWS Amplify Gen 2 | Auth, Storage, Backend |
-| Tailwind CSS 4 | Utility classes, @theme |
-| Zod 3 | Schema validation |
-| TanStack Query 5 | Server state, mutations, caching |
-| React Hook Form 7 | Form handling |
-| Vitest | Testing, mocking |
-| Playwright | E2E testing |
+| Librería          | Uso en NexoERP                              |
+| ----------------- | ------------------------------------------- |
+| Next.js 15        | App Router, Route Handlers, RSC, middleware |
+| React 19          | Hooks, Server Components, Suspense          |
+| Prisma 6          | Schema, Client, Migrations, Extensions      |
+| AWS Amplify Gen 2 | Auth, Storage, Backend                      |
+| Tailwind CSS 4    | Utility classes, @theme                     |
+| Zod 3             | Schema validation                           |
+| TanStack Query 5  | Server state, mutations, caching            |
+| React Hook Form 7 | Form handling                               |
+| Vitest            | Testing, mocking                            |
+| Playwright        | E2E testing                                 |
 
 **No requiere configuración adicional** — Context7 se conecta automáticamente a su base de documentación.
 
@@ -144,13 +145,14 @@ npx -y @upstash/context7-mcp@latest --help
 ```
 
 **Uso típico:**
-Cuando pides a un agente: *"Crea un middleware de Next.js 15 para resolver el tenant"*, Context7 provee la documentación actualizada de `middleware.ts` de Next.js 15 App Router, asegurando que el código generado use la API correcta.
+Cuando pides a un agente: _"Crea un middleware de Next.js 15 para resolver el tenant"_, Context7 provee la documentación actualizada de `middleware.ts` de Next.js 15 App Router, asegurando que el código generado use la API correcta.
 
 ### 4.4 Sequential Thinking MCP Server
 
 **Propósito:** Proporciona razonamiento paso a paso para decisiones complejas de arquitectura. Permite a los agentes IA "pensar en voz alta" de manera estructurada antes de tomar decisiones.
 
 **Casos de uso en NexoERP:**
+
 - Diseñar el schema de un nuevo módulo
 - Evaluar trade-offs de arquitectura
 - Planificar migraciones de datos
@@ -187,9 +189,9 @@ npx -y @modelcontextprotocol/server-sequential-thinking --help
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-notion"],
     "env": {
-      "NOTION_API_KEY": "${env:NOTION_API_KEY}"
-    }
-  }
+      "NOTION_API_KEY": "${env:NOTION_API_KEY}",
+    },
+  },
 }
 ```
 
@@ -216,9 +218,9 @@ npx -y @modelcontextprotocol/server-sequential-thinking --help
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-postgres"],
     "env": {
-      "POSTGRES_CONNECTION_STRING": "${env:DATABASE_URL}"
-    }
-  }
+      "POSTGRES_CONNECTION_STRING": "${env:DATABASE_URL}",
+    },
+  },
 }
 ```
 
@@ -228,6 +230,7 @@ Crear archivo de referencia:
 
 ```markdown
 <!-- docs/guides/MCP-USAGE.md -->
+
 # Uso de MCP Servers — NexoERP
 
 ## ¿Qué son los MCP Servers?
@@ -237,40 +240,50 @@ Los MCP (Model Context Protocol) Servers son servicios que proveen contexto espe
 ## MCPs Configurados
 
 ### 🐙 GitHub MCP
+
 **Cuándo usarlo:** Gestión de Issues, PRs, búsqueda de código.
 
 Ejemplos de prompts:
+
 - "Crea un issue para implementar la validación de CAI"
 - "Revisa el PR #15 y sugiere mejoras"
 - "Busca todos los archivos que usan `company_id`"
 
 ### 📚 Context7
+
 **Cuándo usarlo:** Cuando necesitas documentación actualizada de librerías.
 
 Ejemplos de prompts:
+
 - "Usando Context7, muéstrame cómo crear un middleware en Next.js 15"
 - "¿Cómo funciona prismaSchemaFolder en Prisma 6?"
 - "Dame la API actualizada de TanStack Query 5 para mutations"
 
 ### 🧠 Sequential Thinking
+
 **Cuándo usarlo:** Decisiones de arquitectura complejas, diseño de schema.
 
 Ejemplos de prompts:
+
 - "Piensa paso a paso: ¿cómo debería diseñar el schema de facturación?"
 - "Analiza el impacto de agregar soporte multimoneda al módulo de contabilidad"
 - "Evalúa trade-offs entre estas 3 opciones de implementación"
 
 ### 📋 Notion (Opcional)
+
 **Cuándo usarlo:** Gestión de tareas y documentación de proyecto.
 
 Ejemplos de prompts:
+
 - "Crea una tarea en Notion para el sprint actual"
 - "Actualiza el estado de la tarea F1-03"
 
 ### 🐘 PostgreSQL (Fase 1+)
+
 **Cuándo usarlo:** Debugging de BD, verificación de RLS.
 
 Ejemplos de prompts:
+
 - "Lista todas las políticas RLS de la tabla users"
 - "Muéstrame el plan de ejecución de esta query"
 - "Verifica que las extensiones uuid-ossp y pgcrypto están instaladas"
@@ -281,12 +294,12 @@ Los MCPs se configuran en `.vscode/mcp.json`. Los tokens se almacenan como varia
 
 ## Troubleshooting
 
-| Problema | Solución |
-|----------|----------|
-| MCP no responde | Verificar que `npx` funciona: `npx --version` |
-| GitHub MCP: 401 | Token expirado, regenerar: `gh auth refresh` |
-| Context7: timeout | Reiniciar VS Code |
-| Notion: 403 | Verificar que la página está compartida con la integration |
+| Problema          | Solución                                                   |
+| ----------------- | ---------------------------------------------------------- |
+| MCP no responde   | Verificar que `npx` funciona: `npx --version`              |
+| GitHub MCP: 401   | Token expirado, regenerar: `gh auth refresh`               |
+| Context7: timeout | Reiniciar VS Code                                          |
+| Notion: 403       | Verificar que la página está compartida con la integration |
 ```
 
 ---
@@ -308,16 +321,16 @@ docs/
 
 ## 6. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | `.vscode/mcp.json` creado con 3-4 MCPs | Archivo existe y es JSON válido |
-| 2 | GitHub MCP funcional | Agente puede listar issues/PRs |
-| 3 | Context7 MCP funcional | Agente responde con docs actualizados |
-| 4 | Sequential Thinking MCP funcional | Agente razona paso a paso |
-| 5 | `GITHUB_TOKEN` configurado en env vars | `echo $env:GITHUB_TOKEN` no es vacío |
-| 6 | Guía `MCP-USAGE.md` creada | Archivo existe con ejemplos |
-| 7 | PostgreSQL MCP documentado para Fase 1 | Mencionado en guía |
-| 8 | Tokens NO están en archivos del proyecto | `grep` no encuentra tokens en tracked files |
+| #   | Criterio                                 | Verificación                                |
+| --- | ---------------------------------------- | ------------------------------------------- |
+| 1   | `.vscode/mcp.json` creado con 3-4 MCPs   | Archivo existe y es JSON válido             |
+| 2   | GitHub MCP funcional                     | Agente puede listar issues/PRs              |
+| 3   | Context7 MCP funcional                   | Agente responde con docs actualizados       |
+| 4   | Sequential Thinking MCP funcional        | Agente razona paso a paso                   |
+| 5   | `GITHUB_TOKEN` configurado en env vars   | `echo $env:GITHUB_TOKEN` no es vacío        |
+| 6   | Guía `MCP-USAGE.md` creada               | Archivo existe con ejemplos                 |
+| 7   | PostgreSQL MCP documentado para Fase 1   | Mencionado en guía                          |
+| 8   | Tokens NO están en archivos del proyecto | `grep` no encuentra tokens en tracked files |
 
 ---
 

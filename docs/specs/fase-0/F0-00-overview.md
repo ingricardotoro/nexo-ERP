@@ -8,17 +8,17 @@
 
 ## Resumen de Tareas
 
-| ID | Tarea | Descripción | Dependencias | Prioridad |
-|----|-------|-------------|-------------|-----------|
-| F0-01 | Setup proyecto | Inicializar Next.js 15 + TypeScript + Tailwind CSS 4 | — | 🔴 Crítica |
-| F0-02 | Amplify Gen 2 | Configurar auth (Cognito), storage (S3), hosting | F0-01 | 🔴 Crítica |
-| F0-03 | Prisma + PostgreSQL | Multi-file schema + Docker PostgreSQL local | F0-01 | 🔴 Crítica |
-| F0-04 | Tooling | ESLint, Prettier, Husky, commitlint, Changesets | F0-01 | 🟡 Alta |
-| F0-05 | Testing | Configurar Vitest + Playwright | F0-01, F0-04 | 🟡 Alta |
-| F0-06 | Repositorio | GitHub con branch protection y PR templates | F0-01, F0-04 | 🟡 Alta |
-| F0-07 | Ambientes | Configurar local (Docker), staging, production | F0-02, F0-03 | 🔴 Crítica |
-| F0-08 | Documentación | ARCHITECTURE.md con ADRs | F0-01 a F0-07 | 🟢 Media |
-| F0-09 | MCPs | Configurar GitHub, Context7, Notion | F0-06 | 🟢 Media |
+| ID    | Tarea               | Descripción                                          | Dependencias  | Prioridad  |
+| ----- | ------------------- | ---------------------------------------------------- | ------------- | ---------- |
+| F0-01 | Setup proyecto      | Inicializar Next.js 15 + TypeScript + Tailwind CSS 4 | —             | 🔴 Crítica |
+| F0-02 | Amplify Gen 2       | Configurar auth (Cognito), storage (S3), hosting     | F0-01         | 🔴 Crítica |
+| F0-03 | Prisma + PostgreSQL | Multi-file schema + Docker PostgreSQL local          | F0-01         | 🔴 Crítica |
+| F0-04 | Tooling             | ESLint, Prettier, Husky, commitlint, Changesets      | F0-01         | 🟡 Alta    |
+| F0-05 | Testing             | Configurar Vitest + Playwright                       | F0-01, F0-04  | 🟡 Alta    |
+| F0-06 | Repositorio         | GitHub con branch protection y PR templates          | F0-01, F0-04  | 🟡 Alta    |
+| F0-07 | Ambientes           | Configurar local (Docker), staging, production       | F0-02, F0-03  | 🔴 Crítica |
+| F0-08 | Documentación       | ARCHITECTURE.md con ADRs                             | F0-01 a F0-07 | 🟢 Media   |
+| F0-09 | MCPs                | Configurar GitHub, Context7, Notion                  | F0-06         | 🟢 Media   |
 
 ---
 
@@ -42,22 +42,27 @@ F0-01 (Setup proyecto)
 ## Orden de Ejecución Sugerido
 
 ### Bloque 1 — Paralelo (Día 1-2)
+
 1. **F0-01** Setup proyecto ← PRIMERO, bloquea todo lo demás
 
 ### Bloque 2 — Paralelo (Día 2-4)
+
 2. **F0-03** Prisma + PostgreSQL (puede hacerse en paralelo con F0-02)
 3. **F0-02** Amplify Gen 2
 4. **F0-04** Tooling
 
 ### Bloque 3 — Paralelo (Día 4-6)
+
 5. **F0-05** Testing
 6. **F0-06** Repositorio GitHub
 
 ### Bloque 4 — Paralelo (Día 6-8)
+
 7. **F0-07** Ambientes
 8. **F0-09** MCPs
 
 ### Bloque 5 — Final (Día 8-10)
+
 9. **F0-08** Documentación ARCHITECTURE.md + ADRs
 
 ---
@@ -153,30 +158,30 @@ nexoerp/
 
 ## Presupuesto AWS Fase 0
 
-| Servicio | Costo estimado/mes | Notas |
-|----------|---------------------|-------|
-| Amplify Gen 2 Hosting | ~$5–15 | CI/CD + SSR hosting |
-| Cognito User Pools | $0 | 50K MAU gratis |
-| RDS PostgreSQL (db.t3.micro) | ~$15–25 | Base de datos principal |
-| S3 | ~$1–5 | Almacenamiento de archivos |
-| Secrets Manager | ~$2 | Credenciales seguras |
-| VPC + NACLs + SGs | $0 | Arquitectura de red base |
-| Shield Standard | $0 | Automático en CloudFront |
-| CloudTrail (1 trail) | $0 | Primer trail gratuito |
-| **Total Fase 0** | **~$23–47/mes** | |
+| Servicio                     | Costo estimado/mes | Notas                      |
+| ---------------------------- | ------------------ | -------------------------- |
+| Amplify Gen 2 Hosting        | ~$5–15             | CI/CD + SSR hosting        |
+| Cognito User Pools           | $0                 | 50K MAU gratis             |
+| RDS PostgreSQL (db.t3.micro) | ~$15–25            | Base de datos principal    |
+| S3                           | ~$1–5              | Almacenamiento de archivos |
+| Secrets Manager              | ~$2                | Credenciales seguras       |
+| VPC + NACLs + SGs            | $0                 | Arquitectura de red base   |
+| Shield Standard              | $0                 | Automático en CloudFront   |
+| CloudTrail (1 trail)         | $0                 | Primer trail gratuito      |
+| **Total Fase 0**             | **~$23–47/mes**    |                            |
 
 ---
 
 ## Archivos Spec de esta Fase
 
-| Archivo | Tarea |
-|---------|-------|
-| [F0-01-setup-proyecto.md](F0-01-setup-proyecto.md) | Setup proyecto Next.js 15 |
-| [F0-02-amplify-gen2.md](F0-02-amplify-gen2.md) | Amplify Gen 2 + Cognito + S3 |
-| [F0-03-prisma-postgresql.md](F0-03-prisma-postgresql.md) | Prisma 6 + PostgreSQL 16 + Docker |
-| [F0-04-tooling.md](F0-04-tooling.md) | ESLint, Prettier, Husky, commitlint, Changesets |
-| [F0-05-testing.md](F0-05-testing.md) | Vitest + Playwright |
-| [F0-06-repositorio.md](F0-06-repositorio.md) | GitHub, branch protection, templates |
-| [F0-07-ambientes.md](F0-07-ambientes.md) | Docker, staging, production |
-| [F0-08-documentacion.md](F0-08-documentacion.md) | ARCHITECTURE.md + ADRs |
-| [F0-09-mcps.md](F0-09-mcps.md) | MCP Servers |
+| Archivo                                                  | Tarea                                           |
+| -------------------------------------------------------- | ----------------------------------------------- |
+| [F0-01-setup-proyecto.md](F0-01-setup-proyecto.md)       | Setup proyecto Next.js 15                       |
+| [F0-02-amplify-gen2.md](F0-02-amplify-gen2.md)           | Amplify Gen 2 + Cognito + S3                    |
+| [F0-03-prisma-postgresql.md](F0-03-prisma-postgresql.md) | Prisma 6 + PostgreSQL 16 + Docker               |
+| [F0-04-tooling.md](F0-04-tooling.md)                     | ESLint, Prettier, Husky, commitlint, Changesets |
+| [F0-05-testing.md](F0-05-testing.md)                     | Vitest + Playwright                             |
+| [F0-06-repositorio.md](F0-06-repositorio.md)             | GitHub, branch protection, templates            |
+| [F0-07-ambientes.md](F0-07-ambientes.md)                 | Docker, staging, production                     |
+| [F0-08-documentacion.md](F0-08-documentacion.md)         | ARCHITECTURE.md + ADRs                          |
+| [F0-09-mcps.md](F0-09-mcps.md)                           | MCP Servers                                     |

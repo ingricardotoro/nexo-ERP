@@ -17,10 +17,10 @@ Configurar la infraestructura de testing completa: Vitest para tests unitarios e
 
 ## 2. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-01 completado | Proyecto Next.js 15 funcional | `npm run dev` funciona |
-| F0-04 completado | Tooling configurado | `npm run lint` funciona |
+| Requisito        | Detalle                       | Verificación            |
+| ---------------- | ----------------------------- | ----------------------- |
+| F0-01 completado | Proyecto Next.js 15 funcional | `npm run dev` funciona  |
+| F0-04 completado | Tooling configurado           | `npm run lint` funciona |
 
 ---
 
@@ -50,10 +50,7 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.ts'],
 
     // Glob patterns para encontrar tests
-    include: [
-      'src/**/*.{test,spec}.{ts,tsx}',
-      'src/__tests__/**/*.{test,spec}.{ts,tsx}',
-    ],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'src/__tests__/**/*.{test,spec}.{ts,tsx}'],
 
     // Excluir
     exclude: [
@@ -291,10 +288,7 @@ export function expectTenantIsolation<T extends { companyId: string }>(
  * Verifica que dos conjuntos de resultados no comparten IDs.
  * Uso: expectNoDataLeakage(resultsA, resultsB);
  */
-export function expectNoDataLeakage<T extends { id: string }>(
-  resultsA: T[],
-  resultsB: T[],
-): void {
+export function expectNoDataLeakage<T extends { id: string }>(resultsA: T[], resultsB: T[]): void {
   const idsA = new Set(resultsA.map((item) => item.id));
   const idsB = new Set(resultsB.map((item) => item.id));
 
@@ -453,9 +447,7 @@ test.describe('NexoERP — Smoke E2E', () => {
     await page.waitForLoadState('networkidle');
 
     // Filtrar errores conocidos/esperados
-    const realErrors = errors.filter(
-      (e) => !e.includes('favicon') && !e.includes('hydration'),
-    );
+    const realErrors = errors.filter((e) => !e.includes('favicon') && !e.includes('hydration'));
     expect(realErrors).toHaveLength(0);
   });
 });
@@ -507,18 +499,18 @@ playwright-report/                   # (generado, gitignored)
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | `npx vitest run` ejecuta todos los tests sin errores | Exit code 0 |
-| 2 | Tests de smoke validan constantes de NexoERP | 5 roles, 7 módulos, HNL/USD |
-| 3 | Test de componente renderiza HomePage correctamente | Testing Library + jest-dom |
-| 4 | `npx vitest run --coverage` genera reporte | Directorio `coverage/` |
-| 5 | `npx playwright test` ejecuta E2E sin errores | Todos passing |
-| 6 | E2E smoke verifica carga de página y título | Playwright assertions |
-| 7 | Playwright configurado con locale `es-HN` y timezone Honduras | Config verificada |
-| 8 | Scripts `test`, `test:watch`, `test:coverage`, `test:e2e` funcionan | Verificar cada uno |
-| 9 | Mocks globales de next/navigation y next/image configurados | Setup file |
-| 10 | Helpers de multi-tenant disponibles para futuros tests | Archivos creados |
+| #   | Criterio                                                            | Verificación                |
+| --- | ------------------------------------------------------------------- | --------------------------- |
+| 1   | `npx vitest run` ejecuta todos los tests sin errores                | Exit code 0                 |
+| 2   | Tests de smoke validan constantes de NexoERP                        | 5 roles, 7 módulos, HNL/USD |
+| 3   | Test de componente renderiza HomePage correctamente                 | Testing Library + jest-dom  |
+| 4   | `npx vitest run --coverage` genera reporte                          | Directorio `coverage/`      |
+| 5   | `npx playwright test` ejecuta E2E sin errores                       | Todos passing               |
+| 6   | E2E smoke verifica carga de página y título                         | Playwright assertions       |
+| 7   | Playwright configurado con locale `es-HN` y timezone Honduras       | Config verificada           |
+| 8   | Scripts `test`, `test:watch`, `test:coverage`, `test:e2e` funcionan | Verificar cada uno          |
+| 9   | Mocks globales de next/navigation y next/image configurados         | Setup file                  |
+| 10  | Helpers de multi-tenant disponibles para futuros tests              | Archivos creados            |
 
 ---
 

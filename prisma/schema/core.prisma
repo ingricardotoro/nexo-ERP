@@ -1,0 +1,76 @@
+// prisma/schema/core.prisma
+// Módulo Core: Company (tenant) y User (stub mínimo para Fase 0)
+// Se expandirá en Fase 1 con Role, Permission, Module, Menu, AuditLog
+
+/// Empresa / Tenant — Entidad central de multi-tenancy.
+/// NO lleva RLS (tabla de plataforma).
+/// Todas las tablas de negocio referencian Company via company_id.
+model Company {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Datos de la empresa
+  legalName  String  @map("legal_name") // Razón social
+  tradeName  String? @map("trade_name") // Nombre comercial
+  rtn        String  @unique @db.Citext // Registro Tributario Nacional (case-insensitive)
+  email      String?
+  phone      String?
+  website    String?
+  address    String?
+  city       String?
+  department String? // Departamento (Honduras)
+
+  // Configuración
+  baseCurrency String  @default("HNL") @map("base_currency")
+  logoUrl      String? @map("logo_url")
+
+  // Límites del tenant (RF-CORE-13)
+  maxUsers Int @default(5) @map("max_users")
+
+  // Soft delete — RS-AUD-01 (DAR-006)
+  isActive Boolean @default(true) @map("is_active")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones (se expanden en Fase 1)
+  users User[]
+
+  @@map("companies")
+}
+
+/// Usuario del sistema — vinculado a Cognito para autenticación.
+/// DAR-003: User.id = Cognito sub (sin @default — asignado al crear el registro vía Lambda PostConfirmation).
+/// Lleva RLS (tabla de negocio — filtra por company_id).
+model User {
+  // DAR-003: ID es el Cognito sub, asignado externamente
+  id String @id
+
+  // Datos del usuario
+  email    String @unique @db.Citext // Case-insensitive (DAR-DBA errores identificados)
+  fullName String @map("full_name")
+
+  // Cognito
+  cognitoSub String @unique @map("cognito_sub") // Cognito User Pool sub (mismo que id en Fase 1+)
+
+  // Multi-tenant — SIEMPRE presente, NOT NULL
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // RBAC básico (se expande en Fase 1 con Role model)
+  role SystemRole @default(SALESPERSON)
+
+  // Soft delete — RS-AUD-01 (DAR-006)
+  isActive Boolean @default(true) @map("is_active")
+
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Índices — company_id SIEMPRE como primer campo (DAR-005: regla inquebrantable)
+  @@index([companyId, email])
+  @@index([companyId, isActive])
+  @@index([cognitoSub])
+  @@map("users")
+}

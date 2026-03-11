@@ -17,13 +17,13 @@ Configurar Prisma ORM 6 con multi-file schema modular, PostgreSQL 16 local via D
 
 ## 2. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-01 completado | Proyecto Next.js 15 funcional | `npm run dev` funciona |
-| Docker Desktop | Instalado y ejecutándose | `docker --version` |
-| Docker Compose | v2+ (incluido con Docker Desktop) | `docker compose version` |
-| Puerto 5432 | Disponible en localhost | `Test-NetConnection localhost -Port 5432` (debe fallar) |
-| Puerto 5050 | Disponible para pgAdmin (opcional) | `Test-NetConnection localhost -Port 5050` |
+| Requisito        | Detalle                            | Verificación                                            |
+| ---------------- | ---------------------------------- | ------------------------------------------------------- |
+| F0-01 completado | Proyecto Next.js 15 funcional      | `npm run dev` funciona                                  |
+| Docker Desktop   | Instalado y ejecutándose           | `docker --version`                                      |
+| Docker Compose   | v2+ (incluido con Docker Desktop)  | `docker compose version`                                |
+| Puerto 5432      | Disponible en localhost            | `Test-NetConnection localhost -Port 5432` (debe fallar) |
+| Puerto 5050      | Disponible para pgAdmin (opcional) | `Test-NetConnection localhost -Port 5050`               |
 
 ---
 
@@ -42,7 +42,7 @@ services:
     container_name: nexoerp-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: nexoerp
       POSTGRES_PASSWORD: nexoerp_dev_2026
@@ -54,7 +54,7 @@ services:
       # Script de inicialización (habilitar extensiones)
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexoerp -d nexoerp"]
+      test: ['CMD-SHELL', 'pg_isready -U nexoerp -d nexoerp']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,7 +65,7 @@ services:
     container_name: nexoerp-pgadmin
     restart: unless-stopped
     ports:
-      - "5050:80"
+      - '5050:80'
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@nexoerp.com
       PGADMIN_DEFAULT_PASSWORD: admin123
@@ -153,8 +153,8 @@ New-Item -ItemType Directory -Path "prisma/seed" -Force
 // Configuración base: datasource, generator y enums compartidos
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
   // Multi-file schema (Prisma 6)
   // Todos los archivos .prisma en este directorio se combinan
@@ -170,11 +170,11 @@ generator client {
 
 /// Roles predeterminados del sistema (RBAC)
 enum SystemRole {
-  ADMIN       // Administrador — Acceso total
-  MANAGER     // Gerente — CRUD operativo
-  ACCOUNTANT  // Contador — Contabilidad y facturación
+  ADMIN // Administrador — Acceso total
+  MANAGER // Gerente — CRUD operativo
+  ACCOUNTANT // Contador — Contabilidad y facturación
   SALESPERSON // Vendedor — Ventas y CRM
-  AUDITOR     // Auditor — Solo lectura + auditoría
+  AUDITOR // Auditor — Solo lectura + auditoría
 }
 
 /// Acciones de auditoría
@@ -186,44 +186,44 @@ enum AuditAction {
 
 /// Estados genéricos de documentos
 enum DocumentStatus {
-  DRAFT      // Borrador
-  PUBLISHED  // Publicado/Activo
-  CANCELLED  // Cancelado
+  DRAFT // Borrador
+  PUBLISHED // Publicado/Activo
+  CANCELLED // Cancelado
 }
 
 /// Tipos de contacto
 enum ContactType {
-  NATURAL   // Persona natural
+  NATURAL // Persona natural
   JURIDICAL // Persona jurídica
 }
 
 /// Naturaleza de cuenta contable
 enum AccountNature {
-  DEBIT  // Deudora
+  DEBIT // Deudora
   CREDIT // Acreedora
 }
 
 /// Tipos de cuenta contable (clasificación NIIF)
 enum AccountType {
-  ASSET    // Activo
+  ASSET // Activo
   LIABILITY // Pasivo
-  EQUITY   // Patrimonio/Capital
-  INCOME   // Ingreso
-  COST     // Costo
-  EXPENSE  // Gasto
+  EQUITY // Patrimonio/Capital
+  INCOME // Ingreso
+  COST // Costo
+  EXPENSE // Gasto
 }
 
 /// Estados de período fiscal
 enum FiscalPeriodStatus {
-  OPEN   // Abierto — permite asientos
+  OPEN // Abierto — permite asientos
   CLOSED // Cerrado — no permite asientos
 }
 
 /// Estados de factura
 enum InvoiceStatus {
-  DRAFT     // Borrador
+  DRAFT // Borrador
   PUBLISHED // Publicada (con número fiscal)
-  PAID      // Pagada
+  PAID // Pagada
   CANCELLED // Cancelada
 }
 ```
@@ -238,67 +238,66 @@ enum InvoiceStatus {
 /// Empresa/Tenant — Entidad central de multi-tenancy
 /// Todas las tablas de negocio referencian a Company via company_id
 model Company {
-  id        String   @id @default(uuid()) @db.Uuid
-  
+  id String @id @default(uuid()) @db.Uuid
+
   // Datos de la empresa
-  legalName     String  @map("legal_name")       // Razón social
-  tradeName     String? @map("trade_name")       // Nombre comercial
-  rtn           String  @unique                  // Registro Tributario Nacional
-  email         String?
-  phone         String?
-  website       String?
-  address       String?
-  city          String?
-  department    String?                          // Departamento (Honduras)
-  
+  legalName  String  @map("legal_name") // Razón social
+  tradeName  String? @map("trade_name") // Nombre comercial
+  rtn        String  @unique // Registro Tributario Nacional
+  email      String?
+  phone      String?
+  website    String?
+  address    String?
+  city       String?
+  department String? // Departamento (Honduras)
+
   // Configuración
-  baseCurrency  String  @default("HNL") @map("base_currency")
-  logoUrl       String? @map("logo_url")
-  
+  baseCurrency String  @default("HNL") @map("base_currency")
+  logoUrl      String? @map("logo_url")
+
   // Límites del tenant
-  maxUsers      Int     @default(5) @map("max_users")  // RF-CORE-13
-  
+  maxUsers Int @default(5) @map("max_users") // RF-CORE-13
+
   // Estado
-  isActive      Boolean @default(true) @map("is_active")
-  
+  isActive Boolean @default(true) @map("is_active")
+
   // Timestamps
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   // Relaciones (se expanden en Fase 1)
-  users         User[]
-  
+  users User[]
+
   @@map("companies")
 }
 
 /// Usuario del sistema — vinculado a Cognito para autenticación
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  
+  id String @id @default(uuid()) @db.Uuid
+
   // Datos del usuario
-  email     String   @unique
-  fullName  String   @map("full_name")
-  
+  email    String @unique
+  fullName String @map("full_name")
+
   // Cognito
-  cognitoSub String  @unique @map("cognito_sub")  // Cognito User Pool sub
-  
+  cognitoSub String @unique @map("cognito_sub") // Cognito User Pool sub
+
   // Empresa actual (multi-tenant)
-  companyId String   @map("company_id") @db.Uuid
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   // Estado
-  isActive  Boolean  @default(true) @map("is_active")
-  
+  isActive Boolean @default(true) @map("is_active")
+
   // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   lastLoginAt DateTime? @map("last_login_at")
-  
+
   // Índices — company_id SIEMPRE como primer campo en compuestos
   @@index([companyId, email])
   @@index([companyId, isActive])
   @@index([cognitoSub])
-  
   @@map("users")
 }
 ```
@@ -329,10 +328,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
-        : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
 if (process.env.NODE_ENV !== 'production') {
@@ -458,6 +454,7 @@ npx prisma migrate status
 ```
 
 **Migración esperada crea:**
+
 - Tabla `companies`
 - Tabla `users`
 - Índices definidos
@@ -493,7 +490,7 @@ CREATE POLICY tenant_isolation_update ON users
 CREATE POLICY tenant_isolation_delete ON users
   FOR DELETE USING (company_id = current_setting('app.current_company_id')::uuid);
 
--- Nota: las políticas para tablas adicionales se agregarán 
+-- Nota: las políticas para tablas adicionales se agregarán
 -- en las migraciones de cada módulo (Fase 1, 2, 3...)
 ```
 
@@ -516,6 +513,7 @@ npx prisma studio
 ```
 
 Abrir `http://localhost:5555` y verificar:
+
 - Tabla `companies` con 2 registros (Demo + Test)
 - Tabla `users` vacía (se crearán en Fase 1)
 
@@ -524,15 +522,15 @@ Abrir `http://localhost:5555` y verificar:
 ```powershell
 # Conectar al PostgreSQL local y verificar RLS
 docker compose exec postgres psql -U nexoerp -d nexoerp -c "
-  SELECT tablename, policyname, cmd, qual 
-  FROM pg_policies 
+  SELECT tablename, policyname, cmd, qual
+  FROM pg_policies
   WHERE schemaname = 'public';
 "
 
 # Verificar que RLS está habilitado
 docker compose exec postgres psql -U nexoerp -d nexoerp -c "
-  SELECT relname, relrowsecurity 
-  FROM pg_class 
+  SELECT relname, relrowsecurity
+  FROM pg_class
   WHERE relname IN ('users', 'companies');
 "
 # Esperado: users → true, companies → false
@@ -570,23 +568,23 @@ docker-compose.yml              # PostgreSQL 16 + pgAdmin
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | `docker compose up -d` levanta PostgreSQL 16 sin errores | `docker compose ps` → healthy |
-| 2 | PostgreSQL tiene extensiones uuid-ossp, pgcrypto, citext | `SELECT * FROM pg_extension;` |
-| 3 | Prisma 6.x instalado | `npx prisma --version` → 6.x |
-| 4 | Multi-file schema con `base.prisma` y `core.prisma` | Archivos en `prisma/schema/` |
-| 5 | `prisma migrate dev` ejecuta sin errores | Exit code 0 |
-| 6 | Tablas `companies` y `users` creadas | Prisma Studio o `\dt` en psql |
-| 7 | RLS habilitado en tabla `users` | `relrowsecurity = true` |
-| 8 | Policies de RLS creadas para `users` | `pg_policies` tiene 4 registros |
-| 9 | RLS NO habilitado en `companies` (tabla de plataforma) | `relrowsecurity = false` |
-| 10 | Índices compuestos tienen `company_id` como primer campo | `\di+` en psql |
-| 11 | Seed crea 2 empresas (demo + test isolation) | Prisma Studio / SELECT |
-| 12 | Prisma Client singleton en `src/lib/db/prisma.ts` | Archivo existe, importable |
-| 13 | pgAdmin accesible en `localhost:5050` | Verificar en navegador |
-| 14 | `prisma generate` regenera el cliente sin errores | Exit code 0 |
-| 15 | Scripts `db:*` configurados en package.json | Verificar scripts |
+| #   | Criterio                                                 | Verificación                    |
+| --- | -------------------------------------------------------- | ------------------------------- |
+| 1   | `docker compose up -d` levanta PostgreSQL 16 sin errores | `docker compose ps` → healthy   |
+| 2   | PostgreSQL tiene extensiones uuid-ossp, pgcrypto, citext | `SELECT * FROM pg_extension;`   |
+| 3   | Prisma 6.x instalado                                     | `npx prisma --version` → 6.x    |
+| 4   | Multi-file schema con `base.prisma` y `core.prisma`      | Archivos en `prisma/schema/`    |
+| 5   | `prisma migrate dev` ejecuta sin errores                 | Exit code 0                     |
+| 6   | Tablas `companies` y `users` creadas                     | Prisma Studio o `\dt` en psql   |
+| 7   | RLS habilitado en tabla `users`                          | `relrowsecurity = true`         |
+| 8   | Policies de RLS creadas para `users`                     | `pg_policies` tiene 4 registros |
+| 9   | RLS NO habilitado en `companies` (tabla de plataforma)   | `relrowsecurity = false`        |
+| 10  | Índices compuestos tienen `company_id` como primer campo | `\di+` en psql                  |
+| 11  | Seed crea 2 empresas (demo + test isolation)             | Prisma Studio / SELECT          |
+| 12  | Prisma Client singleton en `src/lib/db/prisma.ts`        | Archivo existe, importable      |
+| 13  | pgAdmin accesible en `localhost:5050`                    | Verificar en navegador          |
+| 14  | `prisma generate` regenera el cliente sin errores        | Exit code 0                     |
+| 15  | Scripts `db:*` configurados en package.json              | Verificar scripts               |
 
 ---
 

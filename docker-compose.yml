@@ -1,0 +1,54 @@
+# docker-compose.yml
+# NexoERP — Servicios locales de desarrollo
+
+services:
+  # PostgreSQL 16 — Base de datos principal
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexoerp-postgres
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: nexoerp
+      POSTGRES_PASSWORD: nexoerp_dev_2026
+      POSTGRES_DB: nexoerp
+      TZ: America/Tegucigalpa
+    volumes:
+      - nexoerp_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c log_min_duration_statement=1000
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+      -c log_timezone=America/Tegucigalpa
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexoerp -d nexoerp']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin 4 — GUI para administrar PostgreSQL (opcional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nexoerp-pgadmin
+    restart: unless-stopped
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nexoerp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    volumes:
+      - nexoerp_pgadmin:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  nexoerp_pgdata:
+    name: nexoerp_pgdata
+  nexoerp_pgadmin:
+    name: nexoerp_pgadmin

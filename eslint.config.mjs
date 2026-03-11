@@ -63,6 +63,7 @@ const eslintConfig = [
       'amplify_outputs.json',
       '.amplify/',
       'next-env.d.ts',
+      'coverage/',
     ],
   },
 ];

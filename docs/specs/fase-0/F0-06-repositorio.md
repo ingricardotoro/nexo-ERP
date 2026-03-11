@@ -17,12 +17,12 @@ Configurar el repositorio GitHub con CI pipeline (GitHub Actions), branch protec
 
 ## 2. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-01 y F0-04 completados | Proyecto con tooling configurado | `npm run lint` funciona |
-| F0-05 completado (opcional) | Tests configurados | `npx vitest run` funciona |
-| Cuenta GitHub | Con permisos para crear repositorios | Login en github.com |
-| GitHub CLI | Instalado (opcional pero recomendado) | `gh --version` |
+| Requisito                   | Detalle                               | Verificación              |
+| --------------------------- | ------------------------------------- | ------------------------- |
+| F0-01 y F0-04 completados   | Proyecto con tooling configurado      | `npm run lint` funciona   |
+| F0-05 completado (opcional) | Tests configurados                    | `npx vitest run` funciona |
+| Cuenta GitHub               | Con permisos para crear repositorios  | Login en github.com       |
+| GitHub CLI                  | Instalado (opcional pero recomendado) | `gh --version`            |
 
 ---
 
@@ -157,9 +157,9 @@ jobs:
 
     env:
       # Variables ficticias para que el build pase sin conexión real a AWS
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/nexoerp"
-      DIRECT_URL: "postgresql://user:pass@localhost:5432/nexoerp"
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/nexoerp'
+      DIRECT_URL: 'postgresql://user:pass@localhost:5432/nexoerp'
+      NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
 
     steps:
       - name: Checkout código
@@ -189,9 +189,9 @@ jobs:
     if: github.base_ref == 'main' || github.ref == 'refs/heads/staging'
 
     env:
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/nexoerp"
-      DIRECT_URL: "postgresql://user:pass@localhost:5432/nexoerp"
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/nexoerp'
+      DIRECT_URL: 'postgresql://user:pass@localhost:5432/nexoerp'
+      NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
 
     steps:
       - name: Checkout código
@@ -228,6 +228,7 @@ jobs:
 
 ```markdown
 <!-- .github/PULL_REQUEST_TEMPLATE.md -->
+
 ## Descripción
 
 <!-- Describe brevemente qué cambios introduces y por qué -->
@@ -257,6 +258,7 @@ jobs:
 ## Checklist
 
 ### General
+
 - [ ] Mi código sigue las convenciones del proyecto
 - [ ] He realizado self-review de mi código
 - [ ] He comentado el código en áreas difíciles de entender
@@ -264,17 +266,20 @@ jobs:
 - [ ] Mis cambios no generan nuevos warnings
 
 ### Testing
+
 - [ ] He agregado tests que prueban mi cambio
 - [ ] Tests existentes pasan localmente
 - [ ] Cobertura de tests ≥ 80% en lógica de negocio nueva
 
 ### Multi-tenant 🔒
+
 - [ ] Las tablas nuevas incluyen `company_id` (si aplica)
 - [ ] Las políticas RLS están creadas para tablas nuevas
 - [ ] Los índices compuestos tienen `company_id` como primer campo
 - [ ] He verificado que no hay filtración de datos entre tenants
 
 ### Fiscal 🇭🇳 (si aplica)
+
 - [ ] Los cálculos de ISV son correctos (15%, 18%, exento)
 - [ ] La numeración fiscal sigue el formato SAR
 - [ ] Los reportes cumplen con requisitos del DET
@@ -294,7 +299,7 @@ jobs:
 # .github/ISSUE_TEMPLATE/bug_report.yml
 name: 🐛 Reporte de Bug
 description: Reportar un error en NexoERP
-labels: ["bug", "triage"]
+labels: ['bug', 'triage']
 body:
   - type: markdown
     attributes:
@@ -362,14 +367,14 @@ body:
     attributes:
       label: Ambiente
       description: Local, Staging, Production
-      placeholder: "Local (Docker PG16)"
+      placeholder: 'Local (Docker PG16)'
 ```
 
 ```yaml
 # .github/ISSUE_TEMPLATE/feature_request.yml
 name: ✨ Solicitud de Feature
 description: Proponer una nueva funcionalidad para NexoERP
-labels: ["enhancement"]
+labels: ['enhancement']
 body:
   - type: markdown
     attributes:
@@ -455,6 +460,7 @@ EOF
 **Configuración manual (si no se usa CLI):**
 
 **Rama `main`:**
+
 - ✅ Require a pull request before merging
   - ✅ Required approvals: 1
   - ✅ Dismiss stale reviews
@@ -465,6 +471,7 @@ EOF
 - ✅ Do not allow deletions
 
 **Rama `staging`:**
+
 - ✅ Require status checks to pass
   - Status checks: `Lint & Typecheck`, `Unit & Integration Tests`, `Build Next.js`
 - ✅ Do not allow force pushes
@@ -530,19 +537,19 @@ git checkout main
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | Repositorio GitHub creado (privado) | `gh repo view` |
-| 2 | Ramas `main` y `staging` existen | `git branch -a` |
-| 3 | CI pipeline ejecuta en PRs a main y staging | Crear PR de prueba |
-| 4 | CI ejecuta: lint, typecheck, format check, tests, build | Verificar jobs |
-| 5 | E2E tests solo ejecutan en PRs a main o push a staging | Verificar condición `if` |
-| 6 | Branch protection en `main` requiere 1 approval + CI passing | Settings → Branches |
-| 7 | Branch protection en `staging` requiere CI passing | Settings → Branches |
-| 8 | PR template aparece al crear PR | Crear PR de prueba |
-| 9 | Issue templates aparecen al crear Issue | Crear issue de prueba |
-| 10 | Labels creados y organizados por módulo, fase, prioridad | Issues → Labels |
-| 11 | Force push deshabilitado en main y staging | Settings verificado |
+| #   | Criterio                                                     | Verificación             |
+| --- | ------------------------------------------------------------ | ------------------------ |
+| 1   | Repositorio GitHub creado (privado)                          | `gh repo view`           |
+| 2   | Ramas `main` y `staging` existen                             | `git branch -a`          |
+| 3   | CI pipeline ejecuta en PRs a main y staging                  | Crear PR de prueba       |
+| 4   | CI ejecuta: lint, typecheck, format check, tests, build      | Verificar jobs           |
+| 5   | E2E tests solo ejecutan en PRs a main o push a staging       | Verificar condición `if` |
+| 6   | Branch protection en `main` requiere 1 approval + CI passing | Settings → Branches      |
+| 7   | Branch protection en `staging` requiere CI passing           | Settings → Branches      |
+| 8   | PR template aparece al crear PR                              | Crear PR de prueba       |
+| 9   | Issue templates aparecen al crear Issue                      | Crear issue de prueba    |
+| 10  | Labels creados y organizados por módulo, fase, prioridad     | Issues → Labels          |
+| 11  | Force push deshabilitado en main y staging                   | Settings verificado      |
 
 ---
 

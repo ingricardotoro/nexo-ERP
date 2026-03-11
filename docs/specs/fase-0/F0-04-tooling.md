@@ -17,10 +17,10 @@ Configurar todas las herramientas de calidad de código, formateo, git hooks y g
 
 ## 2. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
+| Requisito        | Detalle                       | Verificación           |
+| ---------------- | ----------------------------- | ---------------------- |
 | F0-01 completado | Proyecto Next.js 15 funcional | `npm run dev` funciona |
-| Git inicializado | Repositorio git local | `git status` funciona |
+| Git inicializado | Repositorio git local         | `git status` funciona  |
 
 ---
 
@@ -39,9 +39,9 @@ Crear/actualizar configuración de ESLint:
 
 ```javascript
 // eslint.config.mjs
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { FlatCompat } from '@eslint/eslintrc';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -52,58 +52,60 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends(
-    "next/core-web-vitals",
-    "next/typescript",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:jsx-a11y/recommended",
-    "plugin:tailwindcss/recommended",
-    "prettier" // Debe ser el último para override de reglas de formato
+    'next/core-web-vitals',
+    'next/typescript',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:jsx-a11y/recommended',
+    'plugin:tailwindcss/recommended',
+    'prettier', // Debe ser el último para override de reglas de formato
   ),
   {
     rules: {
       // TypeScript
-      "@typescript-eslint/no-unused-vars": ["error", {
-        argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_",
-      }],
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/consistent-type-imports": ["error", {
-        prefer: "type-imports",
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+        },
+      ],
 
       // React
-      "react/no-unescaped-entities": "off",
+      'react/no-unescaped-entities': 'off',
 
       // Import order
-      "import/order": ["error", {
-        groups: [
-          "builtin",
-          "external",
-          "internal",
-          ["parent", "sibling"],
-          "index",
-          "type",
-        ],
-        "newlines-between": "always",
-        alphabetize: { order: "asc", caseInsensitive: true },
-      }],
+      'import/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', ['parent', 'sibling'], 'index', 'type'],
+          'newlines-between': 'always',
+          alphabetize: { order: 'asc', caseInsensitive: true },
+        },
+      ],
 
       // Accesibilidad
-      "jsx-a11y/anchor-is-valid": "off", // Next.js Link component
+      'jsx-a11y/anchor-is-valid': 'off', // Next.js Link component
 
       // Tailwind
-      "tailwindcss/no-custom-classname": "off", // Permitir custom classes
+      'tailwindcss/no-custom-classname': 'off', // Permitir custom classes
     },
   },
   {
     // Ignorar archivos generados
     ignores: [
-      "node_modules/",
-      ".next/",
-      "out/",
-      "prisma/generated/",
-      "amplify_outputs.json",
-      ".amplify/",
+      'node_modules/',
+      '.next/',
+      'out/',
+      'prisma/generated/',
+      'amplify_outputs.json',
+      '.amplify/',
     ],
   },
 ];
@@ -199,16 +201,9 @@ Agregar configuración en `package.json`:
 ```json
 {
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml,css}": [
-      "prettier --write"
-    ],
-    "*.prisma": [
-      "prettier --write"
-    ]
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml,css}": ["prettier --write"],
+    "*.prisma": ["prettier --write"]
   }
 }
 ```
@@ -230,17 +225,17 @@ export default {
       2,
       'always',
       [
-        'feat',     // Nueva funcionalidad
-        'fix',      // Corrección de bug
-        'docs',     // Documentación
-        'style',    // Formato (no afecta lógica)
+        'feat', // Nueva funcionalidad
+        'fix', // Corrección de bug
+        'docs', // Documentación
+        'style', // Formato (no afecta lógica)
         'refactor', // Refactorización
-        'perf',     // Mejora de rendimiento
-        'test',     // Tests
-        'chore',    // Tareas de mantenimiento
-        'ci',       // CI/CD
-        'build',    // Build system
-        'revert',   // Revert de commit
+        'perf', // Mejora de rendimiento
+        'test', // Tests
+        'chore', // Tareas de mantenimiento
+        'ci', // CI/CD
+        'build', // Build system
+        'revert', // Revert de commit
       ],
     ],
     // Scopes permitidos (módulos de NexoERP)
@@ -248,20 +243,20 @@ export default {
       2,
       'always',
       [
-        'core',        // Módulo core
-        'auth',        // Autenticación
-        'contacts',    // Módulo contactos
-        'accounting',  // Módulo contabilidad
-        'invoicing',   // Módulo facturación
-        'purchasing',  // Módulo compras
-        'sales',       // Módulo ventas/CRM
-        'inventory',   // Módulo inventarios
-        'ui',          // Componentes UI
-        'db',          // Base de datos / Prisma
-        'infra',       // Infraestructura / AWS
-        'api',         // API routes
-        'deps',        // Dependencias
-        'config',      // Configuración
+        'core', // Módulo core
+        'auth', // Autenticación
+        'contacts', // Módulo contactos
+        'accounting', // Módulo contabilidad
+        'invoicing', // Módulo facturación
+        'purchasing', // Módulo compras
+        'sales', // Módulo ventas/CRM
+        'inventory', // Módulo inventarios
+        'ui', // Componentes UI
+        'db', // Base de datos / Prisma
+        'infra', // Infraestructura / AWS
+        'api', // API routes
+        'deps', // Dependencias
+        'config', // Configuración
       ],
     ],
     'scope-empty': [1, 'never'], // Warning si no hay scope
@@ -368,9 +363,7 @@ indent_style = tab
     "editor.defaultFormatter": "Prisma.prisma"
   },
   "typescript.preferences.importModuleSpecifier": "non-relative",
-  "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-  ],
+  "tailwindCSS.experimental.classRegex": [["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]],
   "files.associations": {
     "*.css": "tailwindcss"
   }
@@ -426,20 +419,20 @@ commitlint.config.mjs       # Reglas de commitlint
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | `npm run lint` ejecuta sin errores | Exit code 0 |
-| 2 | `npm run format:check` verifica formato sin errores | Exit code 0 |
-| 3 | `npm run typecheck` compila sin errores de tipos | Exit code 0 |
-| 4 | Pre-commit hook ejecuta lint-staged | Hacer commit y verificar |
-| 5 | commitlint rechaza mensajes fuera de Conventional Commits | `git commit -m "bad"` falla |
-| 6 | commitlint acepta scopes de NexoERP | `feat(invoicing): ...` pasa |
-| 7 | Prettier formatea archivos .ts, .tsx, .json, .md | `npm run format` modifica archivos |
-| 8 | ESLint detecta imports desordenados | Mover un import y verificar |
-| 9 | ESLint detecta unused vars | Crear variable sin usar |
-| 10 | Changesets inicializado | Directorio `.changeset/` existe |
-| 11 | EditorConfig configurado | `.editorconfig` existe |
-| 12 | VS Code extensions recomendadas definidas | `.vscode/extensions.json` |
+| #   | Criterio                                                  | Verificación                       |
+| --- | --------------------------------------------------------- | ---------------------------------- |
+| 1   | `npm run lint` ejecuta sin errores                        | Exit code 0                        |
+| 2   | `npm run format:check` verifica formato sin errores       | Exit code 0                        |
+| 3   | `npm run typecheck` compila sin errores de tipos          | Exit code 0                        |
+| 4   | Pre-commit hook ejecuta lint-staged                       | Hacer commit y verificar           |
+| 5   | commitlint rechaza mensajes fuera de Conventional Commits | `git commit -m "bad"` falla        |
+| 6   | commitlint acepta scopes de NexoERP                       | `feat(invoicing): ...` pasa        |
+| 7   | Prettier formatea archivos .ts, .tsx, .json, .md          | `npm run format` modifica archivos |
+| 8   | ESLint detecta imports desordenados                       | Mover un import y verificar        |
+| 9   | ESLint detecta unused vars                                | Crear variable sin usar            |
+| 10  | Changesets inicializado                                   | Directorio `.changeset/` existe    |
+| 11  | EditorConfig configurado                                  | `.editorconfig` existe             |
+| 12  | VS Code extensions recomendadas definidas                 | `.vscode/extensions.json`          |
 
 ---
 

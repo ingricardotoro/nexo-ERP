@@ -17,14 +17,14 @@ Configurar AWS Amplify Gen 2 como la plataforma de hosting, CI/CD, autenticació
 
 ## 2. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-01 completado | Proyecto Next.js 15 funcional | `npm run dev` funciona |
-| Cuenta AWS | Con acceso a la consola y permisos de administrador | Login en console.aws.amazon.com |
-| AWS CLI v2 | Instalado y configurado | `aws --version` |
-| Amplify CLI | @aws-amplify/backend-cli v1.x | Se instala como dependencia |
-| Región | `us-east-1` configurada como default | `aws configure get region` |
-| Presupuesto | AWS Budgets configurado con alerta a $45/mes | Verificar en AWS Console |
+| Requisito        | Detalle                                             | Verificación                    |
+| ---------------- | --------------------------------------------------- | ------------------------------- |
+| F0-01 completado | Proyecto Next.js 15 funcional                       | `npm run dev` funciona          |
+| Cuenta AWS       | Con acceso a la consola y permisos de administrador | Login en console.aws.amazon.com |
+| AWS CLI v2       | Instalado y configurado                             | `aws --version`                 |
+| Amplify CLI      | @aws-amplify/backend-cli v1.x                       | Se instala como dependencia     |
+| Región           | `us-east-1` configurada como default                | `aws configure get region`      |
+| Presupuesto      | AWS Budgets configurado con alerta a $45/mes        | Verificar en AWS Console        |
 
 ---
 
@@ -198,13 +198,9 @@ export const storage = defineStorage({
     ],
     // Documentos protegidos por empresa (facturas, reportes)
     // El acceso real se controla en la API verificando company_id del JWT
-    'companies/{entity_id}/documents/*': [
-      allow.entity('identity').to(['read', 'write', 'delete']),
-    ],
+    'companies/{entity_id}/documents/*': [allow.entity('identity').to(['read', 'write', 'delete'])],
     // Archivos temporales para import/export
-    'temp/{entity_id}/*': [
-      allow.entity('identity').to(['read', 'write', 'delete']),
-    ],
+    'temp/{entity_id}/*': [allow.entity('identity').to(['read', 'write', 'delete'])],
   }),
 });
 ```
@@ -280,10 +276,8 @@ import AmplifyConfigProvider from '@/lib/amplify/config';
 
 // En el body del layout:
 <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
-  <AmplifyConfigProvider>
-    {children}
-  </AmplifyConfigProvider>
-</body>
+  <AmplifyConfigProvider>{children}</AmplifyConfigProvider>
+</body>;
 ```
 
 ### 3.10 Crear sandbox de desarrollo
@@ -294,12 +288,14 @@ npx ampx sandbox
 ```
 
 **Primera ejecución:**
+
 - Creará un CloudFormation stack con sufijo del developer
 - Provisionará Cognito User Pool, S3 bucket
 - Generará `amplify_outputs.json` en la raíz del proyecto
 - Mostrará el endpoint del sandbox
 
 **Output esperado:**
+
 ```
 ✔  Deployment successful
   amplify_outputs.json was updated.
@@ -380,21 +376,21 @@ amplify_outputs.json            # (generado, gitignored)
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | `@aws-amplify/backend` y `aws-amplify` instalados | `package.json` |
-| 2 | `amplify/backend.ts` define auth y storage | Archivo existe con configuración |
-| 3 | Cognito User Pool creado con login por email | `aws cognito-idp list-user-pools` |
-| 4 | Cognito tiene política de contraseñas robusta | 8+ chars, upper, lower, number, special |
-| 5 | MFA TOTP configurado como opcional | Configuración en `auth/resource.ts` |
-| 6 | S3 bucket creado con estructura de paths por empresa | `aws s3 ls` |
-| 7 | S3 tiene Block Public Access habilitado | Configuración de bucket |
-| 8 | `amplify_outputs.json` generado y en `.gitignore` | Verificar ambos |
-| 9 | `npx ampx sandbox` completa sin errores | CloudFormation stack desplegado |
-| 10 | Cliente Amplify configurado en Next.js (client + server) | Archivos en `src/lib/amplify/` |
-| 11 | Layout raíz incluye AmplifyConfigProvider | `src/app/layout.tsx` |
-| 12 | AWS Budget configurado con alerta a $45/mes (90%) | AWS Budgets console |
-| 13 | Sandbox se puede crear y destruir sin errores | `sandbox` + `sandbox delete` |
+| #   | Criterio                                                 | Verificación                            |
+| --- | -------------------------------------------------------- | --------------------------------------- |
+| 1   | `@aws-amplify/backend` y `aws-amplify` instalados        | `package.json`                          |
+| 2   | `amplify/backend.ts` define auth y storage               | Archivo existe con configuración        |
+| 3   | Cognito User Pool creado con login por email             | `aws cognito-idp list-user-pools`       |
+| 4   | Cognito tiene política de contraseñas robusta            | 8+ chars, upper, lower, number, special |
+| 5   | MFA TOTP configurado como opcional                       | Configuración en `auth/resource.ts`     |
+| 6   | S3 bucket creado con estructura de paths por empresa     | `aws s3 ls`                             |
+| 7   | S3 tiene Block Public Access habilitado                  | Configuración de bucket                 |
+| 8   | `amplify_outputs.json` generado y en `.gitignore`        | Verificar ambos                         |
+| 9   | `npx ampx sandbox` completa sin errores                  | CloudFormation stack desplegado         |
+| 10  | Cliente Amplify configurado en Next.js (client + server) | Archivos en `src/lib/amplify/`          |
+| 11  | Layout raíz incluye AmplifyConfigProvider                | `src/app/layout.tsx`                    |
+| 12  | AWS Budget configurado con alerta a $45/mes (90%)        | AWS Budgets console                     |
+| 13  | Sandbox se puede crear y destruir sin errores            | `sandbox` + `sandbox delete`            |
 
 ---
 
@@ -426,14 +422,14 @@ amplify_outputs.json            # (generado, gitignored)
 
 ## 7. Seguridad — Verificaciones Obligatorias
 
-| Verificación | Estado esperado |
-|-------------|----------------|
-| Cognito Advanced Security | Habilitado (se activa en Fase 1, por costo) |
-| S3 Block Public Access | 4 opciones activadas |
-| S3 Server-Side Encryption | SSE-S3 por defecto |
-| `amplify_outputs.json` en `.gitignore` | ✅ |
-| No hay credenciales en código | ✅ — solo en `.env.local` y AWS CLI profile |
-| Tokens en HTTP-only cookies | Configurado en Fase 1 (middleware auth) |
+| Verificación                           | Estado esperado                             |
+| -------------------------------------- | ------------------------------------------- |
+| Cognito Advanced Security              | Habilitado (se activa en Fase 1, por costo) |
+| S3 Block Public Access                 | 4 opciones activadas                        |
+| S3 Server-Side Encryption              | SSE-S3 por defecto                          |
+| `amplify_outputs.json` en `.gitignore` | ✅                                          |
+| No hay credenciales en código          | ✅ — solo en `.env.local` y AWS CLI profile |
+| Tokens en HTTP-only cookies            | Configurado en Fase 1 (middleware auth)     |
 
 ---
 

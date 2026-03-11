@@ -1,0 +1,76 @@
+// prisma/schema/base.prisma
+// Configuración base: datasource, generator y enums compartidos
+// Todos los archivos .prisma en prisma/schema/ se combinan (Prisma 6 multi-file)
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [uuidOssp(map: "uuid-ossp"), pgcrypto, citext, pgTrgm(map: "pg_trgm")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// === Enums globales ===
+
+/// Roles predeterminados del sistema (RBAC) — se expande en Fase 1
+enum SystemRole {
+  ADMIN // Administrador — Acceso total
+  MANAGER // Gerente — CRUD operativo
+  ACCOUNTANT // Contador — Contabilidad y facturación
+  SALESPERSON // Vendedor — Ventas y CRM
+  AUDITOR // Auditor — Solo lectura + auditoría
+}
+
+/// Acciones de auditoría
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+/// Estados genéricos de documentos
+enum DocumentStatus {
+  DRAFT // Borrador
+  PUBLISHED // Publicado/Activo
+  CANCELLED // Cancelado
+}
+
+/// Tipos de contacto
+enum ContactType {
+  NATURAL // Persona natural
+  JURIDICAL // Persona jurídica
+}
+
+/// Naturaleza de cuenta contable (NIIF)
+enum AccountNature {
+  DEBIT // Deudora
+  CREDIT // Acreedora
+}
+
+/// Tipos de cuenta contable (clasificación NIIF)
+enum AccountType {
+  ASSET // Activo
+  LIABILITY // Pasivo
+  EQUITY // Patrimonio/Capital
+  INCOME // Ingreso
+  COST // Costo
+  EXPENSE // Gasto
+}
+
+/// Estados de período fiscal
+enum FiscalPeriodStatus {
+  OPEN // Abierto — permite asientos
+  CLOSED // Cerrado — no permite asientos
+}
+
+/// Estados de factura fiscal
+enum InvoiceStatus {
+  DRAFT // Borrador
+  PUBLISHED // Publicada (con número SAR)
+  PAID // Pagada
+  CANCELLED // Cancelada
+}

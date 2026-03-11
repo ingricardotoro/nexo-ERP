@@ -6,21 +6,58 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate",
+    "db:reset": "prisma migrate reset",
+    "db:status": "prisma migrate status",
+    "prepare": "husky"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed/index.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ],
+    "*.prisma": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.7.2",
+    "@prisma/client": "^6.19.2",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/react-query": "^5.90.21",
+    "aws-amplify": "^6.16.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "next": "^15.1.6",
+    "next": "^15.5.12",
     "nuqs": "^2.8.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -31,14 +68,41 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.21.0",
+    "@aws-amplify/backend-cli": "^1.8.2",
     "@changesets/cli": "^2.30.0",
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
+    "@eslint/eslintrc": "^3.3.5",
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.17.10",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^15.1.6",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "dotenv": "^17.3.1",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^15.5.12",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.3",
     "postcss": "^8.4.49",
+    "prettier": "^3.8.1",
+    "prettier-plugin-prisma": "^5.0.0",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "prisma": "^6.19.2",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.2"
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
   }
 }

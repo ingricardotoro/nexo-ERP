@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+prisma/migrations/
+amplify_outputs.json
+.amplify/
+package-lock.json

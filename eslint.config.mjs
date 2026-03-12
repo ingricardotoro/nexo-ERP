@@ -1,24 +1,37 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-import { FlatCompat } from '@eslint/eslintrc';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
 
 const eslintConfig = [
-  ...compat.extends(
-    'next/core-web-vitals',
-    'next/typescript',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:jsx-a11y/recommended',
-    'prettier', // Debe ser el último para override de reglas de formato
-  ),
   {
+    // Ignorar archivos generados
+    ignores: [
+      'node_modules/',
+      '.next/',
+      'out/',
+      'prisma/generated/',
+      'amplify_outputs.json',
+      '.amplify/',
+      'next-env.d.ts',
+      'coverage/',
+      'test-results/',
+      'playwright-report/',
+    ],
+  },
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
     rules: {
       // TypeScript
       '@typescript-eslint/no-unused-vars': [
@@ -35,36 +48,20 @@ const eslintConfig = [
           prefer: 'type-imports',
         },
       ],
+      '@typescript-eslint/no-require-imports': 'off',
 
-      // React
-      'react/no-unescaped-entities': 'off',
-
-      // Import order
-      'import/order': [
-        'error',
-        {
-          groups: ['builtin', 'external', 'internal', ['parent', 'sibling'], 'index', 'type'],
-          'newlines-between': 'always',
-          alphabetize: { order: 'asc', caseInsensitive: true },
-        },
-      ],
-
-      // Accesibilidad
-      'jsx-a11y/anchor-is-valid': 'off', // Next.js Link component
+      // General
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'prefer-const': 'error',
+      'no-var': 'error',
     },
   },
   {
-    // Ignorar archivos generados
-    ignores: [
-      'node_modules/',
-      '.next/',
-      'out/',
-      'prisma/generated/',
-      'amplify_outputs.json',
-      '.amplify/',
-      'next-env.d.ts',
-      'coverage/',
-    ],
+    // Permitir console.log en tests y seeds
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/seed/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    rules: {
+      'no-console': 'off',
+    },
   },
 ];
 

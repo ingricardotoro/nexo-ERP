@@ -10,6 +10,7 @@
 ## Contexto
 
 NexoERP usa **AWS Amplify Gen 2** como plataforma principal de hosting y deployment, que incluye:
+
 - Build automático de Next.js 16
 - Deploy a CloudFront + S3
 - Provisión de backend (Cognito, S3 Storage, Lambda)
@@ -21,6 +22,7 @@ NexoERP usa **AWS Amplify Gen 2** como plataforma principal de hosting y deploym
 **¿Necesitamos GitHub Actions si Amplify ya tiene CI/CD integrado?**
 
 Amplify ejecuta builds en cada push a ramas configuradas, pero:
+
 - ❌ NO ejecuta tests automatizados (Vitest, Playwright)
 - ❌ NO valida linting (ESLint, Prettier)
 - ❌ NO bloquea merges con checks automáticos
@@ -36,11 +38,13 @@ Amplify ejecuta builds en cada push a ramas configuradas, pero:
 ### Opción A: Solo AWS Amplify (rechazada) ❌
 
 **Pros:**
+
 - Cero costo adicional de CI
 - Una sola herramienta (simplicidad)
 - Type-check incluido en build de Next.js
 
 **Contras:**
+
 - Detectas errores TARDE (después de push a main/staging)
 - No hay quality gates en PRs
 - Tests manuales antes de merge (propenso a error humano)
@@ -48,6 +52,7 @@ Amplify ejecuta builds en cada push a ramas configuradas, pero:
 - Sin branch protection real basada en checks automáticos
 
 **Por qué se rechazó:**
+
 - Durante actualización Next.js 15 → 16, un cambio en `tenant-extension.ts` rompió 3/8 tests de aislamiento multi-tenant
 - El error se detectó DESPUÉS de push, requiriendo múltiples iteraciones de fix
 - Con GitHub Actions, el PR hubiera sido bloqueado automáticamente antes de merge
@@ -58,17 +63,20 @@ Amplify ejecuta builds en cada push a ramas configuradas, pero:
 ### Opción B: Solo GitHub Actions (rechazada) ❌
 
 **Pros:**
+
 - Control total sobre pipeline CI/CD
 - Personalización ilimitada
 - Mismo flujo para CI y deploy
 
 **Contras:**
+
 - Duplicar funcionalidad ya incluida en Amplify (build, deploy, backend provisioning)
 - Complejidad adicional: configurar deployment a AWS manualmente
 - Costo de GitHub Actions aumenta significativamente con deploys frecuentes
 - Perder features de Amplify: preview environments, rollback automático, integración CloudFront/WAF
 
 **Por qué se rechazó:**
+
 - Amplify Gen 2 es la arquitectura base del proyecto (decisión del sponsor ya tomada)
 - Duplicar deployment pipeline es sobre-ingeniería innecesaria
 - Presupuesto limitado (~$50/mes) no justifica dos soluciones de deployment
@@ -102,12 +110,13 @@ Developer → Feature Branch → GitHub PR
 
 **Responsabilidades:**
 
-| Componente | Responsabilidad | Cuándo ejecuta |
-|------------|----------------|----------------|
-| **GitHub Actions** | Quality gates (tests, lint, typecheck, build verification) | En PRs + push a main/staging |
-| **AWS Amplify** | Production build + Deploy + Backend provisioning | Después de merge a main/staging |
+| Componente         | Responsabilidad                                            | Cuándo ejecuta                  |
+| ------------------ | ---------------------------------------------------------- | ------------------------------- |
+| **GitHub Actions** | Quality gates (tests, lint, typecheck, build verification) | En PRs + push a main/staging    |
+| **AWS Amplify**    | Production build + Deploy + Backend provisioning           | Después de merge a main/staging |
 
 **Pros:**
+
 - **Feedback rápido** en PRs (~2-3 min vs ~5-10 min de Amplify)
 - **Previene builds costosos** fallidos en Amplify
 - **Branch protection real** con checks automáticos obligatorios
@@ -117,10 +126,12 @@ Developer → Feature Branch → GitHub PR
 - **Mantiene beneficios Amplify:** Preview environments, rollback automático, integración AWS
 
 **Contras:**
+
 - Una herramienta adicional que configurar
 - Requiere mantener dos archivos de configuración (`.github/workflows/ci.yml` + `amplify.yml`)
 
 **Por qué se seleccionó:**
+
 1. **Presupuesto:** GitHub Actions gratis (2000 min/mes = ~250 PRs), Amplify solo para deploys reales (~$40-50/mes sin cambios)
 2. **Velocidad:** Feedback en 2-3 min en PR vs esperar 5-10 min de build Amplify completo
 3. **Calidad:** Branch protection automática previene regresiones como la del caso Next.js 16
@@ -209,12 +220,12 @@ frontend:
 
 ### Riesgos Mitigados 🛡️
 
-| Riesgo | Sin GitHub Actions | Con GitHub Actions |
-|--------|-------------------|-------------------|
-| **Merge de código roto** | Posible (solo code review manual) | Bloqueado automáticamente |
-| **Regresión multi-tenant** | No detectada hasta producción | Detectada en PR (tests obligatorios) |
-| **Builds costosos fallidos** | $0.10-0.20 por build fallido | Prevenido (build verification en CI) |
-| **Deuda técnica lint/format** | Acumulable (no enforcement) | Imposible (lint check obligatorio) |
+| Riesgo                        | Sin GitHub Actions                | Con GitHub Actions                   |
+| ----------------------------- | --------------------------------- | ------------------------------------ |
+| **Merge de código roto**      | Posible (solo code review manual) | Bloqueado automáticamente            |
+| **Regresión multi-tenant**    | No detectada hasta producción     | Detectada en PR (tests obligatorios) |
+| **Builds costosos fallidos**  | $0.10-0.20 por build fallido      | Prevenido (build verification en CI) |
+| **Deuda técnica lint/format** | Acumulable (no enforcement)       | Imposible (lint check obligatorio)   |
 
 ---
 
@@ -274,6 +285,6 @@ frontend:
 
 ## Historial de Revisiones
 
-| Fecha | Versión | Autor | Cambios |
-|-------|---------|-------|---------|
-| 2026-03-11 | 1.0 | Marvin | Decisión inicial (GitHub Actions + Amplify) |
+| Fecha      | Versión | Autor  | Cambios                                     |
+| ---------- | ------- | ------ | ------------------------------------------- |
+| 2026-03-11 | 1.0     | Marvin | Decisión inicial (GitHub Actions + Amplify) |

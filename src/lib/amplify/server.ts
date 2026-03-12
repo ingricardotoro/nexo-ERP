@@ -16,7 +16,6 @@ import { createServerRunner } from '@aws-amplify/adapter-nextjs';
 let amplifyOutputs = null;
 
 try {
-   
   amplifyOutputs = require('../../amplify_outputs.json');
 } catch {
   console.warn(

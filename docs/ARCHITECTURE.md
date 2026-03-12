@@ -50,77 +50,77 @@
 
 ### Frontend
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| **Next.js** | 16.1.6 | Framework React con SSR, App Router, API Routes |
-| **React** | 19.x | UI library con Server/Client Components |
-| **TypeScript** | 5.x | Type safety (strict mode) |
-| **Tailwind CSS** | 4.x | Utility-first styling |
-| **shadcn/ui** | Latest | Component library (Radix UI primitives) |
-| **TanStack Table** | 8.x | Tablas avanzadas (sorting, filtering, pagination) |
-| **TanStack Query** | 5.x | Server state management y caché |
-| **Zustand** | 5.x | Client state management ligero |
-| **React Hook Form** | 7.x | Form management |
-| **Zod** | 3.x | Schema validation (compartido front/back) |
-| **Recharts** | Latest | Gráficos y KPIs |
-| **dnd-kit** | Latest | Drag & drop (Kanban boards) |
-| **cmdk** | Latest | Command palette (⌘K) |
-| **date-fns** | Latest | Manipulación de fechas |
-| **nuqs** | Latest | State en URL query params |
+| Tecnología          | Versión | Propósito                                         |
+| ------------------- | ------- | ------------------------------------------------- |
+| **Next.js**         | 16.1.6  | Framework React con SSR, App Router, API Routes   |
+| **React**           | 19.x    | UI library con Server/Client Components           |
+| **TypeScript**      | 5.x     | Type safety (strict mode)                         |
+| **Tailwind CSS**    | 4.x     | Utility-first styling                             |
+| **shadcn/ui**       | Latest  | Component library (Radix UI primitives)           |
+| **TanStack Table**  | 8.x     | Tablas avanzadas (sorting, filtering, pagination) |
+| **TanStack Query**  | 5.x     | Server state management y caché                   |
+| **Zustand**         | 5.x     | Client state management ligero                    |
+| **React Hook Form** | 7.x     | Form management                                   |
+| **Zod**             | 3.x     | Schema validation (compartido front/back)         |
+| **Recharts**        | Latest  | Gráficos y KPIs                                   |
+| **dnd-kit**         | Latest  | Drag & drop (Kanban boards)                       |
+| **cmdk**            | Latest  | Command palette (⌘K)                              |
+| **date-fns**        | Latest  | Manipulación de fechas                            |
+| **nuqs**            | Latest  | State en URL query params                         |
 
 ### Backend
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| **Next.js API Routes** | 16.1.6 | REST API handlers (versionado `/api/v1/`) |
-| **Prisma ORM** | 6.19.2+ | Database access layer con type safety |
-| **Zod** | 3.x | Input validation en endpoints |
-| **Puppeteer** | Latest | PDF generation (invoices, reports) |
-| **@sparticuz/chromium** | Latest | Headless Chrome para Lambda |
-| **exceljs** | 4.x | Excel import/export |
-| **Handlebars** | Latest | HTML templates para PDFs |
+| Tecnología              | Versión | Propósito                                 |
+| ----------------------- | ------- | ----------------------------------------- |
+| **Next.js API Routes**  | 16.1.6  | REST API handlers (versionado `/api/v1/`) |
+| **Prisma ORM**          | 6.19.2+ | Database access layer con type safety     |
+| **Zod**                 | 3.x     | Input validation en endpoints             |
+| **Puppeteer**           | Latest  | PDF generation (invoices, reports)        |
+| **@sparticuz/chromium** | Latest  | Headless Chrome para Lambda               |
+| **exceljs**             | 4.x     | Excel import/export                       |
+| **Handlebars**          | Latest  | HTML templates para PDFs                  |
 
 ### Base de Datos
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| **PostgreSQL** | 16 | RDBMS principal |
-| **Prisma Schema** | Multi-file | Schema modular por dominio |
-| **Row-Level Security (RLS)** | Native | Aislamiento multi-tenant en DB |
+| Tecnología                   | Versión    | Propósito                      |
+| ---------------------------- | ---------- | ------------------------------ |
+| **PostgreSQL**               | 16         | RDBMS principal                |
+| **Prisma Schema**            | Multi-file | Schema modular por dominio     |
+| **Row-Level Security (RLS)** | Native     | Aislamiento multi-tenant en DB |
 
 ### Infraestructura AWS
 
-| Servicio | Configuración | Propósito |
-|----------|--------------|-----------|
-| **Amplify Gen 2** | Hosting + CI/CD | Deploy frontend, backend provisioning |
-| **Cognito User Pools** | MFA + Advanced Security | Autenticación, JWT tokens |
-| **RDS PostgreSQL** | db.t3.micro (20GB) | Base de datos producción |
-| **RDS Proxy** | Connection pooling | Serverless connection management |
-| **Lambda** | Node.js 20 | PDF generation, background jobs |
-| **SQS** | Standard queue | Async task processing |
-| **SES** | Transactional email | Notificaciones, facturas por email |
-| **EventBridge Scheduler** | Cron expressions | Tareas programadas (cierres, alertas) |
-| **S3** | Standard + Glacier | Almacenamiento documentos, backups |
-| **Secrets Manager** | Auto-rotation | Credenciales BD, API keys |
-| **CloudFront** | WAF + Shield | CDN, firewall, DDoS protection |
-| **CloudWatch** | Logs + Metrics | Monitoreo aplicación |
-| **CloudTrail** | Audit logs | Auditoría infraestructura |
-| **GuardDuty** | Threat detection | Seguridad proactiva |
+| Servicio                  | Configuración           | Propósito                             |
+| ------------------------- | ----------------------- | ------------------------------------- |
+| **Amplify Gen 2**         | Hosting + CI/CD         | Deploy frontend, backend provisioning |
+| **Cognito User Pools**    | MFA + Advanced Security | Autenticación, JWT tokens             |
+| **RDS PostgreSQL**        | db.t3.micro (20GB)      | Base de datos producción              |
+| **RDS Proxy**             | Connection pooling      | Serverless connection management      |
+| **Lambda**                | Node.js 20              | PDF generation, background jobs       |
+| **SQS**                   | Standard queue          | Async task processing                 |
+| **SES**                   | Transactional email     | Notificaciones, facturas por email    |
+| **EventBridge Scheduler** | Cron expressions        | Tareas programadas (cierres, alertas) |
+| **S3**                    | Standard + Glacier      | Almacenamiento documentos, backups    |
+| **Secrets Manager**       | Auto-rotation           | Credenciales BD, API keys             |
+| **CloudFront**            | WAF + Shield            | CDN, firewall, DDoS protection        |
+| **CloudWatch**            | Logs + Metrics          | Monitoreo aplicación                  |
+| **CloudTrail**            | Audit logs              | Auditoría infraestructura             |
+| **GuardDuty**             | Threat detection        | Seguridad proactiva                   |
 
 **Región:** `us-east-1`  
 **Presupuesto:** ~$50/mes (Cloud multi-tenant)
 
 ### Tooling & Quality
 
-| Herramienta | Propósito |
-|-------------|-----------|
-| **ESLint** | Linting (estándar Next.js + custom rules) |
-| **Prettier** | Code formatting (enforce consistency) |
-| **Husky** | Git hooks (pre-commit, commit-msg) |
-| **commitlint** | Conventional Commits enforcement |
-| **Changesets** | Versioning + changelog automation |
-| **Vitest** | Unit & integration testing |
-| **Playwright** | E2E testing |
+| Herramienta        | Propósito                                  |
+| ------------------ | ------------------------------------------ |
+| **ESLint**         | Linting (estándar Next.js + custom rules)  |
+| **Prettier**       | Code formatting (enforce consistency)      |
+| **Husky**          | Git hooks (pre-commit, commit-msg)         |
+| **commitlint**     | Conventional Commits enforcement           |
+| **Changesets**     | Versioning + changelog automation          |
+| **Vitest**         | Unit & integration testing                 |
+| **Playwright**     | E2E testing                                |
 | **GitHub Actions** | CI pipeline (lint, typecheck, test, build) |
 
 ---
@@ -173,6 +173,7 @@ NexoERP implementa **Shared Schema + `company_id` + Row-Level Security (RLS)** c
 ### Limitaciones de Diseño
 
 **PostgreSQL RLS + Prisma connection pooling NO son compatibles** (DAR-DBA-003):
+
 - `SET LOCAL app.current_company_id` no persiste entre queries del ORM
 - **Solución:** Application-layer filtering via Prisma Client Extension
 - **RLS se mantiene como fallback** (defense-in-depth)
@@ -221,12 +222,12 @@ GitHub Repository
 
 ### Ambientes
 
-| Ambiente | Branch | Base de Datos | URL |
-|----------|--------|---------------|-----|
-| **Local** | cualquiera | Docker PostgreSQL 16 (puerto 5433) | `http://localhost:3000` |
-| **Sandbox** | feature/* | Amplify Sandbox (efímero) | `sandbox-{id}.amplifyapp.com` |
-| **Staging** | staging | RDS staging instance | `staging.nexoerp.com` |
-| **Production** | main | RDS production instance | `app.nexoerp.com` |
+| Ambiente       | Branch     | Base de Datos                      | URL                           |
+| -------------- | ---------- | ---------------------------------- | ----------------------------- |
+| **Local**      | cualquiera | Docker PostgreSQL 16 (puerto 5433) | `http://localhost:3000`       |
+| **Sandbox**    | feature/\* | Amplify Sandbox (efímero)          | `sandbox-{id}.amplifyapp.com` |
+| **Staging**    | staging    | RDS staging instance               | `staging.nexoerp.com`         |
+| **Production** | main       | RDS production instance            | `app.nexoerp.com`             |
 
 ### Cognito User Pool
 
@@ -239,6 +240,7 @@ GitHub Repository
   - `custom:role` (String, enum: ADMINISTRADOR | GERENTE | CONTADOR | VENDEDOR | AUDITOR)
 
 **Lambda Triggers:**
+
 - PostConfirmation: Sincroniza user de Cognito → Prisma (Fase 1, pendiente)
 
 ### S3 Bucket Structure
@@ -383,25 +385,26 @@ prisma/
 
 **5 roles predefinidos:**
 
-| Rol | Permisos Resumidos |
-|-----|-------------------|
-| **ADMINISTRADOR** | Acceso total a todos los módulos y configuración del sistema |
-| **GERENTE** | CRUD en todos los módulos operativos, sin acceso a config sistema |
-| **CONTADOR** | CRUD en contabilidad y facturación, lectura en otros módulos |
-| **VENDEDOR** | CRUD en ventas y CRM, lectura contactos/inventario, crear facturas |
-| **AUDITOR** | Solo lectura en todos los módulos + acceso completo a logs auditoría |
+| Rol               | Permisos Resumidos                                                   |
+| ----------------- | -------------------------------------------------------------------- |
+| **ADMINISTRADOR** | Acceso total a todos los módulos y configuración del sistema         |
+| **GERENTE**       | CRUD en todos los módulos operativos, sin acceso a config sistema    |
+| **CONTADOR**      | CRUD en contabilidad y facturación, lectura en otros módulos         |
+| **VENDEDOR**      | CRUD en ventas y CRM, lectura contactos/inventario, crear facturas   |
+| **AUDITOR**       | Solo lectura en todos los módulos + acceso completo a logs auditoría |
 
 **Sistema de permisos:** `module.resource.action`
 
 ```typescript
 // Ejemplos:
-'invoicing.invoice.create'      // Crear facturas
-'accounting.journal_entry.delete' // Eliminar asientos contables
-'core.user.manage'              // Gestionar usuarios (solo ADMIN)
-'contacts.contact.read'         // Leer contactos
+'invoicing.invoice.create'; // Crear facturas
+'accounting.journal_entry.delete'; // Eliminar asientos contables
+'core.user.manage'; // Gestionar usuarios (solo ADMIN)
+'contacts.contact.read'; // Leer contactos
 ```
 
 **Implementación:**
+
 - Middleware en API Routes: `src/lib/permissions/rbac-middleware.ts`
 - Frontend guards: `src/lib/permissions/use-permissions.ts`
 - Database level: RLS policies como fallback
@@ -415,13 +418,13 @@ prisma/
 
 ### Protección de Datos
 
-| Tipo de Dato | Protección |
-|--------------|-----------|
-| **Passwords** | Hashed con Cognito (bcrypt equivalente) |
-| **JWT tokens** | Signed por Cognito, verificados server-side |
+| Tipo de Dato       | Protección                                                 |
+| ------------------ | ---------------------------------------------------------- |
+| **Passwords**      | Hashed con Cognito (bcrypt equivalente)                    |
+| **JWT tokens**     | Signed por Cognito, verificados server-side                |
 | **Datos fiscales** | Encriptados at-rest (RDS encryption), in-transit (TLS 1.3) |
-| **PII** | Masked en logs, nunca en console.log() |
-| **API keys** | Secrets Manager con auto-rotation |
+| **PII**            | Masked en logs, nunca en console.log()                     |
+| **API keys**       | Secrets Manager con auto-rotation                          |
 
 ### Headers de Seguridad HTTP
 
@@ -459,10 +462,10 @@ prisma/
 # .github/workflows/ci.yml
 
 jobs:
-  lint:        # ESLint + Prettier (~1 min)
-  typecheck:   # TypeScript strict (~1 min)
-  test:        # Vitest + PostgreSQL container (~3 min)
-  build:       # Next.js build verification (~2 min)
+  lint: # ESLint + Prettier (~1 min)
+  typecheck: # TypeScript strict (~1 min)
+  test: # Vitest + PostgreSQL container (~3 min)
+  build: # Next.js build verification (~2 min)
 ```
 
 **Total por PR:** ~6-8 minutos  
@@ -512,19 +515,20 @@ NexoERP implementa los requisitos del **SAR (Servicio de Administración de Rent
 ```typescript
 // Model: CAI
 {
-  code: string              // "ABC123-DEF456-GHI789" (formato oficial SAR)
-  emission_point_id: string // FK a EmissionPoint
-  document_type: string     // "FACTURA" | "RECIBO" | "NOTA_CREDITO" | "NOTA_DEBITO"
-  authorized_from: Date     // Inicio de vigencia
-  authorized_to: Date       // Fin de vigencia
-  range_start: number       // Número inicial autorizado
-  range_end: number         // Número final autorizado
-  current_number: number    // Contador (incrementa con cada factura)
-  is_active: boolean        // Auto-desactivar al llegar a range_end o vencer
+  code: string; // "ABC123-DEF456-GHI789" (formato oficial SAR)
+  emission_point_id: string; // FK a EmissionPoint
+  document_type: string; // "FACTURA" | "RECIBO" | "NOTA_CREDITO" | "NOTA_DEBITO"
+  authorized_from: Date; // Inicio de vigencia
+  authorized_to: Date; // Fin de vigencia
+  range_start: number; // Número inicial autorizado
+  range_end: number; // Número final autorizado
+  current_number: number; // Contador (incrementa con cada factura)
+  is_active: boolean; // Auto-desactivar al llegar a range_end o vencer
 }
 ```
 
 **Validaciones automáticas:**
+
 - ✅ CAI activo (dentro de rango de fechas)
 - ✅ Número dentro de rango autorizado
 - ✅ No reutilizar números (constraint UNIQUE en invoice_number + emission_point)
@@ -542,36 +546,37 @@ NexoERP implementa los requisitos del **SAR (Servicio de Administración de Rent
 
 ### ISV (Impuesto Sobre Ventas)
 
-| Tasa | Porcentaje | Aplicación |
-|------|-----------|-----------|
-| **Tasa 15%** | 15% | Venta de bienes (estándar) |
-| **Tasa 18%** | 18% | Servicios profesionales y técnicos |
-| **Exento** | 0% | Productos de la canasta básica, exportaciones |
+| Tasa         | Porcentaje | Aplicación                                    |
+| ------------ | ---------- | --------------------------------------------- |
+| **Tasa 15%** | 15%        | Venta de bienes (estándar)                    |
+| **Tasa 18%** | 18%        | Servicios profesionales y técnicos            |
+| **Exento**   | 0%         | Productos de la canasta básica, exportaciones |
 
 **Cálculo en factura:**
 
 ```typescript
 // InvoiceLine
 {
-  quantity: 10
-  unit_price: 100.00
-  subtotal: 1000.00              // quantity × unit_price
-  tax_rate_id: "ISV_15"          // FK a TaxRate (15%)
-  tax_amount: 150.00             // subtotal × 0.15
-  total: 1150.00                 // subtotal + tax_amount
+  quantity: 10;
+  unit_price: 100.0;
+  subtotal: 1000.0; // quantity × unit_price
+  tax_rate_id: 'ISV_15'; // FK a TaxRate (15%)
+  tax_amount: 150.0; // subtotal × 0.15
+  total: 1150.0; // subtotal + tax_amount
 }
 
 // Invoice
 {
-  subtotal: 1000.00              // SUM(lines.subtotal)
-  total_tax: 150.00              // SUM(lines.tax_amount)
-  total: 1150.00                 // subtotal + total_tax
+  subtotal: 1000.0; // SUM(lines.subtotal)
+  total_tax: 150.0; // SUM(lines.tax_amount)
+  total: 1150.0; // subtotal + total_tax
 }
 ```
 
 ### DET (Declaración Electrónica Tributaria)
 
 **Libros contables exportables:**
+
 - Libro de Ventas (facturas emitidas)
 - Libro de Compras (facturas recibidas)
 - Libro Diario (journal entries)
@@ -585,15 +590,15 @@ NexoERP implementa los requisitos del **SAR (Servicio de Administración de Rent
 
 NexoERP implementa **7 módulos activables** con gestión de dependencias:
 
-| Slug | Nombre | Dependencias | Fase | Estado |
-|------|--------|-------------|------|--------|
-| `core` | Core | — | 0-1 | ✅ Completado |
-| `contacts` | Contactos | core | 2 | ⏳ Planeado |
-| `accounting` | Contabilidad | core, contacts | 2 | ⏳ Planeado |
-| `invoicing` | Facturación | core, contacts, accounting | 3 | ⏳ Planeado |
-| `purchasing` | Compras | core, contacts, invoicing | 4 | ⏳ Planeado |
-| `sales` | Ventas y CRM | core, contacts, invoicing | 4 | ⏳ Planeado |
-| `inventory` | Inventarios | core, contacts | 4 | ⏳ Planeado |
+| Slug         | Nombre       | Dependencias               | Fase | Estado        |
+| ------------ | ------------ | -------------------------- | ---- | ------------- |
+| `core`       | Core         | —                          | 0-1  | ✅ Completado |
+| `contacts`   | Contactos    | core                       | 2    | ⏳ Planeado   |
+| `accounting` | Contabilidad | core, contacts             | 2    | ⏳ Planeado   |
+| `invoicing`  | Facturación  | core, contacts, accounting | 3    | ⏳ Planeado   |
+| `purchasing` | Compras      | core, contacts, invoicing  | 4    | ⏳ Planeado   |
+| `sales`      | Ventas y CRM | core, contacts, invoicing  | 4    | ⏳ Planeado   |
+| `inventory`  | Inventarios  | core, contacts             | 4    | ⏳ Planeado   |
 
 ### Reglas de Activación
 
@@ -635,18 +640,18 @@ Todas las decisiones arquitectónicas significativas se documentan como **Archit
 
 ### ADRs Completados
 
-| ID | Título | Estado | Fecha | Descripción |
-|----|--------|--------|-------|-------------|
+| ID                                                          | Título                                    | Estado          | Fecha      | Descripción                                                                           |
+| ----------------------------------------------------------- | ----------------------------------------- | --------------- | ---------- | ------------------------------------------------------------------------------------- |
 | [DAR-DBA-003](./adr/DAR-DBA-003-prisma-client-extension.md) | Prisma Client Extension para Multi-Tenant | ✅ Implementado | 2026-03-11 | Application-layer filtering debido a incompatibilidad RLS + Prisma connection pooling |
-| [DAR-INFRA-001](./adr/DAR-INFRA-001-hybrid-cicd.md) | Arquitectura Híbrida CI/CD | ✅ Implementado | 2026-03-11 | GitHub Actions (quality gates) + AWS Amplify (deploy) |
-| [DAR-INFRA-002](./adr/DAR-INFRA-002-nextjs-16-update.md) | Actualización Next.js 15 → 16 | ✅ Implementado | 2026-03-11 | Resolución vulnerabilidad MEDIUM + TypeScript 5.x compatibility |
+| [DAR-INFRA-001](./adr/DAR-INFRA-001-hybrid-cicd.md)         | Arquitectura Híbrida CI/CD                | ✅ Implementado | 2026-03-11 | GitHub Actions (quality gates) + AWS Amplify (deploy)                                 |
+| [DAR-INFRA-002](./adr/DAR-INFRA-002-nextjs-16-update.md)    | Actualización Next.js 15 → 16             | ✅ Implementado | 2026-03-11 | Resolución vulnerabilidad MEDIUM + TypeScript 5.x compatibility                       |
 
 ### ADRs Investigados (No Implementados)
 
-| ID | Título | Estado | Razón de Rechazo |
-|----|--------|--------|-----------------|
-| DAR-DBA-001 | PostgreSQL RLS como Única Capa | ❌ Rechazado | Incompatible con Prisma connection pooling |
-| DAR-DBA-002 | Dual-Role Pattern en Schema | 🔬 Investigado | Requiere Prisma views (experimental), complejidad > beneficio |
+| ID          | Título                         | Estado         | Razón de Rechazo                                              |
+| ----------- | ------------------------------ | -------------- | ------------------------------------------------------------- |
+| DAR-DBA-001 | PostgreSQL RLS como Única Capa | ❌ Rechazado   | Incompatible con Prisma connection pooling                    |
+| DAR-DBA-002 | Dual-Role Pattern en Schema    | 🔬 Investigado | Requiere Prisma views (experimental), complejidad > beneficio |
 
 ### Template ADR
 
@@ -661,15 +666,19 @@ Para crear nuevos ADRs, seguir la estructura:
 **Relacionado con:** {Otros ADRs}
 
 ## Contexto
+
 [Problema que se intenta resolver]
 
 ## Decisión
+
 [Opción seleccionada y justificación]
 
 ## Consecuencias
+
 [Positivas y negativas]
 
 ## Alternativas Consideradas
+
 [Opciones descartadas con razones]
 ```
 
@@ -690,6 +699,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] F0-09: MCPs configuration
 
 **Entregables:**
+
 - Repositorio GitHub configurado con CI/CD
 - Infraestructura AWS desplegada (sandbox funcionando)
 - Multi-tenant isolation testeado (8/8 tests pasando)
@@ -702,6 +712,7 @@ Para crear nuevos ADRs, seguir la estructura:
 **Objetivo:** Sistema base con multi-tenant, RBAC, y gestión de usuarios
 
 #### Entidades
+
 - [x] `Company` (tenant root) — Schema creado ✅
 - [x] `User` — Schema creado ✅
 - [ ] `Role` (5 roles predefinidos)
@@ -711,6 +722,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] `AuditLog` (inmutable, append-only)
 
 #### Features
+
 - [ ] Lambda PostConfirmation (Cognito → Prisma sync)
 - [ ] API middleware para extraer `company_id` del JWT
 - [ ] RBAC middleware en API Routes
@@ -721,6 +733,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] Auditoría de cambios (quién, qué, cuándo)
 
 #### Criterios de Éxito
+
 - [ ] Usuario puede registrarse (Cognito) y auto-provision su empresa
 - [ ] ADMINISTRADOR puede invitar usuarios a su tenant
 - [ ] Roles funcionan correctamente (permisos restrictivos)
@@ -734,6 +747,7 @@ Para crear nuevos ADRs, seguir la estructura:
 **Objetivo:** Base para facturación (requiere contactos + plan de cuentas)
 
 #### Módulo Contactos
+
 - [ ] Contact (dual: cliente/proveedor)
 - [ ] ContactAddress (facturación, entrega)
 - [ ] ContactPerson (nombres de contacto)
@@ -741,6 +755,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] Importación masiva Excel
 
 #### Módulo Contabilidad
+
 - [ ] Account (plan de cuentas NIIF jerárquico, ~200 cuentas seed)
 - [ ] FiscalYear + FiscalPeriod (cierres mensuales/anuales)
 - [ ] Journal (libro diario, ventas, compras)
@@ -750,6 +765,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] Reportes: Balance General, Estado de Resultados, Libro Mayor
 
 #### Criterios de Éxito
+
 - [ ] Plan de cuentas NIIF cargado con seed
 - [ ] Asientos contables cumplen partida doble (debit = credit)
 - [ ] Conciliación bancaria funcional (matching automático)
@@ -762,6 +778,7 @@ Para crear nuevos ADRs, seguir la estructura:
 **Objetivo:** Emisión de facturas fiscalmente válidas con CAI del SAR
 
 #### Features
+
 - [ ] CAI (gestión de rangos autorizados SAR)
 - [ ] EmissionPoint (puntos de emisión: 001, 002, etc.)
 - [ ] TaxRate + TaxGroup (ISV 15%, 18%, exento)
@@ -773,6 +790,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [ ] Libro de Ventas (exportable para DET)
 
 #### Criterios de Éxito
+
 - [ ] Factura con CAI válido genera PDF fiscalmente correcto
 - [ ] Numeración SAR nunca se repite (constraint DB)
 - [ ] Asiento contable automático cumple partida doble
@@ -786,17 +804,20 @@ Para crear nuevos ADRs, seguir la estructura:
 **Objetivo:** ERP completo con módulos avanzados
 
 #### Módulo Compras
+
 - [ ] PurchaseOrder (órdenes de compra)
 - [ ] PurchaseInvoice (facturas de proveedores)
 - [ ] Libro de Compras (DET)
 
 #### Módulo Ventas y CRM
+
 - [ ] Lead (prospectos)
 - [ ] Opportunity (oportunidades de venta)
 - [ ] SalesPipeline (Kanban board con dnd-kit)
 - [ ] Quotation (cotizaciones)
 
 #### Módulo Inventarios
+
 - [ ] Product (productos y servicios)
 - [ ] Warehouse + Location (bodegas y ubicaciones)
 - [ ] StockMove (movimientos de inventario)
@@ -818,12 +839,12 @@ Para crear nuevos ADRs, seguir la estructura:
 
 ### B. Testing Strategy
 
-| Tipo | Framework | Coverage Target | Cuando Ejecuta |
-|------|-----------|-----------------|---------------|
-| **Unit** | Vitest | >80% | Cada commit (local) + PR (CI) |
-| **Integration** | Vitest | >70% | PR (CI) |
-| **E2E** | Playwright | Critical flows | Push a main (CI) |
-| **Multi-tenant** | Vitest | 100% aislamiento | PR (CI) |
+| Tipo             | Framework  | Coverage Target  | Cuando Ejecuta                |
+| ---------------- | ---------- | ---------------- | ----------------------------- |
+| **Unit**         | Vitest     | >80%             | Cada commit (local) + PR (CI) |
+| **Integration**  | Vitest     | >70%             | PR (CI)                       |
+| **E2E**          | Playwright | Critical flows   | Push a main (CI)              |
+| **Multi-tenant** | Vitest     | 100% aislamiento | PR (CI)                       |
 
 ### C. Recursos Externos
 

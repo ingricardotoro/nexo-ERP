@@ -58,7 +58,12 @@ const eslintConfig = [
   },
   {
     // Permitir console.log en tests y seeds
-    files: ['**/__tests__/**/*.{ts,tsx}', '**/seed/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    files: [
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/seed/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      '**/*.spec.{ts,tsx}',
+    ],
     rules: {
       'no-console': 'off',
     },

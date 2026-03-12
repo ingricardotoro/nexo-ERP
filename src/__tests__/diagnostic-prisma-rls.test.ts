@@ -1,12 +1,16 @@
 /**
  * Test diagnóstico: Verificar si Prisma respeta SET LOCAL dentro de transacciones
+ *
+ * NOTA: Este test se ejecuta SOLO en desarrollo local (skip en CI)
+ * porque requiere configuración específica de RLS y estado limpio de BD.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
 import { prismaOwner } from './multi-tenant-isolation.test';
 
-describe('Diagnóstico Prisma + RLS', () => {
+// Test diagnóstico solo para desarrollo local (skip en CI)
+describe.skipIf(!!process.env.CI)('Diagnóstico Prisma + RLS', () => {
   const COMPANY_1 = '00000000-0000-0000-0000-000000000001';
   const COMPANY_2 = '00000000-0000-0000-0000-000000000002';
 

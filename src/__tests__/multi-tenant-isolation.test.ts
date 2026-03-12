@@ -44,75 +44,98 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
 
   beforeAll(async () => {
     console.log('[beforeAll] Iniciando cleanup...');
-    // Limpiar datos de test previos
-    // TRUNCATE CASCADE ignora RLS y es la forma más segura para test cleanup
+
+    // Cleanup robusto: Intentar eliminar registros específicos primero, luego TRUNCATE
     try {
-      await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE users CASCADE`);
-      await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE companies CASCADE`);
-      console.log('[beforeAll] TRUNCATE completado');
-    } catch (error) {
-      console.log('[beforeAll] Error en TRUNCATE:', error);
+      // Método 1: DELETE específico de test records (más seguro en CI)
+      // IMPORTANTE: Primero users, luego companies (por FK constraint)
+      await prismaOwner.$executeRawUnsafe(
+        `DELETE FROM users WHERE id IN ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1')`,
+      );
+      await prismaOwner.$executeRawUnsafe(
+        `DELETE FROM companies WHERE id IN ('${TENANT_A.id}', '${TENANT_B.id}')`,
+      );
+      console.log('[beforeAll] DELETE de test records completado');
+    } catch {
+      console.log('[beforeAll] DELETE falló, intentando TRUNCATE...');
+
+      // Método 2 (fallback): TRUNCATE si tenemos permisos
+      try {
+        await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE users CASCADE`);
+        await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE companies CASCADE`);
+        console.log('[beforeAll] TRUNCATE fallback completado');
+      } catch {
+        console.log('[beforeAll] TRUNCATE también falló (OK si BD está vacía)');
+      }
     }
 
-    // Crear las dos empresas de test (companies NO tiene RLS)
+    // Crear las dos empresas de test usando upsert para idempotencia
     console.log('[beforeAll] Creando Company A...');
-    const companyA = await prismaOwner.company.create({
-      data: {
+    const companyA = await prismaOwner.company.upsert({
+      where: { id: TENANT_A.id },
+      create: {
         id: TENANT_A.id,
         legalName: TENANT_A.name,
         tradeName: TENANT_A.name,
         rtn: TENANT_A.rtn,
         maxUsers: 5,
       },
+      update: {}, // Si ya existe, no hacer nada
     });
     companyAId = companyA.id;
-    console.log(`[beforeAll] Company A creada: ${companyAId}`);
+    console.log(`[beforeAll] Company A lista: ${companyAId}`);
 
     console.log('[beforeAll] Creando Company B...');
-    const companyB = await prismaOwner.company.create({
-      data: {
+    const companyB = await prismaOwner.company.upsert({
+      where: { id: TENANT_B.id },
+      create: {
         id: TENANT_B.id,
         legalName: TENANT_B.name,
         tradeName: TENANT_B.name,
         rtn: TENANT_B.rtn,
         maxUsers: 5,
       },
+      update: {}, // Si ya existe, no hacer nada
     });
     companyBId = companyB.id;
-    console.log(`[beforeAll] Company B creada: ${companyBId}`);
+    console.log(`[beforeAll] Company B lista: ${companyBId}`);
 
-    // Crear usuarios con companyId explícito
+    // Crear usuarios con companyId explícito usando upsert
     console.log('[beforeAll] Creando User A...');
     const userA = await withRLSContext(prismaOwner, companyAId, async (tx) => {
-      return tx.user.create({
-        data: {
+      return tx.user.upsert({
+        where: { id: '00000000-0000-0000-0000-0000000000a1' },
+        create: {
           id: '00000000-0000-0000-0000-0000000000a1',
           email: 'usera@test.nexoerp.com',
           fullName: 'User A',
           cognitoSub: 'cognito-sub-a',
-          companyId: companyAId, // Explícito: relaciones required de Prisma necesitan scalar field
+          companyId: companyAId,
           role: 'ADMIN',
         },
+        update: {}, // Si ya existe, no hacer nada
       });
     });
     userAId = userA.id;
-    console.log(`[beforeAll] User A creado: ${userAId}`);
+    console.log(`[beforeAll] User A listo: ${userAId}`);
 
     console.log('[beforeAll] Creando User B...');
     const userB = await withRLSContext(prismaOwner, companyBId, async (tx) => {
-      return tx.user.create({
-        data: {
+      return tx.user.upsert({
+        where: { id: '00000000-0000-0000-0000-0000000000b1' },
+        create: {
           id: '00000000-0000-0000-0000-0000000000b1',
           email: 'userb@test.nexoerp.com',
           fullName: 'User B',
           cognitoSub: 'cognito-sub-b',
-          companyId: companyBId, // Explícito: relaciones required de Prisma necesitan scalar field
+          companyId: companyBId,
           role: 'ADMIN',
         },
+        update: {}, // Si ya existe, no hacer nada
       });
     });
     userBId = userB.id;
-    console.log(`[beforeAll] User B creado: ${userBId}`);
+    console.log(`[beforeAll] User B listo: ${userBId}`);
     console.log('[beforeAll] Setup completo!');
   });
 

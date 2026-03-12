@@ -229,6 +229,107 @@ GitHub Repository
 | **Staging**    | staging    | RDS staging instance               | `staging.nexoerp.com`         |
 | **Production** | main       | RDS production instance            | `app.nexoerp.com`             |
 
+#### Ambiente Local (F0-07) ✅
+
+**Fecha completado:** 12 marzo 2026  
+**Spec:** [F0-07-ambientes.md](./specs/fase-0/F0-07-ambientes.md)
+
+**Servicios Docker Compose:**
+
+```yaml
+# docker-compose.yml — 3 servicios en red nexoerp-network
+services:
+  nexoerp-postgres: # PostgreSQL 16 Alpine
+    puerto: 5433:5432 # ⚠️ 5433 evita conflicto con WSL PostgreSQL
+    healthcheck: pg_isready cada 10s
+    volumen: ./docker/postgres/data (persistente)
+
+  nexoerp-pgadmin: # pgAdmin 4
+    puerto: 5050
+    UI: http://localhost:5050
+    credenciales: admin@nexoerp.com / admin123
+
+  nexoerp-mailhog: # SMTP dev server
+    SMTP: localhost:1025
+    UI: http://localhost:8025
+    propósito: capturar emails en desarrollo
+```
+
+**Validación de Ambiente (Zod):**
+
+- **Server-side:** `src/lib/env.ts` (15+ variables) — Fail-fast en startup
+- **Client-side:** `src/lib/env-client.ts` (5 NEXT*PUBLIC*\*) — Type-safe en browser
+- Template: `.env.example` (26+ variables documentadas)
+
+**Scripts de Automatización:**
+
+```bash
+# Setup completo en un comando (Node.js)
+npm run dev:setup
+# → verifica Docker → inicia containers → espera PG → prisma migrate → seed
+
+# Verificación de 9 componentes (PowerShell)
+npm run dev:verify
+# → Docker, PG, conexión, .env.local, node_modules, Prisma, migrations, pgAdmin, MailHog
+
+# Gestión Docker
+npm run docker:up      # Iniciar 3 contenedores
+npm run docker:down    # Detener y remover contenedores
+npm run docker:reset   # Reset completo (elimina volúmenes)
+npm run docker:logs    # Logs de todos los servicios
+```
+
+**Health Check Endpoint:**
+
+```
+GET /api/health
+Response 200 OK:
+{
+  "status": "healthy",
+  "timestamp": "2026-03-12T06:18:46.151Z",
+  "environment": "development",
+  "version": "0.0.0",
+  "uptime": 174.96,
+  "checks": {
+    "database": {
+      "status": "connected",
+      "latency": "6ms"
+    }
+  }
+}
+```
+
+**Configuración Amplify Gen 2:**
+
+```yaml
+# amplify.yml — Build settings para Amplify
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+        - npx prisma generate
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+```
+
+**Notas Importantes:**
+
+- ⚠️ **Puerto 5433 para PostgreSQL**: WSL tiene PostgreSQL en puerto 5432 (wslrelay)
+- ⚠️ **NextJS auto-port detection**: Si 3000 ocupado, usa 3003 automáticamente
+- ⚠️ **PowerShell encoding**: Scripts usan ASCII (emojis UTF-8 causan parse errors)
+- ✅ **Ambiente validado:** 9/9 checks [OK] antes de PR merge
+
 ### Cognito User Pool
 
 - **Region:** us-east-1
@@ -694,7 +795,7 @@ Para crear nuevos ADRs, seguir la estructura:
 - [x] F0-04: Tooling (ESLint, Prettier, Husky, Changesets)
 - [x] F0-05: Testing (Vitest + Playwright)
 - [x] F0-06: GitHub Actions CI/CD (hybrid pipeline)
-- [ ] F0-07: Ambientes staging/production (RDS + RDS Proxy)
+- [x] F0-07: Ambientes (local Docker completo, staging/production RDS pendiente) ✅
 - [x] F0-08: ARCHITECTURE.md + ADRs (este documento)
 - [ ] F0-09: MCPs configuration
 

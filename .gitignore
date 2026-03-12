@@ -9,6 +9,8 @@
 .env
 .env.local
 .env.*.local
+.env.staging
+.env.production
 
 # misc
 .DS_Store
@@ -22,6 +24,9 @@ prisma/generated/
 # amplify
 amplify_outputs.json
 .amplify/
+
+# docker
+docker/postgres/data/
 
 # IDE
 .idea/

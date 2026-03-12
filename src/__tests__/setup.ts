@@ -1,4 +1,9 @@
 // src/__tests__/setup.ts
+// Cargar variables de entorno ANTES de importar cualquier módulo
+import { config as loadDotenv } from 'dotenv';
+
+loadDotenv({ path: '.env.local' });
+
 import '@testing-library/jest-dom/vitest';
 
 /**
@@ -6,6 +11,7 @@ import '@testing-library/jest-dom/vitest';
  *
  * Este archivo se ejecuta antes de cada suite de tests.
  * Configura:
+ * - Variables de entorno (.env.local)
  * - Matchers de jest-dom (toBeInTheDocument, toHaveClass, etc.)
  * - Mocks globales
  */

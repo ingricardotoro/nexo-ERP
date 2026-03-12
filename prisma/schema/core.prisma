@@ -55,7 +55,7 @@ model User {
 
   // Multi-tenant — SIEMPRE presente, NOT NULL
   companyId String  @map("company_id") @db.Uuid
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   // RBAC básico (se expande en Fase 1 con Role model)
   role SystemRole @default(SALESPERSON)

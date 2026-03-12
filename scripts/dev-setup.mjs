@@ -61,7 +61,9 @@ async function main() {
   // 2. Verificar Docker
   step('2/6 — Verificar Docker');
   if (!run('docker info', { stdio: 'pipe' })) {
-    console.error('❌ Docker no está corriendo. Inicia Docker Desktop y ejecuta este script nuevamente.');
+    console.error(
+      '❌ Docker no está corriendo. Inicia Docker Desktop y ejecuta este script nuevamente.',
+    );
     process.exit(1);
   }
   console.log('✅ Docker está corriendo.');
@@ -93,7 +95,9 @@ async function main() {
   }
 
   if (!postgresReady) {
-    console.error('❌ PostgreSQL no respondió a tiempo. Verifica los logs con: docker compose logs postgres');
+    console.error(
+      '❌ PostgreSQL no respondió a tiempo. Verifica los logs con: docker compose logs postgres',
+    );
     process.exit(1);
   }
 
@@ -113,7 +117,9 @@ async function main() {
   step('6/6 — Ejecutar seed de base de datos');
   const seedSuccess = run('npx prisma db seed');
   if (!seedSuccess) {
-    console.warn('⚠️  El seed falló o no hay datos para insertar. Esto puede ser normal si ya se ejecutó.');
+    console.warn(
+      '⚠️  El seed falló o no hay datos para insertar. Esto puede ser normal si ya se ejecutó.',
+    );
   }
 
   // Resumen final

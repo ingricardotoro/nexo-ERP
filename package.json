@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:setup": "node scripts/dev-setup.mjs",
+    "dev:verify": "powershell -ExecutionPolicy Bypass -File scripts/verify-env.ps1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -28,6 +30,10 @@
     "db:generate": "prisma generate",
     "db:reset": "prisma migrate reset",
     "db:status": "prisma migrate status",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "docker:logs": "docker compose logs -f",
     "prepare": "husky"
   },
   "prisma": {

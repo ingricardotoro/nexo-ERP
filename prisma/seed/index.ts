@@ -11,13 +11,11 @@
 // Nota DAR-003: en Fase 0 no hay sincronización con Cognito.
 // Los users de prueba se crean con IDs manuales (UUID fake) en el seed de Fase 1.
 
-// eslint-disable-next-line import/order -- dotenv debe cargarse ANTES de @prisma/client para que DATABASE_URL esté disponible
 import { config as loadDotenv } from 'dotenv';
 
 // tsx no carga .env.local automáticamente → cargar manualmente
 loadDotenv({ path: '.env.local' });
 
-// eslint-disable-next-line import/order -- este import viene después de cargar dotenv por diseño
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

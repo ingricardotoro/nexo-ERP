@@ -48,9 +48,9 @@
 
 ### Pasos para probar
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Migraciones de Base de Datos
 

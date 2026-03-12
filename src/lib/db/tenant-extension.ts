@@ -24,8 +24,6 @@
  * @see DAR-DBA-003 en ARCHITECTURE.md
  */
 
-import { Prisma } from '@prisma/client';
-
 import type { PrismaClient } from '@prisma/client';
 
 /**

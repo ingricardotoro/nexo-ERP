@@ -44,17 +44,30 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
 
   beforeAll(async () => {
     console.log('[beforeAll] Iniciando cleanup...');
-    // Limpiar datos de test previos
-    // TRUNCATE CASCADE ignora RLS y es la forma más segura para test cleanup
+
+    // Cleanup robusto: TRUNCATE directo (más confiable en test environments)
     try {
+      // TRUNCATE CASCADE ignora RLS y limpia todo
       await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE users CASCADE`);
       await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE companies CASCADE`);
-      console.log('[beforeAll] TRUNCATE completado');
+      console.log('[beforeAll] TRUNCATE completado exitosamente');
     } catch (error) {
-      console.log('[beforeAll] Error en TRUNCATE:', error);
+      console.log('[beforeAll] TRUNCATE falló:', error);
+      // En CI con permisos limitados, intentar DELETE específico
+      try {
+        await prismaOwner.$executeRawUnsafe(
+          `DELETE FROM users WHERE id IN ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1')`,
+        );
+        await prismaOwner.$executeRawUnsafe(
+          `DELETE FROM companies WHERE id IN ('${TENANT_A.id}', '${TENANT_B.id}')`,
+        );
+        console.log('[beforeAll] DELETE fallback completado');
+      } catch {
+        console.log('[beforeAll] Cleanup falló completamente - asumiendo BD limpia');
+      }
     }
 
-    // Crear las dos empresas de test (companies NO tiene RLS)
+    // Crear las dos empresas de test (después del cleanup, deben ser create limpio)
     console.log('[beforeAll] Creando Company A...');
     const companyA = await prismaOwner.company.create({
       data: {
@@ -90,7 +103,7 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
           email: 'usera@test.nexoerp.com',
           fullName: 'User A',
           cognitoSub: 'cognito-sub-a',
-          companyId: companyAId, // Explícito: relaciones required de Prisma necesitan scalar field
+          companyId: companyAId,
           role: 'ADMIN',
         },
       });
@@ -106,7 +119,7 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
           email: 'userb@test.nexoerp.com',
           fullName: 'User B',
           cognitoSub: 'cognito-sub-b',
-          companyId: companyBId, // Explícito: relaciones required de Prisma necesitan scalar field
+          companyId: companyBId,
           role: 'ADMIN',
         },
       });

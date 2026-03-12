@@ -41,21 +41,25 @@ Feature Branch
 ### Jobs Configurados
 
 #### 1. **Lint & Format**
+
 - ESLint: `npm run lint`
 - Prettier: `npm run format:check`
 - Node.js 20 con npm cache
 
 #### 2. **TypeScript Check**
+
 - Type checking: `npm run typecheck`
 - Genera Prisma Client antes de verificar tipos
 
 #### 3. **Unit & Integration Tests**
+
 - PostgreSQL 16 service container
 - Ejecuta migraciones Prisma en DB de test
 - Corre tests con Vitest: `npm run test`
 - Genera coverage report (artifact 7 días)
 
 **Configuración PostgreSQL CI:**
+
 ```yaml
 services:
   postgres:
@@ -69,6 +73,7 @@ services:
 ```
 
 #### 4. **Build Verification**
+
 - Ejecuta build completo de Next.js: `npm run build`
 - Verifica que directorio `.next` se genere correctamente
 - NO hace deploy (lo hace Amplify)
@@ -147,9 +152,9 @@ gh api repos/:owner/:repo/branches/staging/protection \
 
 Configurar en: **Settings → Secrets and variables → Actions**
 
-| Secret Name | Descripción | Usado en |
-|------------|-------------|----------|
-| (ninguno requerido para CI básico) | Tests usan PostgreSQL local del service container | - |
+| Secret Name                        | Descripción                                       | Usado en |
+| ---------------------------------- | ------------------------------------------------- | -------- |
+| (ninguno requerido para CI básico) | Tests usan PostgreSQL local del service container | -        |
 
 **Nota:** AWS Amplify usa sus propias credenciales configuradas en la consola de Amplify (no en GitHub Secrets).
 
@@ -164,10 +169,11 @@ Configurar en: **Settings → Secrets and variables → Actions**
   uses: actions/setup-node@v4
   with:
     node-version: '20'
-    cache: 'npm'  # ← Cache automático de node_modules
+    cache: 'npm' # ← Cache automático de node_modules
 ```
 
 **Beneficios:**
+
 - Primera ejecución: ~60s instalación
 - Ejecuciones subsecuentes: ~10s (si package-lock.json no cambió)
 
@@ -188,6 +194,7 @@ Prisma Client se regenera en cada job (rápido: ~5s).
 
 **GitHub Free / Pro:** 2000 minutos/mes  
 **Consumo estimado NexoERP:**
+
 - 1 PR típico: ~8 minutos (4 jobs × 2 min promedio)
 - **Capacidad:** ~250 PRs/mes
 
@@ -206,6 +213,7 @@ Ver uso en: **Settings → Billing and plans → Plans and usage**
 **Causa común:** Variables de entorno faltantes
 
 **Solución:**
+
 1. Verificar que `DATABASE_URL` esté configurada en el job `test`
 2. Confirmar que migraciones Prisma se ejecuten antes de tests
 3. Revisar logs del service container PostgreSQL
@@ -215,6 +223,7 @@ Ver uso en: **Settings → Billing and plans → Plans and usage**
 **Causa común:** Prisma Client no generado
 
 **Solución:**
+
 ```yaml
 - name: Generate Prisma Client
   run: npm run db:generate
@@ -227,6 +236,7 @@ Debe ejecutarse ANTES de `npm run build` o `npm run typecheck`.
 **Síntoma:** Tests timeout conectando a base de datos
 
 **Solución:**
+
 ```yaml
 services:
   postgres:
@@ -258,6 +268,7 @@ test-e2e:
 ```
 
 **Consideración:** E2E tests son lentos (~5-10 min) y costosos. Ejecutar solo en:
+
 - Push a `main` (pre-production validation)
 - PRs con label `needs-e2e-tests`
 
@@ -279,6 +290,7 @@ release:
 ```
 
 **Flujo:**
+
 1. Merge a `main` con changesets pendientes
 2. GitHub Actions publica release automático
 3. Actualiza CHANGELOG.md
@@ -291,11 +303,13 @@ release:
 ### Configuración Amplify Console
 
 **Branch tracking:**
+
 - `main` → Production environment
 - `staging` → Staging environment
 - Feature branches → Preview environments (opcional, $$)
 
 **Build settings** (`amplify.yml`):
+
 ```yaml
 version: 1
 frontend:
@@ -319,6 +333,7 @@ frontend:
 ```
 
 **Variables de entorno Amplify:**
+
 - `DATABASE_URL` → RDS connection string (staging/production)
 - `NEXT_PUBLIC_APP_ENV` → `staging` | `production`
 
@@ -326,14 +341,14 @@ frontend:
 
 ## Ventajas de la Arquitectura Híbrida
 
-| Aspecto | GitHub Actions | AWS Amplify |
-|---------|---------------|-------------|
+| Aspecto       | GitHub Actions            | AWS Amplify                    |
+| ------------- | ------------------------- | ------------------------------ |
 | **Propósito** | Quality Gates (pre-merge) | Production Deploy (post-merge) |
-| **Velocidad** | 2-3 min | 5-10 min |
-| **Costo** | GRATIS (2000 min/mes) | ~$40-50/mes |
-| **Feedback** | Inmediato en PR | Después de merge |
-| **Rollback** | N/A (no hay deploy) | Automático si falla |
-| **Database** | PostgreSQL local (CI) | RDS (staging/prod) |
+| **Velocidad** | 2-3 min                   | 5-10 min                       |
+| **Costo**     | GRATIS (2000 min/mes)     | ~$40-50/mes                    |
+| **Feedback**  | Inmediato en PR           | Después de merge               |
+| **Rollback**  | N/A (no hay deploy)       | Automático si falla            |
+| **Database**  | PostgreSQL local (CI)     | RDS (staging/prod)             |
 
 **Conclusión:** GitHub Actions detecta problemas ANTES de gastar presupuesto Amplify en builds fallidos.
 
@@ -351,6 +366,7 @@ frontend:
 ---
 
 **Referencias:**
+
 - GitHub Actions: https://docs.github.com/en/actions
 - Branch Protection: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches
 - Amplify Gen 2 CI/CD: https://docs.amplify.aws/gen2/deploy-and-host/

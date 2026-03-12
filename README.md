@@ -1,5 +1,7 @@
 # NexoERP
 
+[![CI Pipeline](https://github.com/ingricardotoro/nexo-ERP/actions/workflows/ci.yml/badge.svg)](https://github.com/ingricardotoro/nexo-ERP/actions/workflows/ci.yml)
+
 Sistema ERP modular para PYMEs hondureñas.
 
 ## Stack Tecnológico
@@ -25,7 +27,7 @@ npm run dev
 
 ## Estructura del Proyecto
 
-Ver [ARCHITECTURE.md](docs/ARCHITECTURE.md) (se creará en F0-08).
+Ver documentación arquitectónica completa en [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Documentación
 

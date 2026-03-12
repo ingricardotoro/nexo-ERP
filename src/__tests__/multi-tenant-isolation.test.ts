@@ -45,67 +45,60 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
   beforeAll(async () => {
     console.log('[beforeAll] Iniciando cleanup...');
 
-    // Cleanup robusto: Intentar eliminar registros específicos primero, luego TRUNCATE
+    // Cleanup robusto: TRUNCATE directo (más confiable en test environments)
     try {
-      // Método 1: DELETE específico de test records (más seguro en CI)
-      // IMPORTANTE: Primero users, luego companies (por FK constraint)
-      await prismaOwner.$executeRawUnsafe(
-        `DELETE FROM users WHERE id IN ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1')`,
-      );
-      await prismaOwner.$executeRawUnsafe(
-        `DELETE FROM companies WHERE id IN ('${TENANT_A.id}', '${TENANT_B.id}')`,
-      );
-      console.log('[beforeAll] DELETE de test records completado');
-    } catch {
-      console.log('[beforeAll] DELETE falló, intentando TRUNCATE...');
-
-      // Método 2 (fallback): TRUNCATE si tenemos permisos
+      // TRUNCATE CASCADE ignora RLS y limpia todo
+      await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE users CASCADE`);
+      await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE companies CASCADE`);
+      console.log('[beforeAll] TRUNCATE completado exitosamente');
+    } catch (error) {
+      console.log('[beforeAll] TRUNCATE falló:', error);
+      // En CI con permisos limitados, intentar DELETE específico
       try {
-        await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE users CASCADE`);
-        await prismaOwner.$executeRawUnsafe(`TRUNCATE TABLE companies CASCADE`);
-        console.log('[beforeAll] TRUNCATE fallback completado');
+        await prismaOwner.$executeRawUnsafe(
+          `DELETE FROM users WHERE id IN ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1')`,
+        );
+        await prismaOwner.$executeRawUnsafe(
+          `DELETE FROM companies WHERE id IN ('${TENANT_A.id}', '${TENANT_B.id}')`,
+        );
+        console.log('[beforeAll] DELETE fallback completado');
       } catch {
-        console.log('[beforeAll] TRUNCATE también falló (OK si BD está vacía)');
+        console.log('[beforeAll] Cleanup falló completamente - asumiendo BD limpia');
       }
     }
 
-    // Crear las dos empresas de test usando upsert para idempotencia
+    // Crear las dos empresas de test (después del cleanup, deben ser create limpio)
     console.log('[beforeAll] Creando Company A...');
-    const companyA = await prismaOwner.company.upsert({
-      where: { id: TENANT_A.id },
-      create: {
+    const companyA = await prismaOwner.company.create({
+      data: {
         id: TENANT_A.id,
         legalName: TENANT_A.name,
         tradeName: TENANT_A.name,
         rtn: TENANT_A.rtn,
         maxUsers: 5,
       },
-      update: {}, // Si ya existe, no hacer nada
     });
     companyAId = companyA.id;
-    console.log(`[beforeAll] Company A lista: ${companyAId}`);
+    console.log(`[beforeAll] Company A creada: ${companyAId}`);
 
     console.log('[beforeAll] Creando Company B...');
-    const companyB = await prismaOwner.company.upsert({
-      where: { id: TENANT_B.id },
-      create: {
+    const companyB = await prismaOwner.company.create({
+      data: {
         id: TENANT_B.id,
         legalName: TENANT_B.name,
         tradeName: TENANT_B.name,
         rtn: TENANT_B.rtn,
         maxUsers: 5,
       },
-      update: {}, // Si ya existe, no hacer nada
     });
     companyBId = companyB.id;
-    console.log(`[beforeAll] Company B lista: ${companyBId}`);
+    console.log(`[beforeAll] Company B creada: ${companyBId}`);
 
-    // Crear usuarios con companyId explícito usando upsert
+    // Crear usuarios con companyId explícito
     console.log('[beforeAll] Creando User A...');
     const userA = await withRLSContext(prismaOwner, companyAId, async (tx) => {
-      return tx.user.upsert({
-        where: { id: '00000000-0000-0000-0000-0000000000a1' },
-        create: {
+      return tx.user.create({
+        data: {
           id: '00000000-0000-0000-0000-0000000000a1',
           email: 'usera@test.nexoerp.com',
           fullName: 'User A',
@@ -113,17 +106,15 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
           companyId: companyAId,
           role: 'ADMIN',
         },
-        update: {}, // Si ya existe, no hacer nada
       });
     });
     userAId = userA.id;
-    console.log(`[beforeAll] User A listo: ${userAId}`);
+    console.log(`[beforeAll] User A creado: ${userAId}`);
 
     console.log('[beforeAll] Creando User B...');
     const userB = await withRLSContext(prismaOwner, companyBId, async (tx) => {
-      return tx.user.upsert({
-        where: { id: '00000000-0000-0000-0000-0000000000b1' },
-        create: {
+      return tx.user.create({
+        data: {
           id: '00000000-0000-0000-0000-0000000000b1',
           email: 'userb@test.nexoerp.com',
           fullName: 'User B',
@@ -131,11 +122,10 @@ describe('Multi-Tenant Isolation — Row Level Security', () => {
           companyId: companyBId,
           role: 'ADMIN',
         },
-        update: {}, // Si ya existe, no hacer nada
       });
     });
     userBId = userB.id;
-    console.log(`[beforeAll] User B listo: ${userBId}`);
+    console.log(`[beforeAll] User B creado: ${userBId}`);
     console.log('[beforeAll] Setup completo!');
   });
 

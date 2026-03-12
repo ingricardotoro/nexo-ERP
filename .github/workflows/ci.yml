@@ -104,6 +104,7 @@ jobs:
 
       - name: Ejecutar tests con Vitest
         env:
+          CI: true
           DATABASE_URL: postgresql://nexoerp_test:test_password_ci@localhost:5432/nexoerp_test
           DIRECT_URL: postgresql://nexoerp_test:test_password_ci@localhost:5432/nexoerp_test
           NODE_ENV: test

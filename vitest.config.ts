@@ -21,6 +21,9 @@ export default defineConfig({
       'node_modules',
       '.next',
       'tests/e2e/**', // E2E se ejecuta con Playwright
+      // Tests diagnósticos solo para desarrollo local (no en CI)
+      'src/__tests__/debug-*.test.ts',
+      'src/__tests__/diagnostic-*.test.ts',
     ],
 
     // Cobertura

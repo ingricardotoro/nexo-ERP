@@ -1,6 +1,10 @@
-import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+
+import AmplifyConfigProvider from '@/lib/amplify/config';
+
 import './globals.css';
+
+import type { Metadata } from 'next';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
-        {children}
+        <AmplifyConfigProvider>{children}</AmplifyConfigProvider>
       </body>
     </html>
   );

@@ -9,6 +9,8 @@
 .env
 .env.local
 .env.*.local
+.env.staging
+.env.production
 
 # misc
 .DS_Store
@@ -23,6 +25,9 @@ prisma/generated/
 amplify_outputs.json
 .amplify/
 
+# docker
+docker/postgres/data/
+
 # IDE
 .idea/
 .vscode/settings.json
@@ -32,3 +37,6 @@ Thumbs.db
 
 # testing
 /coverage
+test-results/
+playwright-report/
+blob-report/

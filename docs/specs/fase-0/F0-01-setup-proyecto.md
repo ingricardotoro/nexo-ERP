@@ -17,13 +17,13 @@ Inicializar el proyecto NexoERP con Next.js 15, React 19, TypeScript 5 y Tailwin
 
 ## 2. Prerrequisitos
 
-| Requisito | Versión mínima | Verificación |
-|-----------|---------------|--------------|
-| Node.js | 20.x LTS | `node --version` |
-| npm | 10.x+ | `npm --version` |
-| Git | 2.40+ | `git --version` |
-| PowerShell | 5.1+ | `$PSVersionTable.PSVersion` |
-| VS Code | latest | Con extensiones: ESLint, Prettier, Tailwind CSS IntelliSense, Prisma |
+| Requisito  | Versión mínima | Verificación                                                         |
+| ---------- | -------------- | -------------------------------------------------------------------- |
+| Node.js    | 20.x LTS       | `node --version`                                                     |
+| npm        | 10.x+          | `npm --version`                                                      |
+| Git        | 2.40+          | `git --version`                                                      |
+| PowerShell | 5.1+           | `$PSVersionTable.PSVersion`                                          |
+| VS Code    | latest         | Con extensiones: ESLint, Prettier, Tailwind CSS IntelliSense, Prisma |
 
 ---
 
@@ -37,13 +37,14 @@ npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --
 ```
 
 **Opciones esperadas en el wizard interactivo:**
+
 - TypeScript: **Yes**
 - ESLint: **Yes**
 - Tailwind CSS: **Yes**
 - `src/` directory: **Yes**
 - App Router: **Yes**
 - Turbopack: **Yes**
-- Import alias: **@/***
+- Import alias: **@/\***
 
 > **Nota:** Si el directorio no está vacío (tiene `docs/`, `.claude/`), `create-next-app` puede mostrar advertencia. Confirmar que se desea continuar. Si no lo permite, crear en un directorio temporal y copiar los archivos.
 
@@ -55,6 +56,7 @@ npx tsc --version     # Debe ser 5.x
 ```
 
 Verificar en `package.json`:
+
 ```json
 {
   "dependencies": {
@@ -164,12 +166,7 @@ Verificar que incluya (debería venir de create-next-app, ajustar si falta):
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
 ```
@@ -179,7 +176,7 @@ Verificar que incluya (debería venir de create-next-app, ajustar si falta):
 Tailwind CSS 4 usa un modelo basado en CSS. Verificar `src/app/globals.css`:
 
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* === NexoERP Design Tokens === */
 
@@ -386,13 +383,11 @@ import { APP_NAME, APP_VERSION } from '@/constants/app';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
+    <main className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-primary-600">{APP_NAME}</h1>
-        <p className="mt-2 text-muted-foreground">
-          Sistema ERP modular para PYMEs hondureñas
-        </p>
-        <p className="mt-4 font-mono text-sm text-muted-foreground">
+        <h1 className="text-primary-600 text-4xl font-bold">{APP_NAME}</h1>
+        <p className="text-muted-foreground mt-2">Sistema ERP modular para PYMEs hondureñas</p>
+        <p className="text-muted-foreground mt-4 font-mono text-sm">
           v{APP_VERSION} — Fase 0: Fundación
         </p>
       </div>
@@ -489,6 +484,7 @@ npx shadcn@latest init
 ```
 
 **Opciones del wizard:**
+
 - Style: **New York**
 - Base color: **Neutral** (luego personalizamos con indigo)
 - CSS variables: **Yes**
@@ -549,20 +545,20 @@ src/
 
 ## 5. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | Next.js 15.x instalado con App Router | `npx next --version` → 15.x |
-| 2 | React 19.x | `package.json` dependencies |
-| 3 | TypeScript 5.x en strict mode | `tsconfig.json` → `"strict": true` |
-| 4 | Tailwind CSS 4.x con design tokens de NexoERP | `globals.css` tiene `@theme` con colores indigo |
-| 5 | shadcn/ui inicializado con componentes base | Directorio `src/components/ui/` con archivos |
-| 6 | `npm run dev` levanta en `localhost:3000` sin errores | Verificación visual |
-| 7 | `npm run build` compila sin errores | Exit code 0 |
-| 8 | `npx tsc --noEmit` sin errores de tipos | Exit code 0 |
-| 9 | Estructura de directorios creada según spec | Todos los directorios existen |
-| 10 | `.env.example` y `.env.local` configurados | Archivos existen con variables documentadas |
-| 11 | `.gitignore` incluye todas las exclusiones necesarias | Verificar contenido |
-| 12 | Dependencias base instaladas (zustand, tanstack-query, zod, etc.) | `package.json` |
+| #   | Criterio                                                          | Verificación                                    |
+| --- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| 1   | Next.js 15.x instalado con App Router                             | `npx next --version` → 15.x                     |
+| 2   | React 19.x                                                        | `package.json` dependencies                     |
+| 3   | TypeScript 5.x en strict mode                                     | `tsconfig.json` → `"strict": true`              |
+| 4   | Tailwind CSS 4.x con design tokens de NexoERP                     | `globals.css` tiene `@theme` con colores indigo |
+| 5   | shadcn/ui inicializado con componentes base                       | Directorio `src/components/ui/` con archivos    |
+| 6   | `npm run dev` levanta en `localhost:3000` sin errores             | Verificación visual                             |
+| 7   | `npm run build` compila sin errores                               | Exit code 0                                     |
+| 8   | `npx tsc --noEmit` sin errores de tipos                           | Exit code 0                                     |
+| 9   | Estructura de directorios creada según spec                       | Todos los directorios existen                   |
+| 10  | `.env.example` y `.env.local` configurados                        | Archivos existen con variables documentadas     |
+| 11  | `.gitignore` incluye todas las exclusiones necesarias             | Verificar contenido                             |
+| 12  | Dependencias base instaladas (zustand, tanstack-query, zod, etc.) | `package.json`                                  |
 
 ---
 

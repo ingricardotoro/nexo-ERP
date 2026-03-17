@@ -1,0 +1,101 @@
+# CODEOWNERS - Revisión Automática de Código
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Estructura:
+# patron/archivo   @usuario-github @equipo-github
+
+# ============================================
+# DEFAULT OWNER (Arquitecto de Software)
+# ============================================
+*   @marvin-erp-architect
+
+# ============================================
+# INFRAESTRUCTURA & CI/CD (DevOps)
+# ============================================
+/.github/               @marvin-erp-architect @devops-nexoerp
+/amplify/               @marvin-erp-architect @devops-nexoerp
+/docker/                @marvin-erp-architect @devops-nexoerp
+amplify.yml             @marvin-erp-architect @devops-nexoerp
+docker-compose.yml      @marvin-erp-architect @devops-nexoerp
+
+# ============================================
+# BASE DE DATOS (DBA)
+# ============================================
+/prisma/                @marvin-erp-architect @dba-nexoerp
+*.prisma                @marvin-erp-architect @dba-nexoerp
+/prisma/migrations/     @marvin-erp-architect @dba-nexoerp
+
+# ============================================
+# TESTING (QA Engineer)
+# ============================================
+/src/__tests__/         @marvin-erp-architect @qa-nexoerp
+/tests/                 @marvin-erp-architect @qa-nexoerp
+*.test.ts               @marvin-erp-architect @qa-nexoerp
+*.test.tsx              @marvin-erp-architect @qa-nexoerp
+*.spec.ts               @marvin-erp-architect @qa-nexoerp
+playwright.config.ts    @marvin-erp-architect @qa-nexoerp
+vitest.config.ts        @marvin-erp-architect @qa-nexoerp
+
+# ============================================
+# SEGURIDAD (Security Auditor)
+# ============================================
+/src/lib/auth/          @marvin-erp-architect @security-nexoerp
+/src/lib/permissions/   @marvin-erp-architect @security-nexoerp
+/amplify/auth/          @marvin-erp-architect @security-nexoerp
+
+# ============================================
+# DOCUMENTACIÓN (Doc Engineer)
+# ============================================
+/docs/                  @marvin-erp-architect @doc-engineer-nexoerp
+*.md                    @marvin-erp-architect @doc-engineer-nexoerp
+/docs/adr/              @marvin-erp-architect @doc-engineer-nexoerp
+
+# ============================================
+# CONFIGURACIÓN DE PROYECTO
+# ============================================
+package.json            @marvin-erp-architect
+package-lock.json       @marvin-erp-architect
+tsconfig.json           @marvin-erp-architect
+next.config.ts          @marvin-erp-architect
+eslint.config.mjs       @marvin-erp-architect
+prettier.config.mjs     @marvin-erp-architect
+
+# ============================================
+# MÓDULOS ERP (por dominio)
+# ============================================
+
+# Core (multi-tenant, RBAC, auditoría)
+/src/app/(dashboard)/settings/      @marvin-erp-architect
+/src/lib/db/tenant-extension.ts     @marvin-erp-architect @dba-nexoerp @security-nexoerp
+
+# Contactos
+/src/app/(dashboard)/contacts/      @marvin-erp-architect
+/prisma/schema/contacts.prisma      @marvin-erp-architect @dba-nexoerp
+
+# Contabilidad
+/src/app/(dashboard)/accounting/    @marvin-erp-architect
+/prisma/schema/accounting.prisma    @marvin-erp-architect @dba-nexoerp
+
+# Facturación
+/src/app/(dashboard)/invoicing/     @marvin-erp-architect
+/prisma/schema/invoicing.prisma     @marvin-erp-architect @dba-nexoerp
+
+# Inventarios
+/src/app/(dashboard)/inventory/     @marvin-erp-architect
+/prisma/schema/inventory.prisma     @marvin-erp-architect @dba-nexoerp
+
+# Compras
+/src/app/(dashboard)/purchasing/    @marvin-erp-architect
+/prisma/schema/purchasing.prisma    @marvin-erp-architect @dba-nexoerp
+
+# Ventas y CRM
+/src/app/(dashboard)/sales/         @marvin-erp-architect
+/prisma/schema/sales.prisma         @marvin-erp-architect @dba-nexoerp
+
+# ============================================
+# NOTAS
+# ============================================
+# - Reemplazar @marvin-erp-architect con el usuario GitHub real del arquitecto
+# - Los equipos (@devops-nexoerp, @dba-nexoerp, etc.) deben crearse en GitHub Organization
+# - Si es repositorio personal, usar solo usuarios individuales
+# - CODEOWNERS requiere GitHub Pro/Team/Enterprise para protección de branch obligatoria

@@ -1,0 +1,41 @@
+-- =========================================================
+-- Migración: disable_force_rls_allow_owner_bypass [MIGRATION VOID - REVERTED]
+-- 
+-- ANÁLISIS ARQUITECTÓNICO (DAR-DBA-001 Revisión Final):
+--   
+--   INTENTO FALLIDO:
+--     Quitar FORCE RLS para permitir al owner bypasear las políticas.
+--  
+--   RESULTADO:
+--     El owner (nexoerp) efectivamente bypasea RLS con ENABLE (sin FORCE),
+--     lo cual hace IMPOSIBLE testear el aislamiento multi-tenant porque
+--     los tests ejecutan como owner y NO pueden verificar que las políticas
+--     funcionen correctamente.
+--
+--   DECISIÓN FINAL:
+--     MANTENER FORCE ROW LEVEL SECURITY (configuración original).
+--     
+--     Razones:
+--       1. RLS debe aplicarse SIEMPRE, incluso al owner, para garantizar
+--          aislamiento multi-tenant en TODAS las circunstancias
+--       2. Los tests DEBEN verificar que las políticas funcionan
+--       3. Seeds/operaciones admin configuran app.current_company_id explícitamente
+--          antes de ejecutar queries (usando transacciones si es necesario)
+--       4. Mantiene máxima seguridad sin comprometer testabilidad
+--
+--   IMPLEMENTACIÓN CORRECTA:
+--     - tabla users: FORCE ROW LEVEL SECURITY (sin cambios)
+--     - Seeds: Configuran `SET LOCAL app.current_company_id` en transacción
+--     - Tests: Configuran la sesión explícitamente por cada cliente Prisma
+--     - Owner solo bypasea para operaciones que NO involucren datos de negocio
+--       (creación de tablas, migraciones de schema, VACUUM, etc.)
+--
+-- =========================================================
+
+-- Esta migración se ejecutó vacía y luego se revirtió manualmente.
+-- Se restauró FORCE RLS con:
+--   ALTER TABLE users FORCE ROW LEVEL SECURITY;
+
+-- NO hay cambios de schema en esta migración.
+
+-- Migración documentada como parte del proceso de análisis arquitectónico.

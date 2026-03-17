@@ -1,0 +1,50 @@
+# AWS Amplify Build Settings — NexoERP
+# Configuración de build para Amplify Gen 2 Hosting
+# Aplicable a: staging (rama staging) y production (rama main)
+
+version: 1
+
+frontend:
+  phases:
+    # ===== Pre-build: Instalación de dependencias =====
+    preBuild:
+      commands:
+        - echo "🔧 Instalando dependencias..."
+        - npm ci
+        - echo "✅ Dependencias instaladas"
+
+        - echo "🔧 Generando Prisma Client..."
+        - npx prisma generate
+        - echo "✅ Prisma Client generado"
+
+    # ===== Build: Compilación de Next.js =====
+    build:
+      commands:
+        - echo "🏗️  Building Next.js application..."
+        - npm run build
+        - echo "✅ Build completado"
+
+  # ===== Artifacts: Archivos a desplegar =====
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+
+  # ===== Cache: Optimizar builds subsecuentes =====
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+
+# ===== Monorepo: No aplica (single-app por ahora) =====
+# Si en el futuro se convierte en monorepo, descomentar:
+# appRoot: packages/web
+
+# ===== Custom headers (opcional) =====
+# customHeaders:
+#   - pattern: '**/*'
+#     headers:
+#       - key: 'X-Frame-Options'
+#         value: 'DENY'
+#       - key: 'X-Content-Type-Options'
+#         value: 'nosniff'

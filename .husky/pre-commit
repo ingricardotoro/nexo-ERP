@@ -1,0 +1,4 @@
+# NexoERP — Pre-commit hook
+# Ejecuta lint-staged para verificar solo archivos staged
+
+npx lint-staged

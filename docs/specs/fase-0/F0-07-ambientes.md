@@ -17,25 +17,25 @@ Configurar los tres ambientes de trabajo de NexoERP (local, staging, production)
 
 ## 2. Mapa de Ambientes
 
-| Ambiente | Branch Git | Base de Datos | URL | Propósito |
-|----------|-----------|---------------|-----|-----------|
-| **Local** | cualquiera | Docker PostgreSQL 16 | `localhost:3000` | Desarrollo diario |
-| **Sandbox** | `feature/*` | Amplify Sandbox (efímero) | `sandbox-{id}.amplifyapp.com` | Testing features AWS |
-| **Staging** | `staging` | RDS `db.t3.micro` staging | `staging.nexoerp.com` | QA, demos a clientes |
-| **Production** | `main` | RDS `db.t3.micro` production | `app.nexoerp.com` | Producción |
+| Ambiente       | Branch Git  | Base de Datos                | URL                           | Propósito            |
+| -------------- | ----------- | ---------------------------- | ----------------------------- | -------------------- |
+| **Local**      | cualquiera  | Docker PostgreSQL 16         | `localhost:3000`              | Desarrollo diario    |
+| **Sandbox**    | `feature/*` | Amplify Sandbox (efímero)    | `sandbox-{id}.amplifyapp.com` | Testing features AWS |
+| **Staging**    | `staging`   | RDS `db.t3.micro` staging    | `staging.nexoerp.com`         | QA, demos a clientes |
+| **Production** | `main`      | RDS `db.t3.micro` production | `app.nexoerp.com`             | Producción           |
 
 ---
 
 ## 3. Prerrequisitos
 
-| Requisito | Detalle | Verificación |
-|-----------|---------|-------------|
-| F0-02 completado | Amplify Gen 2 configurado | `amplify/backend.ts` existe |
-| F0-03 completado | Prisma + Docker PostgreSQL | `docker compose up` funciona |
-| F0-06 completado | Repositorio con CI | CI pipeline pasa |
-| AWS CLI v2 | Configurado con credenciales | `aws sts get-caller-identity` |
-| Docker Desktop | Instalado y corriendo | `docker --version` |
-| Dominio (opcional) | Para staging/production | DNS configurado |
+| Requisito          | Detalle                      | Verificación                  |
+| ------------------ | ---------------------------- | ----------------------------- |
+| F0-02 completado   | Amplify Gen 2 configurado    | `amplify/backend.ts` existe   |
+| F0-03 completado   | Prisma + Docker PostgreSQL   | `docker compose up` funciona  |
+| F0-06 completado   | Repositorio con CI           | CI pipeline pasa              |
+| AWS CLI v2         | Configurado con credenciales | `aws sts get-caller-identity` |
+| Docker Desktop     | Instalado y corriendo        | `docker --version`            |
+| Dominio (opcional) | Para staging/production      | DNS configurado               |
 
 ---
 
@@ -54,7 +54,7 @@ services:
     container_name: nexoerp-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_DB: nexoerp
       POSTGRES_USER: nexoerp
@@ -64,7 +64,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexoerp -d nexoerp"]
+      test: ['CMD-SHELL', 'pg_isready -U nexoerp -d nexoerp']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,7 +75,7 @@ services:
     container_name: nexoerp-pgadmin
     restart: unless-stopped
     ports:
-      - "5050:80"
+      - '5050:80'
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@nexoerp.com
       PGADMIN_DEFAULT_PASSWORD: admin123
@@ -92,10 +92,10 @@ services:
     container_name: nexoerp-mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025"   # SMTP
-      - "8025:8025"   # Web UI
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
     logging:
-      driver: "none"
+      driver: 'none'
 
 volumes:
   postgres_data:
@@ -190,12 +190,8 @@ const envSchema = z.object({
 
   // App
   NEXT_PUBLIC_APP_URL: z.string().url(),
-  NEXT_PUBLIC_APP_ENV: z
-    .enum(['development', 'staging', 'production'])
-    .default('development'),
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NEXT_PUBLIC_APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // AWS
   AWS_REGION: z.string().default('us-east-1'),
@@ -215,10 +211,7 @@ function validateEnv() {
   const parsed = envSchema.safeParse(process.env);
 
   if (!parsed.success) {
-    console.error(
-      '❌ Variables de entorno inválidas:',
-      parsed.error.flatten().fieldErrors
-    );
+    console.error('❌ Variables de entorno inválidas:', parsed.error.flatten().fieldErrors);
     throw new Error('Variables de entorno inválidas. Revisar .env.local');
   }
 
@@ -238,9 +231,7 @@ import { z } from 'zod';
 // Solo variables NEXT_PUBLIC_* disponibles en el cliente
 const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
-  NEXT_PUBLIC_APP_ENV: z
-    .enum(['development', 'staging', 'production'])
-    .default('development'),
+  NEXT_PUBLIC_APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
   NEXT_PUBLIC_ENABLE_DEBUG: z
     .string()
     .transform((v) => v === 'true')
@@ -389,14 +380,15 @@ Configurar en **AWS Amplify Console → App Settings → Branch auto-detection**
 2. Seleccionar la app NexoERP
 3. **Hosting → Branch settings:**
 
-| Branch | Ambiente | Auto deploy | Domain |
-|--------|----------|-------------|--------|
-| `main` | Production | ✅ | `app.nexoerp.com` |
-| `staging` | Staging | ✅ | `staging.nexoerp.com` |
+| Branch    | Ambiente   | Auto deploy | Domain                |
+| --------- | ---------- | ----------- | --------------------- |
+| `main`    | Production | ✅          | `app.nexoerp.com`     |
+| `staging` | Staging    | ✅          | `staging.nexoerp.com` |
 
 4. **Environment variables** (Settings → Environment variables):
 
 Para **staging**:
+
 ```
 DATABASE_URL         = postgresql://nexoerp:XXX@staging-rds.xxx.us-east-1.rds.amazonaws.com:5432/nexoerp_staging
 DIRECT_URL           = postgresql://nexoerp:XXX@staging-rds.xxx.us-east-1.rds.amazonaws.com:5432/nexoerp_staging
@@ -407,6 +399,7 @@ S3_BUCKET_DOCUMENTS  = nexoerp-documents-staging
 ```
 
 Para **production**:
+
 ```
 DATABASE_URL         = postgresql://nexoerp:XXX@prod-rds.xxx.us-east-1.rds.amazonaws.com:5432/nexoerp_production
 DIRECT_URL           = postgresql://nexoerp:XXX@prod-rds.xxx.us-east-1.rds.amazonaws.com:5432/nexoerp_production
@@ -534,7 +527,7 @@ export async function GET() {
           database: { status: 'connected', latency: `${dbLatency}ms` },
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     return NextResponse.json(
@@ -549,7 +542,7 @@ export async function GET() {
           },
         },
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }
@@ -653,21 +646,21 @@ Write-Host ""
 
 ## 6. Criterios de Aceptación
 
-| # | Criterio | Verificación |
-|---|----------|-------------|
-| 1 | Docker Compose levanta PG16 + pgAdmin + MailHog | `docker compose up -d` sin errores |
-| 2 | Health check responde `200` en local | `curl localhost:3000/api/health` |
-| 3 | `.env.example` tiene todas las variables documentadas | Revisión manual |
-| 4 | Validación Zod falla si falta variable requerida | Eliminar `DATABASE_URL`, verificar error |
-| 5 | `amplify.yml` configura build correctamente | Deploy exitoso en Amplify |
-| 6 | Amplify mapea `staging` y `main` a ambientes | Console → Branch settings verificado |
-| 7 | Variables de entorno configuradas en Amplify Console | Settings → Env vars verificado |
-| 8 | `.env.local`, `.env.staging`, `.env.production` en .gitignore | `git status` no los muestra |
-| 9 | Script `dev-setup.mjs` completa sin errores | `npm run dev:setup` |
-| 10 | Script `verify-env.ps1` reporta estado correcto | `powershell scripts/verify-env.ps1` |
-| 11 | MailHog captura emails en `localhost:8025` | Enviar test email |
-| 12 | Cada ambiente tiene BD aislada (no comparten datos) | Verificar URLs distintas |
-| 13 | Passwords de RDS en Secrets Manager, no en código | No hay passwords en archivos .env tracked |
+| #   | Criterio                                                      | Verificación                              |
+| --- | ------------------------------------------------------------- | ----------------------------------------- |
+| 1   | Docker Compose levanta PG16 + pgAdmin + MailHog               | `docker compose up -d` sin errores        |
+| 2   | Health check responde `200` en local                          | `curl localhost:3000/api/health`          |
+| 3   | `.env.example` tiene todas las variables documentadas         | Revisión manual                           |
+| 4   | Validación Zod falla si falta variable requerida              | Eliminar `DATABASE_URL`, verificar error  |
+| 5   | `amplify.yml` configura build correctamente                   | Deploy exitoso en Amplify                 |
+| 6   | Amplify mapea `staging` y `main` a ambientes                  | Console → Branch settings verificado      |
+| 7   | Variables de entorno configuradas en Amplify Console          | Settings → Env vars verificado            |
+| 8   | `.env.local`, `.env.staging`, `.env.production` en .gitignore | `git status` no los muestra               |
+| 9   | Script `dev-setup.mjs` completa sin errores                   | `npm run dev:setup`                       |
+| 10  | Script `verify-env.ps1` reporta estado correcto               | `powershell scripts/verify-env.ps1`       |
+| 11  | MailHog captura emails en `localhost:8025`                    | Enviar test email                         |
+| 12  | Cada ambiente tiene BD aislada (no comparten datos)           | Verificar URLs distintas                  |
+| 13  | Passwords de RDS en Secrets Manager, no en código             | No hay passwords en archivos .env tracked |
 
 ---
 
@@ -697,13 +690,13 @@ Write-Host ""
 
 ## 8. Costos AWS por Ambiente
 
-| Servicio | Local | Staging | Production |
-|----------|-------|---------|-----------|
-| Amplify Hosting | $0 | ~$5/mes | ~$5/mes |
-| RDS db.t3.micro | $0 (Docker) | ~$15-30/mes | ~$15-30/mes |
-| Cognito | $0 (sandbox) | Gratis (<50k MAU) | Gratis (<50k MAU) |
-| S3 | $0 (sandbox) | ~$1/mes | ~$1/mes |
-| **Total** | **$0** | **~$21-36/mes** | **~$21-36/mes** |
+| Servicio        | Local        | Staging           | Production        |
+| --------------- | ------------ | ----------------- | ----------------- |
+| Amplify Hosting | $0           | ~$5/mes           | ~$5/mes           |
+| RDS db.t3.micro | $0 (Docker)  | ~$15-30/mes       | ~$15-30/mes       |
+| Cognito         | $0 (sandbox) | Gratis (<50k MAU) | Gratis (<50k MAU) |
+| S3              | $0 (sandbox) | ~$1/mes           | ~$1/mes           |
+| **Total**       | **$0**       | **~$21-36/mes**   | **~$21-36/mes**   |
 
 > Budget alert de $50/mes total configurado en F0-02.
 

@@ -1,4 +1,4 @@
-import { SystemRole } from '@prisma/client';
+import type { SystemRole } from '@prisma/client';
 import prisma from '@/lib/db/prisma';
 import {
   createUserSchema,

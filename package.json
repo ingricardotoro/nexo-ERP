@@ -34,7 +34,7 @@
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
     "docker:logs": "docker compose logs -f",
-    "prepare": "husky"
+    "prepare": "node scripts/prepare-husky.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed/index.ts"

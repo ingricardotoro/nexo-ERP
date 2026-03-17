@@ -70,7 +70,9 @@ export function getRoleLabel(role: string): string {
   return labels[role] ?? role;
 }
 
-export function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'outline' | 'destructive' {
+export function getRoleBadgeVariant(
+  role: string,
+): 'default' | 'secondary' | 'outline' | 'destructive' {
   const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
     ADMIN: 'destructive',
     MANAGER: 'default',

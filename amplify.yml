@@ -10,7 +10,8 @@ frontend:
     preBuild:
       commands:
         - echo "🔧 Instalando dependencias..."
-        - npm ci
+        - export NPM_CONFIG_PRODUCTION=false
+        - npm ci --include=dev
         - echo "✅ Dependencias instaladas"
 
         - echo "🔧 Generando Prisma Client..."
@@ -21,6 +22,7 @@ frontend:
     build:
       commands:
         - echo "🏗️  Building Next.js application..."
+        - export NODE_OPTIONS=--max-old-space-size=4096
         - npm run build
         - echo "✅ Build completado"
 

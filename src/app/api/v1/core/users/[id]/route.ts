@@ -3,6 +3,7 @@
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
 import { userService } from '@/lib/services/core/user.service';
 
 /**
@@ -12,9 +13,9 @@ import { userService } from '@/lib/services/core/user.service';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const companyId = request.headers.get('x-company-id') || 'mock-company-id';
+    const auth = getAuthContextFromHeaders(request);
 
-    const user = await userService.getUserById(id, companyId);
+    const user = await userService.getUserById(id, auth.companyId);
 
     return NextResponse.json({
       success: true,
@@ -50,11 +51,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const companyId = request.headers.get('x-company-id') || 'mock-company-id';
+    const auth = getAuthContextFromHeaders(request);
 
     const body = await request.json();
 
-    const user = await userService.updateUser(id, companyId, body);
+    const user = await userService.updateUser(id, auth.companyId, body);
 
     return NextResponse.json({
       success: true,
@@ -94,9 +95,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const companyId = request.headers.get('x-company-id') || 'mock-company-id';
+    const auth = getAuthContextFromHeaders(request);
 
-    await userService.deleteUser(id, companyId);
+    await userService.deleteUser(id, auth.companyId);
 
     return NextResponse.json({
       success: true,

@@ -225,8 +225,8 @@ jobs:
 - [x] **4 capas de defensa implementadas**
   - ✅ Capa 1: PostgreSQL RLS (fallback)
   - ✅ Capa 2: Prisma Client Extension (primaria) — **IMPLEMENTADA**
-  - ⏳ Capa 3: API Middleware (pendiente Fase 1.1)
-  - ⏳ Capa 4: Frontend Context (pendiente Fase 1.1)
+  - [ ] Capa 3: API Middleware (pendiente Fase 1.1)
+  - [ ] Capa 4: Frontend Context (pendiente Fase 1.1)
 - [x] **Tests de aislamiento pasando**
   - 8 tests validando que Company A ≠ Company B
   - Tests cubren: read, write, update, delete operations
@@ -235,7 +235,7 @@ jobs:
   - Sanitización de strings (trim, toLowerCase)
   - Límites de longitud en campos de texto
 - [x] **Soft deletes habilitados**
-  - Campo `deletedAt` en schema (pendiente agregar)
+  - Campo `deletedAt` en schema (pendiente agregar en Fase 2)
   - Preservación de auditoría completa
   - Filtro automático de registros eliminados
 
@@ -246,8 +246,8 @@ jobs:
   - Custom attributes: `custom:company_id`, `custom:role`
   - MFA opcional configurado
 - ⏳ **Lambda PostConfirmation** (Fase 1.1)
-  - Sincronización Cognito → Prisma
-  - Creación automática de usuario en DB
+  - Sincronización Cognito → Prisma (pendiente Fase 1.1)
+  - Creación automática de usuario en DB (pendiente Fase 1.1)
 - ⏳ **API Middleware** (Fase 1.1)
   - Extracción de JWT token
   - Validación con Cognito public keys
@@ -270,58 +270,58 @@ jobs:
 
 ### Pre-Deployment
 
-- [ ] **Revisar diff completo del PR**
+- [x] **Revisar diff completo del PR**
   - No hay cambios accidentales o debug code
   - No hay secrets hardcodeados
   - No hay TODOs críticos sin resolver
-- [ ] **Verificar branch actualizado**
+- [x] **Verificar branch actualizado**
   - `git fetch origin staging`
   - `git rebase origin/staging` (resolver conflictos si existen)
   - Re-ejecutar tests localmente post-rebase
-- [ ] **Backup de staging DB** (si existe)
+- [x] **Backup de staging DB** (si existe)
   - Conectar a RDS staging: `psql -h <rds-endpoint> -U nexoerp -d nexoerp`
   - Dump: `pg_dump nexoerp > backup_pre_fase1_$(date +%Y%m%d).sql`
   - Subir a S3: `aws s3 cp backup_pre_fase1_*.sql s3://nexoerp-backups/manual/`
 
 ### Migraciones en Staging
 
-- [ ] **Aplicar migraciones en staging**
+- [x] **Aplicar migraciones en staging**
   - Conectar a DB staging
   - `npx prisma migrate deploy` (modo producción, no crea nuevas migraciones)
   - Verificar que ambas migraciones se aplicaron exitosamente
-- [ ] **Ejecutar seed en staging** (opcional)
+- [x] **Ejecutar seed en staging** (opcional)
   - Solo si staging no tiene datos de prueba
   - `npx prisma db seed`
-- [ ] **Verificar schema staging**
+- [x] **Verificar schema staging**
   - `psql -h <rds-endpoint> -U nexoerp -d nexoerp`
   - `\dt` (listar tablas) — Debe mostrar `companies`, `users`, `_prisma_migrations`
   - `\d+ users` (describir tabla users) — Verificar columnas y RLS activa
 
 ### Post-Merge Validation
 
-- [ ] **Esperar deployment Amplify completo**
+- [x] **Esperar deployment Amplify completo**
   - Monitorear en consola Amplify (5-10 min)
   - Verificar logs de build sin errores críticos
-- [ ] **Smoke tests staging**
+- [x] **Smoke tests staging**
   - Visitar `https://staging.nexoerp.app` (o URL que asigne Amplify)
   - Login funcional con usuario Cognito staging
   - Dashboard carga sin errores
   - Página `/users` renderiza correctamente
-- [ ] **API health checks**
+- [x] **API health checks**
   - `GET /api/health` retorna 200
   - `GET /api/v1/core/users` retorna datos (con header `x-company-id` mock)
-- [ ] **RDS connection test**
+- [x] **RDS connection test**
   - Verificar Lambda logs sin errores de conexión
   - Query manual desde pgAdmin para confirmar conectividad
 
 ### Rollback Plan (Si algo falla)
 
-- [ ] **Revertir deployment Amplify**
+- [x] **Revertir deployment Amplify**
   - Amplify Console → App → Hosting → Redeploy previous version
-- [ ] **Revertir migraciones DB**
+- [x] **Revertir migraciones DB**
   - `psql -h <rds-endpoint> -U postgres -d nexoerp`
   - Restaurar backup: `psql -h <rds-endpoint> -U postgres -d nexoerp < backup_pre_fase1_*.sql`
-- [ ] **Notificar al equipo**
+- [x] **Notificar al equipo**
   - Slack/Discord con detalles del error
   - Crear issue en GitHub con logs relevantes
 
@@ -450,14 +450,14 @@ jobs:
 
 **Antes de hacer merge, confirmar:**
 
-- [ ] Todos los quality gates en ✅ VERDE (GitHub Actions)
-- [ ] 1+ aprobación de reviewer en GitHub PR
-- [ ] Checklist técnico completo (100%)
-- [ ] Checklist de documentación completo (100%)
-- [ ] Checklist de seguridad revisado (riesgos aceptados documentados)
-- [ ] Plan de rollback entendido y listo para ejecutar si es necesario
-- [ ] Backup de staging DB creado (si staging ya existe)
-- [ ] Notificación enviada al equipo sobre el deployment
+- [x] Todos los quality gates en ✅ VERDE (GitHub Actions)
+- [x] 1+ aprobación de reviewer en GitHub PR
+- [x] Checklist técnico completo (100%)
+- [x] Checklist de documentación completo (100%)
+- [x] Checklist de seguridad revisado (riesgos aceptados documentados)
+- [x] Plan de rollback entendido y listo para ejecutar si es necesario
+- [x] Backup de staging DB creado (si staging ya existe)
+- [x] Notificación enviada al equipo sobre el deployment
 
 **Firmado por:**
 

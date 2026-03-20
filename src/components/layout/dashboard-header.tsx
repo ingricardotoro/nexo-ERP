@@ -4,6 +4,7 @@
 import { Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTenant } from '@/lib/context/tenant-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +15,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function DashboardHeader() {
+  const { tenant, isLoading } = useTenant();
+  const tenantName = tenant?.tradeName || tenant?.legalName;
+  const tenantInitials = tenantName
+    ? tenantName
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('')
+    : 'NE';
+
   return (
     <header className="bg-card border-border sticky top-0 z-30 flex h-16 items-center gap-4 border-b px-6">
       {/* Búsqueda global (placeholder para ⌘K command palette) */}
       <div className="flex flex-1 items-center gap-4">
+        <div className="min-w-[180px]">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</p>
+          <p className="text-sm font-semibold">
+            {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa'}
+          </p>
+        </div>
         <div className="relative max-w-md flex-1">
           <Search
             className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
@@ -44,15 +62,17 @@ export function DashboardHeader() {
           <Button variant="ghost" size="icon" className="rounded-full" aria-label="Menú de usuario">
             <Avatar className="h-8 w-8">
               <AvatarImage src="" alt="Usuario" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarFallback>{tenantInitials}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium">Admin Usuario</p>
-              <p className="text-muted-foreground text-xs">admin@empresademo.hn</p>
+              <p className="text-sm font-medium">
+                {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa'}
+              </p>
+              <p className="text-muted-foreground text-xs">AdministraciÃ³n</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

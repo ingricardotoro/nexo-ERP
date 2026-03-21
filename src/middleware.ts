@@ -15,6 +15,10 @@ function buildUnauthorizedResponse(message: string, code: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  if (request.method === 'OPTIONS') {
+    return NextResponse.next();
+  }
+
   const token = extractTokenFromRequest(request);
 
   if (!token) {
@@ -31,6 +35,7 @@ export async function middleware(request: NextRequest) {
     if (auth.role) requestHeaders.set('x-user-role', auth.role);
     if (auth.email) requestHeaders.set('x-user-email', auth.email);
     if (auth.fullName) requestHeaders.set('x-user-fullname', auth.fullName);
+    requestHeaders.set('x-authenticated', 'true');
 
     return NextResponse.next({
       request: {
@@ -39,13 +44,20 @@ export async function middleware(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return buildUnauthorizedResponse(error.message, error.code);
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+        },
+        { status: error.status },
+      );
     }
 
-    return buildUnauthorizedResponse('Error inesperado validando autenticación', 'AUTH_UNEXPECTED');
+    return buildUnauthorizedResponse('Error inesperado validando autenticacion', 'AUTH_UNEXPECTED');
   }
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/(dashboard)/:path*'],
+  matcher: ['/api/v1/:path*', '/dashboard/:path*'],
 };

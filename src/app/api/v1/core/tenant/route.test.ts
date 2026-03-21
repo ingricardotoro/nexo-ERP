@@ -18,19 +18,25 @@ vi.mock('@/lib/db/prisma', () => ({
 
 const mockedAuth = vi.mocked(getAuthContextFromHeaders);
 const mockedPrisma = vi.mocked(prisma);
+const mockedFindUnique = mockedPrisma.company.findUnique as unknown as {
+  mockResolvedValue: (value: unknown) => void;
+};
 
 describe('GET /api/v1/core/tenant', () => {
   beforeEach(() => {
     mockedAuth.mockReturnValue({
       userId: 'user-1',
       companyId: 'company-1',
+      email: 'admin@nexoerp.com',
+      fullName: 'Admin Nexo',
+      role: 'ADMIN',
       tokenUse: 'id',
       claims: {},
     });
   });
 
   it('retorna informaciÃ³n del tenant', async () => {
-    mockedPrisma.company.findUnique.mockResolvedValue({
+    mockedFindUnique.mockResolvedValue({
       id: 'company-1',
       legalName: 'NexoERP S.A.',
       tradeName: 'NexoERP',
@@ -45,11 +51,13 @@ describe('GET /api/v1/core/tenant', () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.success).toBe(true);
-    expect(payload.data.id).toBe('company-1');
+    expect(payload.data.tenant.id).toBe('company-1');
+    expect(payload.data.session.userId).toBe('user-1');
+    expect(payload.data.session.role).toBe('ADMIN');
   });
 
   it('retorna 404 si la empresa estÃ¡ inactiva', async () => {
-    mockedPrisma.company.findUnique.mockResolvedValue({
+    mockedFindUnique.mockResolvedValue({
       id: 'company-1',
       legalName: 'NexoERP S.A.',
       tradeName: 'NexoERP',

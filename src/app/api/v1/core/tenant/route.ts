@@ -38,7 +38,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: company,
+      data: {
+        tenant: company,
+        session: {
+          userId: auth.userId,
+          email: auth.email ?? null,
+          fullName: auth.fullName ?? null,
+          role: auth.role ?? null,
+        },
+      },
     });
   } catch (error) {
     console.error('Error al obtener tenant:', error);

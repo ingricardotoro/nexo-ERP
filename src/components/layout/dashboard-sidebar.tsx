@@ -82,7 +82,7 @@ const navigation: NavigationGroup[] = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const { tenant, isLoading } = useTenant();
+  const { tenant, isLoading, isSessionExpired } = useTenant();
   const tenantName = tenant?.tradeName || tenant?.legalName;
   const tenantInitials = tenantName
     ? tenantName
@@ -106,6 +106,9 @@ export function DashboardSidebar() {
             <p className="text-muted-foreground text-xs">
               {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa'}
             </p>
+            {!isLoading && isSessionExpired ? (
+              <p className="text-destructive text-xs">Sesion no valida</p>
+            ) : null}
           </div>
         </div>
 

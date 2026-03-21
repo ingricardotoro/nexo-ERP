@@ -8,7 +8,8 @@ param(
   [string]$S3BucketName = "amplify-nexoerp-marvin-sa-nexoerpdocumentsbucketb8-bimtcqkqm8s3",
   [string]$AmplifyAppId = "",
   [string]$AmplifyBranchName = "staging",
-  [switch]$StrictS3PathPolicy
+  [switch]$StrictS3PathPolicy,
+  [switch]$EnableRdsProxyChecks
 )
 
 $ErrorActionPreference = "Stop"
@@ -91,6 +92,32 @@ function Check {
   }
 }
 
+function Convert-EnvObjectToHashtable {
+  param(
+    $InputObject
+  )
+
+  $result = @{}
+  if ($null -eq $InputObject) {
+    return $result
+  }
+
+  if ($InputObject -is [hashtable]) {
+    foreach ($key in $InputObject.Keys) {
+      $result[$key] = [string]$InputObject[$key]
+    }
+    return $result
+  }
+
+  if ($InputObject.PSObject -and $InputObject.PSObject.Properties) {
+    foreach ($prop in $InputObject.PSObject.Properties) {
+      $result[$prop.Name] = [string]$prop.Value
+    }
+  }
+
+  return $result
+}
+
 Write-Host "=== NexoERP Staging Infra Validation ===" -ForegroundColor Cyan
 Write-Host "Region: $AwsRegion" -ForegroundColor DarkCyan
 Write-Host ""
@@ -143,57 +170,62 @@ catch {
 
 Write-Host "`n--- Fase 2: RDS Proxy ---" -ForegroundColor Cyan
 
-try {
-  $proxy = Invoke-AwsJson "rds describe-db-proxies --db-proxy-name $RdsProxyName --output json"
-  $p = $proxy.DBProxies[0]
+if (-not $EnableRdsProxyChecks) {
+  Report-Skip -Name "RDS Proxy checks" -Detail "Omitido por default en staging para reducir costos. Usa -EnableRdsProxyChecks para validar proxy."
+}
+else {
+  try {
+    $proxy = Invoke-AwsJson "rds describe-db-proxies --db-proxy-name $RdsProxyName --output json"
+    $p = $proxy.DBProxies[0]
 
-  Check -Name "RDS Proxy disponible" -Test { $p.Status -eq "available" } -SuccessDetail "Status=$($p.Status)" -FailureDetail "Status=$($p.Status)"
-  Check -Name "RDS Proxy TLS requerido" -Test { $p.RequireTLS -eq $true } -SuccessDetail "RequireTLS=true" -FailureDetail "RequireTLS=false"
+    Check -Name "RDS Proxy disponible" -Test { $p.Status -eq "available" } -SuccessDetail "Status=$($p.Status)" -FailureDetail "Status=$($p.Status)"
+    Check -Name "RDS Proxy TLS requerido" -Test { $p.RequireTLS -eq $true } -SuccessDetail "RequireTLS=true" -FailureDetail "RequireTLS=false"
+
+    try {
+      $targets = Invoke-AwsJson "rds describe-db-proxy-targets --db-proxy-name $RdsProxyName --output json"
+      $hasTarget = $false
+      foreach ($t in $targets.Targets) {
+        if ($t.RdsResourceId) {
+          $hasTarget = $true
+          break
+        }
+      }
+      Check -Name "RDS Proxy target registrado" -Test { $hasTarget } -SuccessDetail "Target detectado." -FailureDetail "No se detectaron targets."
+    }
+    catch {
+      Report-Result -Name "RDS Proxy target registrado" -Ok $false -Detail "No se pudo consultar targets."
+    }
+
+    try {
+      $tg = Invoke-AwsJson "rds describe-db-proxy-target-groups --db-proxy-name $RdsProxyName --output json"
+      $cfg = $tg.TargetGroups[0].ConnectionPoolConfig
+      Check -Name "Pool config 75/50" -Test { $cfg.MaxConnectionsPercent -eq 75 -and $cfg.MaxIdleConnectionsPercent -eq 50 } -SuccessDetail "MaxConn=$($cfg.MaxConnectionsPercent) MaxIdle=$($cfg.MaxIdleConnectionsPercent)" -FailureDetail "MaxConn=$($cfg.MaxConnectionsPercent) MaxIdle=$($cfg.MaxIdleConnectionsPercent)"
+    }
+    catch {
+      Report-Result -Name "Pool config 75/50" -Ok $false -Detail "No se pudo consultar target groups."
+    }
+  }
+  catch {
+    Report-Result -Name "RDS Proxy existe" -Ok $false -Detail "No se pudo consultar $RdsProxyName"
+  }
 
   try {
-    $targets = Invoke-AwsJson "rds describe-db-proxy-targets --db-proxy-name $RdsProxyName --output json"
-    $hasTarget = $false
-    foreach ($t in $targets.Targets) {
-      if ($t.RdsResourceId) {
-        $hasTarget = $true
+    $role = Invoke-AwsJson "iam get-role --role-name $RdsProxyRoleName --output json"
+    Check -Name "IAM role RDS Proxy existe" -Test { $role.Role.RoleName -eq $RdsProxyRoleName } -SuccessDetail "Role=$RdsProxyRoleName" -FailureDetail "Role no encontrado"
+
+    $pol = Invoke-AwsJson "iam list-attached-role-policies --role-name $RdsProxyRoleName --output json"
+    $hasSm = $false
+    foreach ($ap in $pol.AttachedPolicies) {
+      if ($ap.PolicyName -eq "SecretsManagerReadWrite") {
+        $hasSm = $true
         break
       }
     }
-    Check -Name "RDS Proxy target registrado" -Test { $hasTarget } -SuccessDetail "Target detectado." -FailureDetail "No se detectaron targets."
+    Check -Name "Role tiene SecretsManagerReadWrite" -Test { $hasSm } -SuccessDetail "Policy adjunta." -FailureDetail "Policy no encontrada."
   }
   catch {
-    Report-Result -Name "RDS Proxy target registrado" -Ok $false -Detail "No se pudo consultar targets."
+    Report-Result -Name "IAM role RDS Proxy existe" -Ok $false -Detail "No se pudo consultar $RdsProxyRoleName"
   }
-
-  try {
-    $tg = Invoke-AwsJson "rds describe-db-proxy-target-groups --db-proxy-name $RdsProxyName --output json"
-    $cfg = $tg.TargetGroups[0].ConnectionPoolConfig
-    Check -Name "Pool config 75/50" -Test { $cfg.MaxConnectionsPercent -eq 75 -and $cfg.MaxIdleConnectionsPercent -eq 50 } -SuccessDetail "MaxConn=$($cfg.MaxConnectionsPercent) MaxIdle=$($cfg.MaxIdleConnectionsPercent)" -FailureDetail "MaxConn=$($cfg.MaxConnectionsPercent) MaxIdle=$($cfg.MaxIdleConnectionsPercent)"
-  }
-  catch {
-    Report-Result -Name "Pool config 75/50" -Ok $false -Detail "No se pudo consultar target groups."
-  }
-}
-catch {
-  Report-Result -Name "RDS Proxy existe" -Ok $false -Detail "No se pudo consultar $RdsProxyName"
-}
-
-try {
-  $role = Invoke-AwsJson "iam get-role --role-name $RdsProxyRoleName --output json"
-  Check -Name "IAM role RDS Proxy existe" -Test { $role.Role.RoleName -eq $RdsProxyRoleName } -SuccessDetail "Role=$RdsProxyRoleName" -FailureDetail "Role no encontrado"
-
-  $pol = Invoke-AwsJson "iam list-attached-role-policies --role-name $RdsProxyRoleName --output json"
-  $hasSm = $false
-  foreach ($ap in $pol.AttachedPolicies) {
-    if ($ap.PolicyName -eq "SecretsManagerReadWrite") {
-      $hasSm = $true
-      break
-    }
-  }
-  Check -Name "Role tiene SecretsManagerReadWrite" -Test { $hasSm } -SuccessDetail "Policy adjunta." -FailureDetail "Policy no encontrada."
-}
-catch {
-  Report-Result -Name "IAM role RDS Proxy existe" -Ok $false -Detail "No se pudo consultar $RdsProxyRoleName"
 }
 
 Write-Host "`n--- Fase 4: Cognito ---" -ForegroundColor Cyan
@@ -288,7 +320,18 @@ else {
     Check -Name "Amplify branch staging existe" -Test { $b.branchName -eq $AmplifyBranchName } -SuccessDetail "Branch=$($b.branchName)" -FailureDetail "Branch no encontrada"
     Check -Name "Amplify auto-build habilitado" -Test { $b.enableAutoBuild -eq $true } -SuccessDetail "AutoBuild=true" -FailureDetail "AutoBuild=false"
 
-    $envVars = $b.environmentVariables
+    $appEnvVars = @{}
+    try {
+      $appInfo = Invoke-AwsJson "amplify get-app --app-id $AmplifyAppId --output json"
+      $appEnvVars = Convert-EnvObjectToHashtable -InputObject $appInfo.app.environmentVariables
+    }
+    catch {
+      Report-Skip -Name "Amplify app env vars (nivel app)" -Detail "No se pudieron leer (permiso o API). Se valida solo con branch env vars."
+    }
+    $branchEnvVars = Convert-EnvObjectToHashtable -InputObject $b.environmentVariables
+    $envVars = @{}
+    foreach ($key in $appEnvVars.Keys) { $envVars[$key] = $appEnvVars[$key] }
+    foreach ($key in $branchEnvVars.Keys) { $envVars[$key] = $branchEnvVars[$key] }
     $required = @(
       "DATABASE_URL",
       "DIRECT_URL",
@@ -302,16 +345,28 @@ else {
 
     $missing = @()
     foreach ($k in $required) {
-      if (-not $envVars.PSObject.Properties.Name.Contains($k)) {
+      if (-not $envVars.ContainsKey($k) -or [string]::IsNullOrWhiteSpace($envVars[$k])) {
         $missing += $k
       }
     }
 
     Check -Name "Amplify env vars requeridas" -Test { $missing.Count -eq 0 } -SuccessDetail "8 variables detectadas." -FailureDetail ("Faltan: " + ($missing -join ", "))
 
+    $dbUrl = [string]$envVars["DATABASE_URL"]
+    $directUrl = [string]$envVars["DIRECT_URL"]
+    $dbUrlPattern = '^postgresql:\/\/[^:\/\?]+:[^@]+@[^:\/\?]+:\d+\/.+'
+    Check -Name "Amplify DATABASE_URL formato valido" -Test { $dbUrl -match $dbUrlPattern } -SuccessDetail "DATABASE_URL incluye host/puerto." -FailureDetail "DATABASE_URL invalida o sin host."
+    Check -Name "Amplify DIRECT_URL formato valido" -Test { $directUrl -match $dbUrlPattern } -SuccessDetail "DIRECT_URL incluye host/puerto." -FailureDetail "DIRECT_URL invalida o sin host."
+
     $jobs = Invoke-AwsJson "amplify list-jobs --app-id $AmplifyAppId --branch-name $AmplifyBranchName --max-results 1 --output json"
-    $latest = $jobs.jobSummaries[0]
-    Check -Name "Ultimo deploy Amplify exitoso" -Test { $latest.status -eq "SUCCEED" } -SuccessDetail "Status=$($latest.status) Job=$($latest.jobId)" -FailureDetail "Status=$($latest.status) Job=$($latest.jobId)"
+    $latest = $jobs.jobSummaries | Select-Object -First 1
+
+    if ($null -eq $latest) {
+      Report-Skip -Name "Ultimo deploy Amplify exitoso" -Detail "No hay jobs en el branch para validar estado."
+    }
+    else {
+      Check -Name "Ultimo deploy Amplify exitoso" -Test { $latest.status -eq "SUCCEED" } -SuccessDetail "Status=$($latest.status) Job=$($latest.jobId)" -FailureDetail "Status=$($latest.status) Job=$($latest.jobId)"
+    }
 
     if ($b.defaultDomain) {
       Write-Host "[INFO] Dominio base: $($b.defaultDomain)" -ForegroundColor Cyan
@@ -319,7 +374,7 @@ else {
     }
   }
   catch {
-    Report-Result -Name "Amplify checks" -Ok $false -Detail "No se pudo validar app $AmplifyAppId"
+    Report-Result -Name "Amplify checks" -Ok $false -Detail "No se pudo validar app ${AmplifyAppId}: $($_.Exception.Message)"
   }
 }
 

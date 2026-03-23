@@ -152,8 +152,7 @@ export function UsersTable({
     },
     onSortingChange: (updater) => {
       setSorting((previousSorting) => {
-        const nextSorting =
-          typeof updater === 'function' ? updater(previousSorting) : updater;
+        const nextSorting = typeof updater === 'function' ? updater(previousSorting) : updater;
 
         const firstSort = nextSorting[0];
         if (firstSort?.id) {

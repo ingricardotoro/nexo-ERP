@@ -32,9 +32,9 @@ export function DashboardHeader() {
     <header className="bg-card border-border sticky top-0 z-30 flex h-16 items-center gap-4 border-b px-6">
       <div className="flex flex-1 items-center gap-4">
         <div className="min-w-[220px]">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Empresa</p>
+          <p className="text-muted-foreground text-xs tracking-wide uppercase">Empresa</p>
           <p className="text-sm font-semibold">
-            {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa activa'}
+            {isLoading ? 'Cargando empresa...' : (tenantName ?? 'Sin empresa activa')}
           </p>
           {!isLoading && (isSessionExpired || error) ? (
             <p className="text-destructive text-xs">Sesion no valida</p>
@@ -72,7 +72,7 @@ export function DashboardHeader() {
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium">
-                {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa activa'}
+                {isLoading ? 'Cargando empresa...' : (tenantName ?? 'Sin empresa activa')}
               </p>
               <p className="text-muted-foreground text-xs">{userDisplayName}</p>
               <p className="text-muted-foreground text-xs">{roleDisplay}</p>

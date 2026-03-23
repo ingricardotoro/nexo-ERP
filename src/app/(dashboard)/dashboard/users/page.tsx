@@ -251,7 +251,7 @@ export default function UsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      if (!globalThis.confirm('¿Seguro que deseas eliminar este usuario?')) {
+      if (!globalThis.confirm('ï¿½Seguro que deseas eliminar este usuario?')) {
         return;
       }
 
@@ -331,7 +331,9 @@ export default function UsersPage() {
             <CardTitle className="text-4xl">{activeUsersInPage}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-muted-foreground text-xs">de {totalUsers} usuarios registrados</div>
+            <div className="text-muted-foreground text-xs">
+              de {totalUsers} usuarios registrados
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -340,13 +342,17 @@ export default function UsersPage() {
             <CardTitle className="text-4xl">{Math.max(maxUsers - totalUsers, 0)}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-muted-foreground text-xs">limite de {maxUsers || '-'} usuarios</div>
+            <div className="text-muted-foreground text-xs">
+              limite de {maxUsers || '-'} usuarios
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Roles Asignados (pagina actual)</CardDescription>
-            <CardTitle className="text-4xl">{new Set(users.map((user) => user.role)).size}</CardTitle>
+            <CardTitle className="text-4xl">
+              {new Set(users.map((user) => user.role)).size}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-muted-foreground text-xs">de 5 roles disponibles</div>

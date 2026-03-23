@@ -104,7 +104,7 @@ export function DashboardSidebar() {
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold">NexoERP</h2>
             <p className="text-muted-foreground text-xs">
-              {isLoading ? 'Cargando empresa...' : tenantName ?? 'Sin empresa'}
+              {isLoading ? 'Cargando empresa...' : (tenantName ?? 'Sin empresa')}
             </p>
             {!isLoading && isSessionExpired ? (
               <p className="text-destructive text-xs">Sesion no valida</p>

@@ -2,6 +2,7 @@ import { defineBackend } from '@aws-amplify/backend';
 
 import { auth } from './auth/resource.js';
 import { storage } from './storage/resource.js';
+import { postConfirmation } from './functions/post-confirmation/resource.js';
 
 /**
  * NexoERP — Backend Definition (Amplify Gen 2)
@@ -15,6 +16,7 @@ import { storage } from './storage/resource.js';
 const backend = defineBackend({
   auth,
   storage,
+  postConfirmation,
 });
 
 // === Configuración adicional de CDK (environment tags) ===

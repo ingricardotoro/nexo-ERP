@@ -15,6 +15,12 @@ param(
 $ErrorActionPreference = "Stop"
 $env:AWS_DEFAULT_REGION = $AwsRegion
 
+# Forzar UTF-8 en la CLI de AWS (Python) para evitar errores 'charmap codec' en Windows
+# cuando el buildSpec u otros campos de Amplify contienen caracteres fuera de CP1252.
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 $script:Passed = 0
 $script:Failed = 0
 $script:Skipped = 0
@@ -322,7 +328,7 @@ else {
 
     $appEnvVars = @{}
     try {
-      $appInfo = Invoke-AwsJson "amplify get-app --app-id $AmplifyAppId --output json"
+      $appInfo = Invoke-AwsJson "amplify get-app --app-id $AmplifyAppId --query `"{app:{environmentVariables:app.environmentVariables,defaultDomain:app.defaultDomain}}`" --output json"
       $appEnvVars = Convert-EnvObjectToHashtable -InputObject $appInfo.app.environmentVariables
     }
     catch {

@@ -17,6 +17,7 @@ import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useTenant } from '@/lib/context/tenant-context';
 
 interface NavigationItem {
   name: string;
@@ -81,6 +82,16 @@ const navigation: NavigationGroup[] = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { tenant, isLoading, isSessionExpired } = useTenant();
+  const tenantName = tenant?.tradeName || tenant?.legalName;
+  const tenantInitials = tenantName
+    ? tenantName
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('')
+    : 'NE';
 
   return (
     <aside className="bg-card border-border fixed top-0 left-0 z-40 h-screen w-64 border-r">
@@ -88,11 +99,16 @@ export function DashboardSidebar() {
         {/* Logo y nombre de la empresa */}
         <div className="border-border flex items-center gap-3 border-b px-6 py-4">
           <div className="bg-primary flex h-10 w-10 items-center justify-center rounded-lg text-white">
-            <span className="text-lg font-bold">N</span>
+            <span className="text-sm font-bold tracking-wide">{tenantInitials}</span>
           </div>
           <div className="flex-1">
             <h2 className="text-foreground text-sm font-semibold">NexoERP</h2>
-            <p className="text-muted-foreground text-xs">Empresa Demo SA</p>
+            <p className="text-muted-foreground text-xs">
+              {isLoading ? 'Cargando empresa...' : (tenantName ?? 'Sin empresa')}
+            </p>
+            {!isLoading && isSessionExpired ? (
+              <p className="text-destructive text-xs">Sesion no valida</p>
+            ) : null}
           </div>
         </div>
 

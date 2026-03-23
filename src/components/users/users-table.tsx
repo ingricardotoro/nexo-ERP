@@ -63,6 +63,7 @@ export function UsersTable({
   pageSize,
   isLoading = false,
   onPageChange,
+  onSort,
   onEdit,
   onToggleStatus,
   onDelete,
@@ -149,7 +150,18 @@ export function UsersTable({
     state: {
       sorting,
     },
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting((previousSorting) => {
+        const nextSorting = typeof updater === 'function' ? updater(previousSorting) : updater;
+
+        const firstSort = nextSorting[0];
+        if (firstSort?.id) {
+          onSort(firstSort.id, firstSort.desc ? 'desc' : 'asc');
+        }
+
+        return nextSorting;
+      });
+    },
     pageCount: Math.ceil(totalCount / pageSize),
   });
 

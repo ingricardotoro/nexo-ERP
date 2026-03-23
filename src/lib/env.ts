@@ -32,6 +32,8 @@ const envSchema = z.object({
 
   // ============ AWS ============
   AWS_REGION: z.string().default('us-east-1'),
+  COGNITO_USER_POOL_ID: z.string().default('us-east-1_adYn3n5fz'),
+  COGNITO_USER_POOL_CLIENT_ID: z.string().default('5biqgmo64jb7i1ob9pl53hkfcq'),
 
   // ============ Email ============
   SMTP_HOST: z.string().optional(),

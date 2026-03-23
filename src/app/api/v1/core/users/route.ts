@@ -3,6 +3,7 @@
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
 import { userService } from '@/lib/services/core/user.service';
 import { userFiltersSchema } from '@/lib/validations/user.schema';
 
@@ -12,9 +13,7 @@ import { userFiltersSchema } from '@/lib/validations/user.schema';
  */
 export async function GET(request: NextRequest) {
   try {
-    // TODO: En Fase 1, extraer companyId del token JWT del middleware de autenticación
-    // Por ahora usamos un valor mock para desarrollo
-    const companyId = request.headers.get('x-company-id') || 'mock-company-id';
+    const auth = getAuthContextFromHeaders(request);
 
     // Parsear query params
     const searchParams = request.nextUrl.searchParams;
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
     const filters = userFiltersSchema.parse(rawFilters);
 
     // Ejecutar consulta
-    const result = await userService.listUsers(companyId, filters);
+    const result = await userService.listUsers(auth.companyId, filters);
 
     return NextResponse.json({
       success: true,
@@ -68,14 +67,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // TODO: En Fase 1, extraer companyId del token JWT
-    const companyId = request.headers.get('x-company-id') || 'mock-company-id';
+    const auth = getAuthContextFromHeaders(request);
 
     // Parsear body
     const body = await request.json();
 
     // Crear usuario
-    const user = await userService.createUser(companyId, body);
+    const user = await userService.createUser(auth.companyId, body);
 
     return NextResponse.json(
       {

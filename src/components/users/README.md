@@ -237,4 +237,4 @@ Para probar el módulo:
 - Los datos mock se usan temporalmente hasta que se implemente el middleware de autenticación en Fase 1
 - El `company_id` se pasa por ahora via header `x-company-id` (mock)
 - Los usuarios creados usan IDs temporales (`temp-{timestamp}`) que serán reemplazados por Cognito subs en prod
-- El soft delete usa `deletedAt` timestamp (no boolean)
+- El soft delete usa `isActive` (boolean)

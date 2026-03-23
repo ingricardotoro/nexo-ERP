@@ -1,138 +1,308 @@
 // src/app/(dashboard)/dashboard/users/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import { UsersTable, type UserTableData } from '@/components/users/users-table';
 import { UserFormModal } from '@/components/users/user-form-modal';
 import type { CreateUserInput } from '@/lib/validations/user.schema';
-import { toast } from 'sonner';
+import { useTenant } from '@/lib/context/tenant-context';
+import { UserEditModal } from './UserEditModal';
 
-// Datos mock para desarrollo (temporal, reemplazar con API)
-const mockUsers: UserTableData[] = [
-  {
-    id: '1',
-    fullName: 'Admin Usuario',
-    email: 'admin@empresademo.hn',
-    role: 'ADMIN',
-    isActive: true,
-    avatarUrl: null,
-    lastLoginAt: new Date('2026-03-15T10:30:00'),
-    createdAt: new Date('2026-03-01T08:00:00'),
-  },
-  {
-    id: '2',
-    fullName: 'Contador Principal',
-    email: 'contador@empresademo.hn',
-    role: 'ACCOUNTANT',
-    isActive: true,
-    avatarUrl: null,
-    lastLoginAt: new Date('2026-03-14T15:20:00'),
-    createdAt: new Date('2026-03-02T09:00:00'),
-  },
-];
+interface UsersApiResponse {
+  success: boolean;
+  data?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    avatarUrl?: string | null;
+    lastLoginAt?: string | null;
+    createdAt: string;
+  }>;
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  error?: string;
+}
+
+interface UserMutationResponse {
+  success: boolean;
+  data?: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    avatarUrl?: string | null;
+    lastLoginAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+  message?: string;
+  error?: string;
+}
+
+function mapUserToTableData(user: {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  avatarUrl?: string | null;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+}): UserTableData {
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    avatarUrl: user.avatarUrl ?? null,
+    createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+    lastLoginAt: user.lastLoginAt ? new Date(user.lastLoginAt) : null,
+  };
+}
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserTableData[]>(mockUsers);
-  const [currentPage, setCurrentPage] = useState(1);
+  const { tenant } = useTenant();
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
   const pageSize = 10;
 
-  // Filtrar usuarios por búsqueda
-  const filteredUsers = users.filter(
-    (user) =>
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+  const [users, setUsers] = useState<UserTableData[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [isRefetching, setIsRefetching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<UserTableData | null>(null);
+
+  const maxUsers = tenant?.maxUsers ?? 0;
+  const activeUsersInPage = useMemo(() => users.filter((user) => user.isActive).length, [users]);
+
+  const fetchUsers = useCallback(
+    async (showMainLoading = false) => {
+      if (showMainLoading) {
+        setLoading(true);
+      } else {
+        setIsRefetching(true);
+      }
+
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: String(pageSize),
+          orderBy: sortBy,
+          orderDir: sortDirection,
+        });
+
+        if (searchQuery.trim()) {
+          params.set('search', searchQuery.trim());
+        }
+
+        const response = await fetch(`/api/v1/core/users?${params.toString()}`, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'include',
+        });
+
+        const payload = (await response.json()) as UsersApiResponse;
+
+        if (!response.ok || !payload.success || !payload.data || !payload.pagination) {
+          throw new Error(payload.error ?? 'Error al obtener usuarios');
+        }
+
+        setUsers(payload.data.map((user) => mapUserToTableData(user)));
+        setTotalUsers(payload.pagination.total);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Error desconocido';
+        setError(message);
+        setUsers([]);
+        setTotalUsers(0);
+      } finally {
+        setLoading(false);
+        setIsRefetching(false);
+      }
+    },
+    [currentPage, pageSize, searchQuery, sortBy, sortDirection],
   );
 
-  // Handler para crear usuario
+  useEffect(() => {
+    void fetchUsers(true);
+  }, [fetchUsers]);
+
   const handleCreateUser = async (data: CreateUserInput) => {
     try {
-      // TODO: Llamar API POST /api/v1/core/users
-      console.warn('TODO: Implementar creación de usuario (API pendiente):', data);
+      const response = await fetch('/api/v1/core/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-      // Mock: agregar usuario a la lista
-      const newUser: UserTableData = {
-        id: String(users.length + 1),
-        fullName: data.fullName,
-        email: data.email,
-        role: data.role,
-        isActive: data.isActive ?? true,
-        avatarUrl: data.avatarUrl || null,
-        lastLoginAt: null,
-        createdAt: new Date(),
-      };
-      setUsers([...users, newUser]);
+      const payload = (await response.json()) as UserMutationResponse;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error ?? 'Error al crear usuario');
+      }
 
       toast.success('Usuario creado exitosamente', {
         description: `${data.fullName} ha sido agregado al sistema.`,
       });
-    } catch (error) {
-      console.error('Error al crear usuario:', error);
+
+      setCurrentPage(1);
+      await fetchUsers();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo crear el usuario';
       toast.error('Error al crear usuario', {
-        description: 'No se pudo crear el usuario. Intenta de nuevo.',
+        description: message,
       });
-      throw error;
+      throw err;
     }
   };
 
-  // Handler para editar usuario
   const handleEditUser = (userId: string) => {
-    // TODO: Abrir modal con datos del usuario
-    console.warn('TODO: Implementar edición de usuario (API pendiente):', userId);
-    toast.info('Función en desarrollo', {
-      description: 'La edición de usuarios estará disponible pronto.',
-    });
+    const user = users.find((candidate) => candidate.id === userId) || null;
+    setUserToEdit(user);
+    setEditModalOpen(true);
   };
 
-  // Handler para activar/desactivar usuario
+  const handleUpdateUser = async (data: CreateUserInput) => {
+    if (!userToEdit) return;
+
+    try {
+      const response = await fetch(`/api/v1/core/users/${userToEdit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const payload = (await response.json()) as UserMutationResponse;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error ?? 'Error al actualizar usuario');
+      }
+
+      toast.success('Usuario actualizado', {
+        description: 'Los datos del usuario han sido actualizados.',
+      });
+
+      setEditModalOpen(false);
+      setUserToEdit(null);
+      await fetchUsers();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo actualizar el usuario';
+      toast.error('Error al editar usuario', {
+        description: message,
+      });
+      throw err;
+    }
+  };
+
   const handleToggleStatus = async (userId: string, newStatus: boolean) => {
     try {
-      // TODO: Llamar API PUT /api/v1/core/users/:id
-      console.warn('TODO: Implementar cambio de estado (API pendiente):', userId, newStatus);
+      const response = await fetch(`/api/v1/core/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
 
-      // Mock: actualizar estado en la lista
-      setUsers(users.map((user) => (user.id === userId ? { ...user, isActive: newStatus } : user)));
+      const payload = (await response.json()) as UserMutationResponse;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error ?? 'Error al cambiar estado');
+      }
 
       toast.success(newStatus ? 'Usuario activado' : 'Usuario desactivado', {
         description: newStatus
-          ? 'El usuario ahora puede iniciar sesión.'
-          : 'El usuario no podrá iniciar sesión.',
+          ? 'El usuario ahora puede iniciar sesion.'
+          : 'El usuario no podra iniciar sesion.',
       });
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
+
+      await fetchUsers();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo actualizar el estado';
       toast.error('Error al cambiar estado', {
-        description: 'No se pudo actualizar el estado del usuario.',
+        description: message,
       });
     }
   };
 
-  // Handler para eliminar usuario (soft delete)
   const handleDeleteUser = async (userId: string) => {
     try {
-      // TODO: Mostrar AlertDialog de confirmación antes de eliminar
-      // TODO: Llamar API DELETE /api/v1/core/users/:id
-      console.warn('TODO: Implementar eliminación de usuario (API pendiente):', userId);
+      if (!globalThis.confirm('�Seguro que deseas eliminar este usuario?')) {
+        return;
+      }
 
-      // Mock: eliminar de la lista
-      setUsers(users.filter((user) => user.id !== userId));
+      const response = await fetch(`/api/v1/core/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      const payload = (await response.json()) as UserMutationResponse;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error ?? 'Error al eliminar usuario');
+      }
 
       toast.success('Usuario eliminado', {
         description: 'El usuario ha sido eliminado del sistema.',
       });
-    } catch (error) {
-      console.error('Error al eliminar usuario:', error);
+
+      await fetchUsers();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo eliminar el usuario';
       toast.error('Error al eliminar usuario', {
-        description: 'No se pudo eliminar el usuario.',
+        description: message,
       });
     }
   };
 
+  const handleSort = (columnId: string, direction: 'asc' | 'desc') => {
+    setSortBy(columnId);
+    setSortDirection(direction);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {loading && (
+        <Card className="p-6 text-center">
+          <span className="text-muted-foreground">Cargando usuarios...</span>
+        </Card>
+      )}
+
+      {error && !loading && (
+        <Card className="p-6 text-center">
+          <span className="text-destructive">{error}</span>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-foreground text-3xl font-bold tracking-tight">Usuarios</h1>
@@ -141,32 +311,48 @@ export default function UsersPage() {
           </p>
         </div>
         <UserFormModal onSubmit={handleCreateUser} />
+        {userToEdit ? (
+          <UserEditModal
+            open={editModalOpen}
+            onOpenChange={(open: boolean) => {
+              setEditModalOpen(open);
+              if (!open) setUserToEdit(null);
+            }}
+            user={userToEdit}
+            onSubmit={handleUpdateUser}
+          />
+        ) : null}
       </div>
 
-      {/* Estadísticas */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Usuarios Activos</CardDescription>
-            <CardTitle className="text-4xl">{users.filter((u) => u.isActive).length}</CardTitle>
+            <CardDescription>Usuarios Activos (pagina actual)</CardDescription>
+            <CardTitle className="text-4xl">{activeUsersInPage}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-muted-foreground text-xs">de {users.length} usuarios totales</div>
+            <div className="text-muted-foreground text-xs">
+              de {totalUsers} usuarios registrados
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Licencias Disponibles</CardDescription>
-            <CardTitle className="text-4xl">3</CardTitle>
+            <CardTitle className="text-4xl">{Math.max(maxUsers - totalUsers, 0)}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-muted-foreground text-xs">límite de 5 usuarios</div>
+            <div className="text-muted-foreground text-xs">
+              limite de {maxUsers || '-'} usuarios
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Roles Asignados</CardDescription>
-            <CardTitle className="text-4xl">{new Set(users.map((u) => u.role)).size}</CardTitle>
+            <CardDescription>Roles Asignados (pagina actual)</CardDescription>
+            <CardTitle className="text-4xl">
+              {new Set(users.map((user) => user.role)).size}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-muted-foreground text-xs">de 5 roles disponibles</div>
@@ -174,7 +360,6 @@ export default function UsersPage() {
         </Card>
       </div>
 
-      {/* Búsqueda */}
       <Card>
         <CardHeader>
           <CardTitle>Buscar Usuarios</CardTitle>
@@ -191,32 +376,30 @@ export default function UsersPage() {
               placeholder="Buscar por nombre o email..."
               className="pl-9"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(event) => handleSearchChange(event.target.value)}
               aria-label="Buscar usuarios"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla */}
       <Card>
         <CardHeader>
           <CardTitle>Listado de Usuarios</CardTitle>
           <CardDescription>
-            {filteredUsers.length}{' '}
-            {filteredUsers.length === 1 ? 'usuario encontrado' : 'usuarios encontrados'}
+            {totalUsers} {totalUsers === 1 ? 'usuario encontrado' : 'usuarios encontrados'}
+            {isRefetching ? ' - actualizando...' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <UsersTable
-            data={filteredUsers}
-            totalCount={filteredUsers.length}
+            data={users}
+            totalCount={totalUsers}
             currentPage={currentPage}
             pageSize={pageSize}
+            isLoading={loading || isRefetching}
             onPageChange={setCurrentPage}
-            onSort={(columnId, direction) =>
-              console.warn('TODO: Implementar ordenamiento:', columnId, direction)
-            }
+            onSort={handleSort}
             onEdit={handleEditUser}
             onToggleStatus={handleToggleStatus}
             onDelete={handleDeleteUser}

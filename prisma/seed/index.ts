@@ -1,15 +1,11 @@
 // prisma/seed/index.ts
-// Seed básico para Fase 0 — 2 empresas (demo + test isolation)
+// Seed para Fase 1 — empresas, módulos del sistema y CompanyModules
 //
-// Se expandirá en Fase 1 y 2 con:
-//   - Roles y permisos predeterminados
+// Se expandirá en Fase 2 con:
 //   - Plan de cuentas NIIF Honduras (~200 cuentas)
 //   - Monedas (HNL, USD)
 //   - Impuestos (ISV 15%, 18%, Exento)
 //   - Tipos de documento fiscal
-//
-// Nota DAR-003: en Fase 0 no hay sincronización con Cognito.
-// Los users de prueba se crean con IDs manuales (UUID fake) en el seed de Fase 1.
 
 import { config as loadDotenv } from 'dotenv';
 
@@ -63,11 +59,166 @@ async function main() {
 
   console.log(`✅ Empresa test: ${testCompany.legalName} (${testCompany.id})`);
 
+  // === Módulos del sistema ===
+  const modules = [
+    {
+      id: 'core',
+      name: 'Core',
+      description: 'Gestión de usuarios, roles y configuración del sistema',
+      icon: 'Settings',
+      color: '#6B7280',
+      dependencies: [],
+      isCore: true,
+      sortOrder: 0,
+    },
+    {
+      id: 'contacts',
+      name: 'Contactos',
+      description: 'Gestión de clientes y proveedores',
+      icon: 'Users',
+      color: '#3B82F6',
+      dependencies: ['core'],
+      isCore: false,
+      sortOrder: 1,
+    },
+    {
+      id: 'accounting',
+      name: 'Contabilidad',
+      description: 'Plan de cuentas NIIF, asientos y reportes financieros',
+      icon: 'BarChart3',
+      color: '#10B981',
+      dependencies: ['core', 'contacts'],
+      isCore: false,
+      sortOrder: 2,
+    },
+    {
+      id: 'invoicing',
+      name: 'Facturación',
+      description: 'Facturación fiscal Honduras (SAR/CAI)',
+      icon: 'FileText',
+      color: '#F59E0B',
+      dependencies: ['core', 'contacts', 'accounting'],
+      isCore: false,
+      sortOrder: 3,
+    },
+    {
+      id: 'purchasing',
+      name: 'Compras',
+      description: 'Órdenes de compra y gestión de proveedores',
+      icon: 'ShoppingCart',
+      color: '#8B5CF6',
+      dependencies: ['core', 'contacts'],
+      isCore: false,
+      sortOrder: 4,
+    },
+    {
+      id: 'sales',
+      name: 'Ventas',
+      description: 'Cotizaciones, pedidos y CRM',
+      icon: 'TrendingUp',
+      color: '#EF4444',
+      dependencies: ['core', 'contacts'],
+      isCore: false,
+      sortOrder: 5,
+    },
+    {
+      id: 'inventory',
+      name: 'Inventario',
+      description: 'Control de stock y almacenes',
+      icon: 'Package',
+      color: '#F97316',
+      dependencies: ['core', 'purchasing', 'sales'],
+      isCore: false,
+      sortOrder: 6,
+    },
+  ];
+
+  for (const mod of modules) {
+    await prisma.module.upsert({
+      where: { id: mod.id },
+      update: { name: mod.name, sortOrder: mod.sortOrder },
+      create: mod,
+    });
+  }
+  console.log(`✅ Módulos del sistema: ${modules.length} creados`);
+
+  // === CompanyModules — activar core para todas las empresas ===
+  // Solo core está activo por defecto. Los demás módulos se activan según el plan.
+  for (const company of [demoCompany, testCompany]) {
+    // Demo tiene core + contacts + accounting activos
+    const activeModules =
+      company.id === demoCompany.id ? ['core', 'contacts', 'accounting'] : ['core'];
+
+    for (const moduleId of activeModules) {
+      await prisma.companyModule.upsert({
+        where: { companyId_moduleId: { companyId: company.id, moduleId } },
+        update: { isActive: true },
+        create: { companyId: company.id, moduleId, isActive: true },
+      });
+    }
+    console.log(`✅ CompanyModules para ${company.tradeName}: [${activeModules.join(', ')}]`);
+  }
+
+  // === Permisos base del sistema (core) ===
+  const corePermissions = [
+    {
+      id: 'core.user.create',
+      moduleId: 'core',
+      resource: 'user',
+      action: 'create',
+      description: 'Crear usuarios',
+    },
+    {
+      id: 'core.user.read',
+      moduleId: 'core',
+      resource: 'user',
+      action: 'read',
+      description: 'Ver usuarios',
+    },
+    {
+      id: 'core.user.update',
+      moduleId: 'core',
+      resource: 'user',
+      action: 'update',
+      description: 'Editar usuarios',
+    },
+    {
+      id: 'core.user.delete',
+      moduleId: 'core',
+      resource: 'user',
+      action: 'delete',
+      description: 'Eliminar usuarios',
+    },
+    {
+      id: 'core.tenant.read',
+      moduleId: 'core',
+      resource: 'tenant',
+      action: 'read',
+      description: 'Ver información del tenant',
+    },
+    {
+      id: 'core.module.read',
+      moduleId: 'core',
+      resource: 'module',
+      action: 'read',
+      description: 'Ver módulos activos',
+    },
+  ];
+
+  for (const perm of corePermissions) {
+    await prisma.permission.upsert({
+      where: { id: perm.id },
+      update: {},
+      create: perm,
+    });
+  }
+  console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
+
   console.log('');
   console.log('🌱 Seed completado exitosamente.');
-  console.log(`   Companies creadas: 2`);
-  console.log(`   Demo ID: ${demoCompany.id}`);
-  console.log(`   Test ID: ${testCompany.id}`);
+  console.log(`   Companies: 2`);
+  console.log(`   Módulos: ${modules.length}`);
+  console.log(`   Permisos base: ${corePermissions.length}`);
 }
 
 main()

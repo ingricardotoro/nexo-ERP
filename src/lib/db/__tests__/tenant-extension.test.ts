@@ -857,7 +857,7 @@ describe('tenant-extension.ts — Edge Cases', () => {
     });
   });
 
-  it('debería funcionar con operaciones NO cubiertas (passthrough)', async () => {
+  it('debería inyectar companyId en findFirstOrThrow y findUniqueOrThrow', async () => {
     // Arrange
     const tenantPrisma = createTenantPrisma(mockPrisma, companyId);
     const handler = (tenantPrisma as any).__extensionHandler;
@@ -873,10 +873,9 @@ describe('tenant-extension.ts — Edge Cases', () => {
     await handler(queryContext);
 
     // Assert
-    // findFirstOrThrow no está en la lista de operaciones monitoreadas
-    // Debería pasar sin modificación (fallback behavior)
+    // findFirstOrThrow ahora está en la lista de operaciones interceptadas
     expect(mockQuery).toHaveBeenCalledWith({
-      where: { id: 'user-uuid' },
+      where: { AND: [{ id: 'user-uuid' }, { companyId }] },
     });
   });
 

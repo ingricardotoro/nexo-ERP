@@ -33,8 +33,10 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relaciones (se expanden en Fase 1)
-  users User[]
+  // Relaciones
+  users          User[]
+  auditLogs      AuditLog[]
+  companyModules CompanyModule[]
 
   @@map("companies")
 }
@@ -68,9 +70,139 @@ model User {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   lastLoginAt DateTime? @map("last_login_at")
 
+  // Relaciones inversas
+  auditLogs AuditLog[]
+
   // Índices — company_id SIEMPRE como primer campo (DAR-005: regla inquebrantable)
   @@index([companyId, email])
   @@index([companyId, isActive])
   @@index([cognitoSub])
   @@map("users")
+}
+
+// =============================================================================
+// GAP 1 — AuditLog
+// =============================================================================
+
+/// Registro de auditoría inmutable — RF-AUD-01.
+/// Registra toda operación CRUD: quién, qué, cuándo, en qué tenant.
+/// NO entra en BUSINESS_MODELS — el filtro por companyId se aplica
+/// explícitamente en AuditService para permitir consultas cruzadas de auditores.
+model AuditLog {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Multi-tenant — presente para contexto, sin filtro automático ORM
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  // Quién ejecutó la acción (nullable para operaciones de sistema: seeds, lambdas)
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Qué ocurrió
+  action   AuditAction
+  entity   String // Nombre del modelo: "User", "Invoice", "Contact", etc.
+  entityId String      @map("entity_id")
+
+  // Estado anterior y posterior
+  oldValues Json? @map("old_values") // null en CREATE
+  newValues Json? @map("new_values") // null en DELETE
+
+  // Contexto de la request
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  // Solo createdAt — registro inmutable, nunca se modifica
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, entity, createdAt])
+  @@index([companyId, userId])
+  @@index([companyId, entityId])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// GAP 2 — Module + CompanyModule
+// =============================================================================
+
+/// Catálogo global de módulos del sistema — tabla de plataforma.
+/// Sin company_id, sin RLS. Se popula en seed, no se modifica en runtime.
+model Module {
+  id          String  @id // Slug: 'core', 'contacts', 'accounting', etc.
+  name        String
+  description String?
+  icon        String? // Nombre del icono Lucide (ej: "BarChart3")
+  color       String? // Color HEX para UI (ej: "#3B82F6")
+
+  // Slugs de módulos requeridos antes de activar este (ej: ["core"] para contacts)
+  dependencies String[]
+
+  isCore    Boolean @default(false) @map("is_core") // true solo para 'core'
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  companyModules CompanyModule[]
+  permissions    Permission[]
+
+  @@map("modules")
+}
+
+/// Activación de módulos por empresa — tabla de negocio con company_id.
+/// Entra en BUSINESS_MODELS para filtrado automático por tenant.
+model CompanyModule {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  moduleId String @map("module_id")
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+
+  isActive      Boolean   @default(true) @map("is_active")
+  activatedAt   DateTime  @default(now()) @map("activated_at")
+  deactivatedAt DateTime? @map("deactivated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, moduleId])
+  @@index([companyId, isActive])
+  @@map("company_modules")
+}
+
+// =============================================================================
+// GAP 3 — Permission + RolePermission
+// =============================================================================
+
+/// Permiso granular del sistema — tabla de plataforma.
+/// PK: "module.resource.action" (ej: "invoicing.invoice.create")
+/// Sin company_id — los permisos son globales al sistema.
+model Permission {
+  id       String @id // "module.resource.action"
+  moduleId String @map("module_id")
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  resource    String // Recurso: "invoice", "journal_entry", "user"
+  action      String // Acción: "create", "read", "update", "delete", "export", "approve"
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@index([moduleId])
+  @@map("permissions")
+}
+
+/// Asignación de permisos a roles del sistema — tabla de plataforma.
+/// Relaciona SystemRole enum (existente) con Permission.
+/// Estrategia opt-in: si no hay registros para un rol, el middleware
+/// usa el comportamiento legacy (enum) para no romper tests existentes.
+model RolePermission {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role         SystemRole
+  permissionId String     @map("permission_id")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
 }

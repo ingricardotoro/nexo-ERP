@@ -31,7 +31,7 @@ import type { PrismaClient } from '@prisma/client';
  * Actualizar esta lista cuando se agreguen nuevos módulos
  * NOTA: Nombres en PascalCase como aparecen en el schema Prisma
  */
-const BUSINESS_MODELS = ['User'] as const;
+const BUSINESS_MODELS = ['User', 'CompanyModule'] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 
 /**
@@ -69,7 +69,9 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
           const isReadOperation = [
             'findMany',
             'findFirst',
+            'findFirstOrThrow',
             'findUnique',
+            'findUniqueOrThrow',
             'count',
             'aggregate',
             'groupBy',

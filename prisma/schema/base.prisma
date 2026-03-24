@@ -45,6 +45,14 @@ enum ContactType {
   JURIDICAL // Persona jurídica
 }
 
+/// Tipos de dirección de contacto
+enum AddressType {
+  BILLING // Facturación
+  SHIPPING // Envío
+  FISCAL // Domicilio fiscal (SAR)
+  OTHER // Otro
+}
+
 /// Naturaleza de cuenta contable (NIIF)
 enum AccountNature {
   DEBIT // Deudora

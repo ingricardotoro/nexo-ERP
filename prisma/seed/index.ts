@@ -159,6 +159,35 @@ async function main() {
     console.log(`✅ CompanyModules para ${company.tradeName}: [${activeModules.join(', ')}]`);
   }
 
+  // === PaymentTerms por empresa ===
+  const defaultPaymentTerms = [
+    { name: 'Contado', description: 'Pago inmediato', daysUntilDue: 0, isDefault: true },
+    { name: 'Neto 15', description: 'Pago a 15 días', daysUntilDue: 15, isDefault: false },
+    { name: 'Neto 30', description: 'Pago a 30 días', daysUntilDue: 30, isDefault: false },
+    { name: 'Neto 60', description: 'Pago a 60 días', daysUntilDue: 60, isDefault: false },
+    {
+      name: 'Personalizado',
+      description: 'Términos personalizados',
+      daysUntilDue: 0,
+      isDefault: false,
+    },
+  ];
+
+  for (const company of [demoCompany, testCompany]) {
+    for (const terms of defaultPaymentTerms) {
+      await prisma.paymentTerms.upsert({
+        where: {
+          companyId_name: { companyId: company.id, name: terms.name },
+        } as never,
+        update: {},
+        create: { companyId: company.id, ...terms },
+      });
+    }
+    console.log(
+      `✅ PaymentTerms para ${company.tradeName}: ${defaultPaymentTerms.length} términos`,
+    );
+  }
+
   // === Permisos base del sistema (core) ===
   const corePermissions = [
     {
@@ -205,7 +234,68 @@ async function main() {
     },
   ];
 
-  for (const perm of corePermissions) {
+  const contactsPermissions = [
+    {
+      id: 'contacts.contact.create',
+      moduleId: 'contacts',
+      resource: 'contact',
+      action: 'create',
+      description: 'Crear contactos',
+    },
+    {
+      id: 'contacts.contact.read',
+      moduleId: 'contacts',
+      resource: 'contact',
+      action: 'read',
+      description: 'Ver contactos',
+    },
+    {
+      id: 'contacts.contact.update',
+      moduleId: 'contacts',
+      resource: 'contact',
+      action: 'update',
+      description: 'Editar contactos',
+    },
+    {
+      id: 'contacts.contact.delete',
+      moduleId: 'contacts',
+      resource: 'contact',
+      action: 'delete',
+      description: 'Eliminar contactos',
+    },
+    {
+      id: 'contacts.payment_terms.create',
+      moduleId: 'contacts',
+      resource: 'payment_terms',
+      action: 'create',
+      description: 'Crear términos de pago',
+    },
+    {
+      id: 'contacts.payment_terms.read',
+      moduleId: 'contacts',
+      resource: 'payment_terms',
+      action: 'read',
+      description: 'Ver términos de pago',
+    },
+    {
+      id: 'contacts.payment_terms.update',
+      moduleId: 'contacts',
+      resource: 'payment_terms',
+      action: 'update',
+      description: 'Editar términos de pago',
+    },
+    {
+      id: 'contacts.payment_terms.delete',
+      moduleId: 'contacts',
+      resource: 'payment_terms',
+      action: 'delete',
+      description: 'Eliminar términos de pago',
+    },
+  ];
+
+  const allPermissions = [...corePermissions, ...contactsPermissions];
+
+  for (const perm of allPermissions) {
     await prisma.permission.upsert({
       where: { id: perm.id },
       update: {},
@@ -213,12 +303,16 @@ async function main() {
     });
   }
   console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
+  console.log(`✅ Permisos contacts: ${contactsPermissions.length} creados`);
 
   console.log('');
   console.log('🌱 Seed completado exitosamente.');
   console.log(`   Companies: 2`);
   console.log(`   Módulos: ${modules.length}`);
-  console.log(`   Permisos base: ${corePermissions.length}`);
+  console.log(`   PaymentTerms: ${defaultPaymentTerms.length} por empresa`);
+  console.log(
+    `   Permisos: ${allPermissions.length} (${corePermissions.length} core + ${contactsPermissions.length} contacts)`,
+  );
 }
 
 main()

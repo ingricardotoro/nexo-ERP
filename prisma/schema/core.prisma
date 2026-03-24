@@ -34,9 +34,13 @@ model Company {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  users          User[]
-  auditLogs      AuditLog[]
-  companyModules CompanyModule[]
+  users            User[]
+  auditLogs        AuditLog[]
+  companyModules   CompanyModule[]
+  contacts         Contact[]
+  contactAddresses ContactAddress[]
+  contactPersons   ContactPerson[]
+  paymentTerms     PaymentTerms[]
 
   @@map("companies")
 }

@@ -40,6 +40,14 @@ const BUSINESS_MODELS = [
   'ContactAddress',
   'ContactPerson',
   'PaymentTerms',
+  // Accounting (Fase 2 — F2-04) — Currency NO va (tabla de plataforma sin companyId)
+  'Account',
+  'FiscalYear',
+  'FiscalPeriod',
+  'Journal',
+  'JournalEntry',
+  'JournalEntryLine',
+  'ExchangeRate',
 ] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 

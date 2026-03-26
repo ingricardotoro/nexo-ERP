@@ -67,12 +67,14 @@ enum AccountType {
   INCOME // Ingreso
   COST // Costo
   EXPENSE // Gasto
+  CONTRA // Cuenta de orden/contrarrestante (ej: depreciación acumulada)
 }
 
 /// Estados de período fiscal
 enum FiscalPeriodStatus {
   OPEN // Abierto — permite asientos
   CLOSED // Cerrado — no permite asientos
+  LOCKED // Bloqueado — cierre definitivo, solo lectura (auditoría)
 }
 
 /// Estados de factura fiscal

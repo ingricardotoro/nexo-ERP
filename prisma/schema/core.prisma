@@ -42,6 +42,15 @@ model Company {
   contactPersons   ContactPerson[]
   paymentTerms     PaymentTerms[]
 
+  // Accounting (Fase 2)
+  fiscalYears       FiscalYear[]
+  fiscalPeriods     FiscalPeriod[]
+  journals          Journal[]
+  journalEntries    JournalEntry[]
+  journalEntryLines JournalEntryLine[]
+  accounts          Account[]
+  exchangeRates     ExchangeRate[]
+
   @@map("companies")
 }
 

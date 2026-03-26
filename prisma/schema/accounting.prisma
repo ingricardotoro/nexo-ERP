@@ -1,0 +1,340 @@
+// prisma/schema/accounting.prisma
+// Módulo Contabilidad NIIF (Fase 2 — F2-04):
+// Currency, ExchangeRate, Account, FiscalYear, FiscalPeriod,
+// Journal, JournalEntry, JournalEntryLine
+
+// =============================================================================
+// Enums de Contabilidad
+// =============================================================================
+
+/// Tipo de diario contable — define el propósito del libro de diario
+enum JournalType {
+  GENERAL // Diario General
+  SALES // Diario de Ventas
+  PURCHASES // Diario de Compras
+  CASH // Diario de Caja
+  BANK // Diario de Bancos
+  PAYROLL // Diario de Nómina
+  ADJUSTMENT // Diario de Ajustes
+}
+
+/// Estado del asiento contable
+enum JournalEntryStatus {
+  DRAFT // Borrador — editable, no afecta saldos
+  POSTED // Publicado — contabilizado, afecta saldos
+  CANCELLED // Anulado — sin efecto contable
+}
+
+// =============================================================================
+// Currency — tabla de plataforma (sin companyId, sin RLS)
+// =============================================================================
+
+/// Moneda — catálogo global de plataforma.
+/// No lleva company_id ni RLS: todas las empresas comparten el mismo catálogo.
+/// La moneda base del tenant se configura en Company.baseCurrency.
+model Currency {
+  /// Código ISO 4217 (ej: "HNL", "USD", "EUR")
+  code     String  @id
+  name     String // "Lempira hondureño", "Dólar estadounidense"
+  symbol   String // "L", "$", "€"
+  isActive Boolean @default(true) @map("is_active")
+  /// true solo para la moneda base del sistema (HNL por defecto en Honduras)
+  isBase   Boolean @default(false) @map("is_base")
+
+  // Relaciones
+  exchangeRates  ExchangeRate[]
+  journalEntries JournalEntry[]
+
+  @@map("currencies")
+}
+
+// =============================================================================
+// ExchangeRate — tipo de cambio (global o por empresa)
+// =============================================================================
+
+/// Tipo de cambio — puede ser global (companyId = null) o específico de empresa.
+/// Un índice parcial garantiza unicidad global: solo una tasa global por moneda/fecha
+/// cuando company_id IS NULL (se crea manualmente en la migración SQL, ver F2-04).
+model ExchangeRate {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  currencyCode String   @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+
+  date DateTime @db.Date
+  rate Decimal  @db.Decimal(12, 6)
+
+  /// Fuente del tipo de cambio (ej: "BCH", "manual", "API")
+  source String?
+
+  /// Nullable: null = tasa global de plataforma; UUID = tasa específica de empresa
+  companyId String?  @map("company_id") @db.Uuid
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // UNIQUE por (moneda, fecha, empresa) — permite una tasa global y una por empresa
+  @@unique([currencyCode, date, companyId])
+  // Índices — company_id siempre presente cuando no es null (DAR-005)
+  @@index([currencyCode, date])
+  @@index([companyId, currencyCode, date])
+  @@map("exchange_rates")
+}
+
+// =============================================================================
+// Account — catálogo de cuentas contables por empresa (Plan de Cuentas)
+// =============================================================================
+
+/// Cuenta contable — nodo del Plan de Cuentas NIIF por empresa.
+/// Soporta jerarquía recursiva: una cuenta padre puede contener N cuentas hijas.
+/// Solo las cuentas hoja (isParent = false, allowDirectEntry = true) admiten asientos.
+model Account {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Cuenta padre (nullable — null indica cuenta raíz de nivel 1)
+  parentId String?   @map("parent_id") @db.Uuid
+  parent   Account?  @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children Account[] @relation("AccountHierarchy")
+
+  /// Código de cuenta (ej: "1101", "1101-01")
+  code String
+  name String
+
+  accountType   AccountType   @map("account_type")
+  accountNature AccountNature @map("account_nature")
+
+  /// true = cuenta de agrupación; false = cuenta hoja que admite asientos
+  isParent         Boolean @default(false) @map("is_parent")
+  /// false en cuentas padre — evita asientos directos en cuentas de agrupación
+  allowDirectEntry Boolean @default(true) @map("allow_direct_entry")
+  isActive         Boolean @default(true) @map("is_active")
+  description      String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  journalEntryLines JournalEntryLine[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([companyId, code])
+  @@index([companyId, parentId])
+  @@index([companyId, accountType])
+  @@index([companyId, isActive])
+  @@index([companyId, allowDirectEntry])
+  @@map("accounts")
+}
+
+// =============================================================================
+// FiscalYear — año fiscal por empresa
+// =============================================================================
+
+/// Año fiscal — período anual de contabilidad por empresa.
+/// Contiene N períodos fiscales mensuales (FiscalPeriod).
+model FiscalYear {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Año calendario (ej: 2026)
+  year      Int
+  startDate DateTime           @map("start_date") @db.Date
+  endDate   DateTime           @map("end_date") @db.Date
+  status    FiscalPeriodStatus @default(OPEN)
+  isActive  Boolean            @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  fiscalPeriods FiscalPeriod[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([companyId, year])
+  @@index([companyId, status])
+  @@index([companyId, isActive])
+  @@map("fiscal_years")
+}
+
+// =============================================================================
+// FiscalPeriod — período fiscal mensual (companyId desnormalizado para RLS)
+// =============================================================================
+
+/// Período fiscal — mes contable dentro de un año fiscal.
+/// company_id desnormalizado para que RLS opere sobre la fila directamente
+/// sin JOIN al padre (mismo patrón que ContactAddress/ContactPerson).
+model FiscalPeriod {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado: RLS opera sobre la fila directamente sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  fiscalYearId String     @map("fiscal_year_id") @db.Uuid
+  fiscalYear   FiscalYear @relation(fields: [fiscalYearId], references: [id], onDelete: Restrict)
+
+  /// Número de período dentro del año (1 = enero … 12 = diciembre)
+  periodNumber Int                @map("period_number")
+  /// Nombre descriptivo (ej: "Enero 2026")
+  name         String
+  startDate    DateTime           @map("start_date") @db.Date
+  endDate      DateTime           @map("end_date") @db.Date
+  status       FiscalPeriodStatus @default(OPEN)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  journalEntries JournalEntry[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([fiscalYearId, periodNumber])
+  @@index([companyId, fiscalYearId])
+  @@index([companyId, status])
+  @@index([companyId, startDate, endDate])
+  @@map("fiscal_periods")
+}
+
+// =============================================================================
+// Journal — libro de diario por empresa
+// =============================================================================
+
+/// Diario contable — agrupa asientos de un mismo tipo (ventas, compras, caja…).
+/// Cada empresa configura sus propios diarios (ej: "DJ", "LV", "LC").
+model Journal {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  name        String
+  /// Código corto identificador del diario (ej: "DJ", "LV", "LC")
+  code        String
+  journalType JournalType @map("journal_type")
+  isActive    Boolean     @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  journalEntries JournalEntry[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([companyId, code])
+  @@index([companyId, journalType])
+  @@index([companyId, isActive])
+  @@map("journals")
+}
+
+// =============================================================================
+// JournalEntry — asiento contable (cabecera)
+// =============================================================================
+
+/// Asiento contable (cabecera) — agrupa las líneas de débito/crédito.
+/// Un asiento debe cumplir la ecuación: totalDebit = totalCredit (balance NIIF).
+/// entryNumber es secuencial por (companyId, journalId).
+model JournalEntry {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  journalId String  @map("journal_id") @db.Uuid
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Restrict)
+
+  fiscalPeriodId String       @map("fiscal_period_id") @db.Uuid
+  fiscalPeriod   FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+
+  /// Número secuencial del asiento dentro del diario por empresa
+  entryNumber Int     @map("entry_number")
+  reference   String?
+  description String
+
+  entryDate DateTime           @map("entry_date") @db.Date
+  status    JournalEntryStatus @default(DRAFT)
+
+  currencyCode String   @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+
+  /// Tipo de cambio a la moneda base (1.0 si la moneda ya es la base)
+  exchangeRate Decimal @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  /// Totales en moneda base — mantenidos por triggers o lógica de aplicación
+  totalDebit  Decimal @default(0) @map("total_debit") @db.Decimal(18, 2)
+  totalCredit Decimal @default(0) @map("total_credit") @db.Decimal(18, 2)
+
+  /// ID del usuario (Cognito sub) que creó el asiento
+  createdBy String    @map("created_by")
+  /// ID del usuario que publicó/contabilizó el asiento (null si aún es DRAFT)
+  postedBy  String?   @map("posted_by")
+  postedAt  DateTime? @map("posted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lines JournalEntryLine[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([companyId, journalId, entryNumber])
+  @@index([companyId, journalId, entryDate])
+  @@index([companyId, fiscalPeriodId, status])
+  @@index([companyId, status])
+  @@index([companyId, entryDate])
+  @@index([companyId, createdBy])
+  @@map("journal_entries")
+}
+
+// =============================================================================
+// JournalEntryLine — línea de asiento contable (companyId desnormalizado para RLS)
+// =============================================================================
+
+/// Línea de asiento contable — representa un movimiento débito o crédito en una cuenta.
+/// company_id desnormalizado para que RLS opere sobre la fila directamente
+/// sin JOIN al padre (mismo patrón que FiscalPeriod/ContactAddress).
+/// Los importes en moneda extranjera se guardan en currencyDebit/currencyCredit;
+/// los importes en moneda base en debit/credit.
+model JournalEntryLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado: RLS opera sobre la fila directamente sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  journalEntryId String       @map("journal_entry_id") @db.Uuid
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId String  @map("account_id") @db.Uuid
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  /// Número de línea dentro del asiento (1-based)
+  lineNumber  Int     @map("line_number")
+  description String?
+
+  /// Importes en moneda base
+  debit  Decimal @default(0) @db.Decimal(18, 2)
+  credit Decimal @default(0) @db.Decimal(18, 2)
+
+  /// Importes en moneda original del asiento (moneda extranjera)
+  currencyDebit  Decimal @default(0) @map("currency_debit") @db.Decimal(18, 2)
+  currencyCredit Decimal @default(0) @map("currency_credit") @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@unique([journalEntryId, lineNumber])
+  @@index([companyId, journalEntryId])
+  @@index([companyId, accountId])
+  @@index([companyId, accountId, createdAt])
+  @@map("journal_entry_lines")
+}

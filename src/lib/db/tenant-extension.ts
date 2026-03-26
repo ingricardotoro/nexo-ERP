@@ -31,7 +31,24 @@ import type { PrismaClient } from '@prisma/client';
  * Actualizar esta lista cuando se agreguen nuevos módulos
  * NOTA: Nombres en PascalCase como aparecen en el schema Prisma
  */
-const BUSINESS_MODELS = ['User', 'CompanyModule'] as const;
+const BUSINESS_MODELS = [
+  // Core
+  'User',
+  'CompanyModule',
+  // Contacts (Fase 2)
+  'Contact',
+  'ContactAddress',
+  'ContactPerson',
+  'PaymentTerms',
+  // Accounting (Fase 2 — F2-04) — Currency NO va (tabla de plataforma sin companyId)
+  'Account',
+  'FiscalYear',
+  'FiscalPeriod',
+  'Journal',
+  'JournalEntry',
+  'JournalEntryLine',
+  'ExchangeRate',
+] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 
 /**

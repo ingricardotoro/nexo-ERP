@@ -45,6 +45,14 @@ enum ContactType {
   JURIDICAL // Persona jurídica
 }
 
+/// Tipos de dirección de contacto
+enum AddressType {
+  BILLING // Facturación
+  SHIPPING // Envío
+  FISCAL // Domicilio fiscal (SAR)
+  OTHER // Otro
+}
+
 /// Naturaleza de cuenta contable (NIIF)
 enum AccountNature {
   DEBIT // Deudora
@@ -59,12 +67,14 @@ enum AccountType {
   INCOME // Ingreso
   COST // Costo
   EXPENSE // Gasto
+  CONTRA // Cuenta de orden/contrarrestante (ej: depreciación acumulada)
 }
 
 /// Estados de período fiscal
 enum FiscalPeriodStatus {
   OPEN // Abierto — permite asientos
   CLOSED // Cerrado — no permite asientos
+  LOCKED // Bloqueado — cierre definitivo, solo lectura (auditoría)
 }
 
 /// Estados de factura fiscal

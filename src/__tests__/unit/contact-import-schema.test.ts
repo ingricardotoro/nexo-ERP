@@ -373,7 +373,7 @@ describe('contactImportRowSchemaWithRefine — validación cliente/proveedor', (
       expect(resultado.data.nombre_comercial).toBe('DistriCentro');
       expect(resultado.data.email).toBe('info@distrocentro.hn');
       expect(resultado.data.sitio_web).toBe('https://distrocentro.hn');
-      expect(resultado.data.isActive ?? resultado.data.activo).toBe(true);
+      expect(resultado.data.activo).toBe(true);
     }
   });
 

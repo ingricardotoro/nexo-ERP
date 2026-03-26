@@ -121,7 +121,7 @@ function crearRequestConFile(file: File | string | null): NextRequest {
  */
 function crearFileConTamanoFicticio(tamanoBytes: number): File {
   const buf = construirXlsxBuffer({});
-  const file = new File([buf], 'grande.xlsx', { type: MIME_XLSX });
+  const file = new File([new Uint8Array(buf)], 'grande.xlsx', { type: MIME_XLSX });
   return Object.defineProperty(file, 'size', { get: () => tamanoBytes }) as File;
 }
 
@@ -215,7 +215,7 @@ describe('POST /api/v1/contacts/import', () => {
     it('debería retornar 422 cuando faltan columnas requeridas en el xlsx', async () => {
       // Arrange — xlsx con columnas incorrectas (sin tipo_contacto, es_cliente, etc.)
       const buf = construirXlsxBuffer({ columnas: ['columna_rara', 'otra_columna'] });
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -231,7 +231,7 @@ describe('POST /api/v1/contacts/import', () => {
     it('debería retornar 422 cuando el archivo tiene más de 500 filas', async () => {
       // Arrange — xlsx con 501 filas de datos
       const buf = construirXlsxBuffer({ cantidadFilas: 501 });
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -265,7 +265,7 @@ describe('POST /api/v1/contacts/import', () => {
           ['JURIDICAL', 'TechHonduras S.A.', 'SI', 'SI'],
         ],
       });
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -291,7 +291,7 @@ describe('POST /api/v1/contacts/import', () => {
       });
 
       const buf = construirXlsxBuffer({});
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -315,7 +315,7 @@ describe('POST /api/v1/contacts/import', () => {
       importServiceMock.importFromRows.mockResolvedValue(resultadoParcial);
 
       const buf = construirXlsxBuffer({});
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -351,7 +351,7 @@ describe('POST /api/v1/contacts/import', () => {
       importServiceMock.importFromRows.mockResolvedValue(resultadoSinExitos);
 
       const buf = construirXlsxBuffer({});
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act
@@ -378,7 +378,7 @@ describe('POST /api/v1/contacts/import', () => {
       });
 
       const buf = construirXlsxBuffer({});
-      const file = new File([buf], 'contactos.xlsx', { type: MIME_XLSX });
+      const file = new File([new Uint8Array(buf)], 'contactos.xlsx', { type: MIME_XLSX });
       const req = crearRequestConFile(file);
 
       // Act

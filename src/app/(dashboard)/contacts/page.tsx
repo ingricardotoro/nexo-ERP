@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, Users, ShoppingCart, Truck } from 'lucide-react';
+import { Search, Plus, Upload, Users, ShoppingCart, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ContactsTable, type ContactTableData } from '@/components/contacts/contacts-table';
+import { ContactImportDialog } from '@/components/contacts/contact-import-dialog';
 
 interface ContactsApiResponse {
   success: boolean;
@@ -56,6 +57,7 @@ export default function ContactsPage() {
 
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [totalSuppliers, setTotalSuppliers] = useState(0);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const fetchContacts = useCallback(
     async (showMainLoading = false) => {
@@ -232,10 +234,16 @@ export default function ContactsPage() {
             Gestiona clientes, proveedores y sus datos de contacto
           </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/contacts/new' as never)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nuevo Contacto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+            Importar Excel
+          </Button>
+          <Button onClick={() => router.push('/dashboard/contacts/new' as never)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo Contacto
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -364,6 +372,14 @@ export default function ContactsPage() {
           />
         </CardContent>
       </Card>
+      <ContactImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportSuccess={() => {
+          void fetchContacts();
+          void fetchStats();
+        }}
+      />
     </div>
   );
 }

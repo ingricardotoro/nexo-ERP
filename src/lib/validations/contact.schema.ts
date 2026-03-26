@@ -8,7 +8,7 @@ const contactTypeValues = ['NATURAL', 'JURIDICAL'] as const;
  * Formato: DDDD-DDDD-DDDDD o DDDDDDDDDDDDDD (14 dígitos) para personas naturales
  * Nullable: contactos extranjeros pueden no tener RTN (DA-CONT-03)
  */
-const rtnSchema = z
+export const rtnSchema = z
   .string()
   .trim()
   .refine((val) => {

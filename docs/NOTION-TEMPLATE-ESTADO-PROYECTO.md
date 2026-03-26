@@ -1,10 +1,10 @@
 # NexoERP — Estado del Proyecto (Marzo 2026)
 
 > **Copia este documento completo y pegalo en Notion (Create page > Paste Markdown)**
-> **Fecha de actualizacion:** 24 de marzo de 2026
+> **Fecha de actualizacion:** 25 de marzo de 2026
 > **Preparado por:** Claude Code (Doc Engineer)
 > **Rama activa:** `feat/fase-2-contabilidad-contactos`
-> **Ultimo commit:** `32a52db feat(contacts): add contacts module ui with list, detail and crud forms`
+> **Ultimo commit:** `4cebfec feat(contacts): add bulk import from excel (f2-03)`
 
 ---
 
@@ -12,7 +12,7 @@
 
 **NexoERP** es un ERP multi-tenant en la nube para PYMEs hondurenas con cumplimiento
 fiscal SAR y contabilidad NIIF. Actualmente en **Fase 2 de 5**, con la Fase 1 completada
-exitosamente y el Modulo de Contactos de la Fase 2 ya implementado.
+exitosamente y el Modulo de Contactos de la Fase 2 completado en su totalidad.
 
 ### Metricas Generales del Proyecto
 
@@ -20,8 +20,8 @@ exitosamente y el Modulo de Contactos de la Fase 2 ya implementado.
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Fases completadas** | 1 de 5 (Fase 0 + Fase 1)                                                                                                                      |
 | **Fase en progreso**  | Fase 2 — Contabilidad + Contactos                                                                                                             |
-| **Tests (CI)**        | 68 passing                                                                                                                                    |
-| **Endpoints REST**    | 17 endpoints (12 core + 5 health)                                                                                                             |
+| **Tests (CI)**        | 149 passing                                                                                                                                   |
+| **Endpoints REST**    | 19 endpoints (14 contactos + 5 core/health)                                                                                                   |
 | **Modelos Prisma**    | 11 modelos (Company, User, AuditLog, Module, CompanyModule, Permission, RolePermission, PaymentTerms, Contact, ContactAddress, ContactPerson) |
 | **Ambiente staging**  | AWS Amplify (activo)                                                                                                                          |
 | **Presupuesto AWS**   | ~$1.35/mes con Free Tier activo                                                                                                               |
@@ -117,20 +117,20 @@ exitosamente y el Modulo de Contactos de la Fase 2 ya implementado.
 
 ### Progreso General Fase 2
 
-| Modulo       | Progreso       | Estado      |
-| ------------ | -------------- | ----------- |
-| Contactos    | 2 de 3 tareas  | En progreso |
-| Contabilidad | 0 de 12 tareas | Pendiente   |
+| Modulo       | Progreso                 | Estado    |
+| ------------ | ------------------------ | --------- |
+| Contactos    | 3 de 3 tareas — COMPLETO | Completo  |
+| Contabilidad | 0 de 12 tareas           | Pendiente |
 
 ---
 
 ### Modulo Contactos
 
-| ID        | Tarea                                       | Estado     | Commit    |
-| --------- | ------------------------------------------- | ---------- | --------- |
-| **F2-01** | Schema Contactos (4 modelos Prisma)         | Completado | `52fc0a0` |
-| **F2-02** | UI Contactos (lista + detalle + CRUD forms) | Completado | `32a52db` |
-| **F2-03** | Import Contactos (Excel masivo)             | Pendiente  | —         |
+| ID        | Tarea                                       | Estado         | Commit    |
+| --------- | ------------------------------------------- | -------------- | --------- |
+| **F2-01** | Schema Contactos (4 modelos Prisma)         | Completado     | `52fc0a0` |
+| **F2-02** | UI Contactos (lista + detalle + CRUD forms) | Completado     | `32a52db` |
+| **F2-03** | Import Contactos (Excel masivo)             | **Completado** | `4cebfec` |
 
 #### F2-01: Schema Contactos — COMPLETADO
 
@@ -182,7 +182,7 @@ exitosamente y el Modulo de Contactos de la Fase 2 ya implementado.
 | Crear contacto      | `/contacts/new`       | Formulario con React Hook Form + Zod, seleccion de tipo y roles |
 | Editar contacto     | `/contacts/[id]/edit` | Mismo formulario pre-poblado con datos existentes               |
 
-**Endpoints REST implementados (16 endpoints en 9 route handlers):**
+**Endpoints REST implementados (17 endpoints en 9 route handlers — sin contar import):**
 
 | Metodo   | Ruta                                          | Descripcion                     | Permisos                           |
 | -------- | --------------------------------------------- | ------------------------------- | ---------------------------------- |
@@ -210,13 +210,41 @@ exitosamente y el Modulo de Contactos de la Fase 2 ya implementado.
 - RLS PostgreSQL como segunda capa de defensa
 - `ContactAddress` y `ContactPerson` tienen `company_id` desnormalizado para RLS directo sin JOIN
 
-#### F2-03: Import Contactos (Excel) — PENDIENTE
+#### F2-03: Import Contactos (Excel masivo) — COMPLETADO
 
-- Subida de archivo Excel (.xlsx) con validacion de columnas
-- Procesamiento asincrono via SQS + Lambda
-- Reporte de importacion (exitosos, errores, duplicados)
-- Validacion RTN por fila
-- Estimacion: ~3-4 dias de desarrollo
+**Endpoints implementados:**
+
+| Metodo | Ruta                               | Descripcion                                        | Permisos                           |
+| ------ | ---------------------------------- | -------------------------------------------------- | ---------------------------------- |
+| `GET`  | `/api/v1/contacts/import/template` | Genera y descarga template .xlsx con instrucciones | Admin, Gerente, Contador, Vendedor |
+| `POST` | `/api/v1/contacts/import`          | Acepta multipart/form-data, procesa archivo Excel  | Admin, Gerente, Contador, Vendedor |
+
+**Backend — `ContactImportService`:**
+
+- Validacion de archivo: magic bytes, MIME type, tamano maximo 5 MB, maximo 500 filas
+- Pre-fetch de RTNs existentes para lookup O(1) sin N+1 queries
+- Deteccion de duplicados en DB y dentro del mismo archivo Excel
+- Procesamiento con soft-error: filas invalidas se acumulan, el batch continua
+- Insercion en transaccion Prisma con `createManyAndReturn`
+- Template .xlsx generado en memoria con 2 hojas: datos + instrucciones
+
+**Schema Zod (`contact-import.schema.ts`):**
+
+- Coerciones Excel: `SI`/`NO` -> boolean, normalizacion de strings con `trim`
+- Validacion RTN Honduras por fila (formato `DDDD-DDDD-DDDDD`)
+- Tipo `ContactImportResult` con campos: `imported`, `skipped`, `errors[]`, `duplicates[]`
+
+**Frontend — `ContactImportDialog`:**
+
+- Dialog con 3 estados internos: upload (drag & drop de archivo), procesando (spinner), resultado
+- Tarjetas de resultado en verde/rojo/amarillo con conteos de exitosos, errores y duplicados
+- Tablas detalladas de errores y duplicados con numero de fila y mensaje
+- Boton "Importar Excel" agregado en `/contacts` junto al boton "Nuevo Contacto"
+
+**Tests:**
+
+- 81 tests nuevos unitarios: schema Zod, servicio, API POST, GET template
+- Suite total del proyecto: 149/149 tests pasando
 
 ---
 
@@ -305,18 +333,17 @@ docs/               # Documentacion del proyecto
 
 ### Inmediato (esta semana)
 
-1. **F2-03** — Import masivo de contactos desde Excel
-2. **F2-04** — Disenar y crear schema de contabilidad en Prisma
+1. **F2-04** — Disenar y crear schema de contabilidad en Prisma
 
 ### Corto plazo (proximas 2 semanas)
 
-3. **F2-05** — Seed del plan de cuentas NIIF Honduras (~200 cuentas)
-4. **F2-06** — UI del plan de cuentas con arbol jerarquico
-5. **F2-07** — CRUD de anos y periodos fiscales
+2. **F2-05** — Seed del plan de cuentas NIIF Honduras (~200 cuentas)
+3. **F2-06** — UI del plan de cuentas con arbol jerarquico
+4. **F2-07** — CRUD de anos y periodos fiscales
 
 ### Mediano plazo (proximas 4-6 semanas)
 
-6. **F2-08 a F2-15** — Asientos contables, multimoneda, reportes, exportaciones, conciliaciones, tests
+5. **F2-08 a F2-15** — Asientos contables, multimoneda, reportes, exportaciones, conciliaciones, tests
 
 ---
 
@@ -335,4 +362,4 @@ docs/               # Documentacion del proyecto
 ---
 
 _Documento generado automaticamente por Claude Code (Doc Engineer)_
-_Fecha: 24 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_
+_Fecha: 25 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_

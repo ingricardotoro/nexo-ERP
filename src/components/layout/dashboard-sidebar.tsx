@@ -45,6 +45,8 @@ const navigation: NavigationGroup[] = [
     name: 'Contabilidad',
     items: [
       { name: 'Plan de Cuentas', href: '/dashboard/accounting/accounts', icon: FileText },
+      { name: 'Años Fiscales', href: '/dashboard/accounting/fiscal-years', icon: FileText },
+      { name: 'Diarios', href: '/dashboard/accounting/journals', icon: FileText },
       { name: 'Asientos', href: '/dashboard/accounting/entries', icon: FileText },
     ],
     badge: 'Fase 2',

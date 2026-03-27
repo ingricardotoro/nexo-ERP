@@ -2,12 +2,19 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 const NOT_FOUND_MESSAGES = [
+  // Contacts
   'Contacto no encontrado',
   'Dirección no encontrada',
   'Persona de contacto no encontrada',
   'Términos de pago no encontrados',
   'Usuario no encontrado',
   'Empresa no encontrada',
+  // Accounting
+  'Año fiscal no encontrado',
+  'Período fiscal no encontrado',
+  'Diario no encontrado',
+  'Cuenta contable no encontrada',
+  'Asiento contable no encontrado',
 ];
 
 export function handleApiError(error: unknown, context: string) {

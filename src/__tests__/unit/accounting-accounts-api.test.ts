@@ -349,7 +349,7 @@ describe('POST /api/v1/accounting/fiscal-years/:id/activate', () => {
     expect(body.message).toBe('Año fiscal activado exitosamente');
   });
 
-  it('debería retornar 400 cuando el servicio lanza error (ej: año no encontrado)', async () => {
+  it('debería retornar 404 cuando el servicio lanza error (ej: año no encontrado)', async () => {
     // Arrange
     fiscalYearServiceMock.activateYear.mockRejectedValue(new Error('Año fiscal no encontrado'));
     const params = Promise.resolve({ id: AÑO_ID });
@@ -359,7 +359,7 @@ describe('POST /api/v1/accounting/fiscal-years/:id/activate', () => {
     const body = await response.json();
 
     // Assert
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(body.success).toBe(false);
   });
 });

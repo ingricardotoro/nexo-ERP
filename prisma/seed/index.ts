@@ -290,7 +290,101 @@ async function main() {
     },
   ];
 
-  const allPermissions = [...corePermissions, ...contactsPermissions];
+  const accountingPermissions = [
+    {
+      id: 'accounting.account.read',
+      moduleId: 'accounting',
+      resource: 'account',
+      action: 'read',
+      description: 'Ver plan de cuentas',
+    },
+    {
+      id: 'accounting.fiscal_year.create',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'create',
+      description: 'Crear años fiscales',
+    },
+    {
+      id: 'accounting.fiscal_year.read',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'read',
+      description: 'Ver años fiscales y períodos',
+    },
+    {
+      id: 'accounting.fiscal_year.close',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'close',
+      description: 'Cerrar años y períodos fiscales',
+    },
+    {
+      id: 'accounting.fiscal_period.lock',
+      moduleId: 'accounting',
+      resource: 'fiscal_period',
+      action: 'lock',
+      description: 'Bloquear períodos fiscales (irreversible)',
+    },
+    {
+      id: 'accounting.journal.create',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'create',
+      description: 'Crear diarios contables',
+    },
+    {
+      id: 'accounting.journal.read',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'read',
+      description: 'Ver diarios contables',
+    },
+    {
+      id: 'accounting.journal.update',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'update',
+      description: 'Editar diarios contables',
+    },
+    {
+      id: 'accounting.journal.delete',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'delete',
+      description: 'Eliminar diarios contables sin asientos',
+    },
+    {
+      id: 'accounting.journal_entry.create',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'create',
+      description: 'Crear asientos contables en borrador',
+    },
+    {
+      id: 'accounting.journal_entry.read',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'read',
+      description: 'Ver asientos contables',
+    },
+    {
+      id: 'accounting.journal_entry.post',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'post',
+      description: 'Publicar (contabilizar) asientos',
+    },
+    {
+      id: 'accounting.journal_entry.cancel',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'cancel',
+      description: 'Anular asientos publicados (genera contraasiento)',
+    },
+  ];
+
+  const allPermissions = [...corePermissions, ...contactsPermissions, ...accountingPermissions];
 
   for (const perm of allPermissions) {
     await prisma.permission.upsert({
@@ -301,6 +395,7 @@ async function main() {
   }
   console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
   console.log(`✅ Permisos contacts: ${contactsPermissions.length} creados`);
+  console.log(`✅ Permisos accounting: ${accountingPermissions.length} creados`);
 
   // === Monedas (catálogo global — sin companyId) ===
   const currencies = [

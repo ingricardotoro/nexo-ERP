@@ -35,6 +35,10 @@ const { prismaMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/db/prisma', () => ({ default: prismaMock }));
+// createTenantPrisma debe devolver el mismo mock para que los tests funcionen sin BD
+vi.mock('@/lib/db/tenant-extension', () => ({
+  createTenantPrisma: () => prismaMock,
+}));
 
 // ─── Import del servicio (después de los mocks) ───────────────────────────────
 

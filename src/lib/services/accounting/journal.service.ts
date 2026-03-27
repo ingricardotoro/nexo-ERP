@@ -1,6 +1,7 @@
 // src/lib/services/accounting/journal.service.ts
 import type { JournalType } from '@prisma/client';
-import prisma from '@/lib/db/prisma';
+import basePrisma from '@/lib/db/prisma';
+import { createTenantPrisma } from '@/lib/db/tenant-extension';
 import {
   createJournalSchema,
   updateJournalSchema,
@@ -26,7 +27,8 @@ export interface JournalRow {
 export const journalService = {
   /** Lista todos los diarios de la empresa con conteo de asientos. */
   async listJournals(companyId: string): Promise<JournalRow[]> {
-    const journals = await prisma.journal.findMany({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const journals = await db.journal.findMany({
       where: { companyId },
       include: { _count: { select: { journalEntries: true } } },
       orderBy: [{ journalType: 'asc' }, { code: 'asc' }],
@@ -47,15 +49,16 @@ export const journalService = {
   /** Crea un nuevo diario. El código debe ser único por empresa. */
   async createJournal(companyId: string, input: CreateJournalInput): Promise<JournalRow> {
     const data = createJournalSchema.parse(input);
+    const db = createTenantPrisma(basePrisma, companyId);
 
-    const existing = await prisma.journal.findUnique({
+    const existing = await db.journal.findUnique({
       where: { companyId_code: { companyId, code: data.code } },
     });
     if (existing) {
       throw new Error(`Ya existe un diario con el código "${data.code}" en esta empresa`);
     }
 
-    const journal = await prisma.journal.create({
+    const journal = await db.journal.create({
       data: { companyId, ...data },
       include: { _count: { select: { journalEntries: true } } },
     });
@@ -79,11 +82,12 @@ export const journalService = {
     input: UpdateJournalInput,
   ): Promise<JournalRow> {
     const data = updateJournalSchema.parse(input);
+    const db = createTenantPrisma(basePrisma, companyId);
 
-    const journal = await prisma.journal.findFirst({ where: { id, companyId } });
+    const journal = await db.journal.findFirst({ where: { id, companyId } });
     if (!journal) throw new Error('Diario no encontrado');
 
-    const updated = await prisma.journal.update({
+    const updated = await db.journal.update({
       where: { id },
       data,
       include: { _count: { select: { journalEntries: true } } },
@@ -105,7 +109,8 @@ export const journalService = {
    * Elimina un diario. Solo se permite si no tiene asientos registrados.
    */
   async deleteJournal(companyId: string, id: string): Promise<void> {
-    const journal = await prisma.journal.findFirst({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const journal = await db.journal.findFirst({
       where: { id, companyId },
       include: { _count: { select: { journalEntries: true } } },
     });
@@ -116,6 +121,6 @@ export const journalService = {
       );
     }
 
-    await prisma.journal.delete({ where: { id } });
+    await db.journal.delete({ where: { id } });
   },
 };

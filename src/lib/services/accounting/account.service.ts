@@ -1,6 +1,7 @@
 // src/lib/services/accounting/account.service.ts
 import type { AccountNature, AccountType } from '@prisma/client';
-import prisma from '@/lib/db/prisma';
+import basePrisma from '@/lib/db/prisma';
+import { createTenantPrisma } from '@/lib/db/tenant-extension';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,8 @@ export const accountService = {
    * Retorna los nodos raíz (level=1); cada nodo tiene su `children` populado recursivamente.
    */
   async getAccountsTree(companyId: string): Promise<AccountNode[]> {
-    const rows = await prisma.account.findMany({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const rows = await db.account.findMany({
       where: { companyId },
       select: {
         id: true,
@@ -88,11 +90,12 @@ export const accountService = {
    * Estadísticas del plan de cuentas para las tarjetas de resumen.
    */
   async getAccountStats(companyId: string): Promise<AccountStats> {
+    const db = createTenantPrisma(basePrisma, companyId);
     const [total, active, leafCount, byTypeRaw] = await Promise.all([
-      prisma.account.count({ where: { companyId } }),
-      prisma.account.count({ where: { companyId, isActive: true } }),
-      prisma.account.count({ where: { companyId, allowDirectEntry: true } }),
-      prisma.account.groupBy({
+      db.account.count({ where: { companyId } }),
+      db.account.count({ where: { companyId, isActive: true } }),
+      db.account.count({ where: { companyId, allowDirectEntry: true } }),
+      db.account.groupBy({
         by: ['accountType'],
         where: { companyId },
         _count: { _all: true },

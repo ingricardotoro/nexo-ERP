@@ -9,6 +9,7 @@ loadDotenv({ path: '.env.local' });
 import { PrismaClient } from '@prisma/client';
 
 import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
+import { seedAccountingJournals } from './accounting-journals';
 
 const prisma = new PrismaClient();
 
@@ -321,6 +322,9 @@ async function main() {
   // La empresa test solo tiene módulo core activo, no necesita plan de cuentas
   await seedAccountingChartOfAccounts(demoCompany.id, prisma);
 
+  // === Diarios contables por defecto — solo para empresa demo ===
+  await seedAccountingJournals(demoCompany.id, prisma);
+
   console.log('');
   console.log('🌱 Seed completado exitosamente.');
   console.log(`   Companies: 2`);
@@ -331,6 +335,7 @@ async function main() {
     `   Permisos: ${allPermissions.length} (${corePermissions.length} core + ${contactsPermissions.length} contacts)`,
   );
   console.log(`   Plan de cuentas NIIF: seeded para ${demoCompany.tradeName}`);
+  console.log(`   Diarios contables: 7 por defecto para ${demoCompany.tradeName}`);
 }
 
 main()

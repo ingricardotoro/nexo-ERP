@@ -1,11 +1,5 @@
 // prisma/seed/index.ts
-// Seed para Fase 1 — empresas, módulos del sistema y CompanyModules
-//
-// Se expandirá en Fase 2 con:
-//   - Plan de cuentas NIIF Honduras (~200 cuentas)
-//   - Monedas (HNL, USD)
-//   - Impuestos (ISV 15%, 18%, Exento)
-//   - Tipos de documento fiscal
+// Seed para Fase 1 + Fase 2 — empresas, módulos, plan de cuentas NIIF Honduras
 
 import { config as loadDotenv } from 'dotenv';
 
@@ -13,6 +7,8 @@ import { config as loadDotenv } from 'dotenv';
 loadDotenv({ path: '.env.local' });
 
 import { PrismaClient } from '@prisma/client';
+
+import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
 
 const prisma = new PrismaClient();
 
@@ -305,14 +301,36 @@ async function main() {
   console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
   console.log(`✅ Permisos contacts: ${contactsPermissions.length} creados`);
 
+  // === Monedas (catálogo global — sin companyId) ===
+  const currencies = [
+    { code: 'HNL', name: 'Lempira hondureño', symbol: 'L', isActive: true, isBase: true },
+    { code: 'USD', name: 'Dólar estadounidense', symbol: '$', isActive: true, isBase: false },
+    { code: 'EUR', name: 'Euro', symbol: '€', isActive: true, isBase: false },
+  ];
+
+  for (const currency of currencies) {
+    await prisma.currency.upsert({
+      where: { code: currency.code },
+      update: { name: currency.name, symbol: currency.symbol, isActive: currency.isActive },
+      create: currency,
+    });
+  }
+  console.log(`✅ Monedas: ${currencies.length} creadas (HNL, USD, EUR)`);
+
+  // === Plan de Cuentas NIIF Honduras — solo para empresa demo ===
+  // La empresa test solo tiene módulo core activo, no necesita plan de cuentas
+  await seedAccountingChartOfAccounts(demoCompany.id, prisma);
+
   console.log('');
   console.log('🌱 Seed completado exitosamente.');
   console.log(`   Companies: 2`);
   console.log(`   Módulos: ${modules.length}`);
   console.log(`   PaymentTerms: ${defaultPaymentTerms.length} por empresa`);
+  console.log(`   Monedas: ${currencies.length}`);
   console.log(
     `   Permisos: ${allPermissions.length} (${corePermissions.length} core + ${contactsPermissions.length} contacts)`,
   );
+  console.log(`   Plan de cuentas NIIF: seeded para ${demoCompany.tradeName}`);
 }
 
 main()

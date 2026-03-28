@@ -2,7 +2,14 @@
 
 // src/app/(dashboard)/accounting/reports/page.tsx
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  FileText,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  ArrowDownCircle,
+  ArrowUpCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -410,6 +417,242 @@ function IncomeStatementTab() {
   );
 }
 
+// ─── Types for Aging ─────────────────────────────────────────────────────────
+
+interface AgingBuckets {
+  current: string;
+  days31_60: string;
+  days61_90: string;
+  days90plus: string;
+  total: string;
+}
+
+interface AgingAccountRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  parentId: string | null;
+  isParent: boolean;
+  level: number;
+  buckets: AgingBuckets;
+}
+
+interface AgingReport {
+  asOfDate: string;
+  reportType: string;
+  label: string;
+  accounts: AgingAccountRow[];
+  totals: AgingBuckets;
+}
+
+// ─── Aging Tab (shared for CxC and CxP) ──────────────────────────────────────
+
+function AgingTab({
+  endpoint,
+  title,
+  icon,
+}: {
+  endpoint: string;
+  title: string;
+  icon: React.ReactNode;
+}) {
+  const today = new Date().toISOString().split('T')[0]!;
+  const [asOfDate, setAsOfDate] = useState(today);
+  const [report, setReport] = useState<AgingReport | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchReport = useCallback(async () => {
+    if (!asOfDate) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/v1/accounting/reports/${endpoint}?asOfDate=${asOfDate}`, {
+        credentials: 'include',
+      });
+      const payload = (await res.json()) as {
+        success: boolean;
+        data?: AgingReport;
+        error?: string;
+      };
+      if (!payload.success) {
+        toast.error('Error al generar reporte', { description: payload.error });
+        return;
+      }
+      setReport(payload.data ?? null);
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [asOfDate, endpoint]);
+
+  useEffect(() => {
+    void fetchReport();
+  }, [fetchReport]);
+
+  const BUCKETS: { key: keyof Omit<AgingBuckets, 'total'>; label: string }[] = [
+    { key: 'current', label: '0–30 días' },
+    { key: 'days31_60', label: '31–60 días' },
+    { key: 'days61_90', label: '61–90 días' },
+    { key: 'days90plus', label: '+90 días' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Parámetros */}
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="space-y-1">
+          <Label htmlFor={`${endpoint}-asOfDate`}>Fecha de corte</Label>
+          <Input
+            id={`${endpoint}-asOfDate`}
+            type="date"
+            value={asOfDate}
+            onChange={(e) => setAsOfDate(e.target.value)}
+            className="w-44"
+          />
+        </div>
+        <Button onClick={fetchReport} disabled={isLoading} size="sm">
+          {isLoading ? 'Generando...' : 'Actualizar'}
+        </Button>
+      </div>
+
+      {report && (
+        <>
+          {/* Header */}
+          <div className="rounded-lg border p-4 text-center">
+            <div className="flex items-center justify-center gap-2">
+              {icon}
+              <h2 className="text-lg font-bold">{title}</h2>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Al{' '}
+              {new Date(report.asOfDate + 'T00:00:00').toLocaleDateString('es-HN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Antigüedad basada en fecha del asiento contable
+            </p>
+          </div>
+
+          {/* Tabla de aging */}
+          {report.accounts.length === 0 ? (
+            <div className="text-muted-foreground rounded-lg border py-10 text-center text-sm">
+              Sin saldos al {report.asOfDate}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="px-4 py-2.5 text-left font-medium">Cuenta</th>
+                    {BUCKETS.map((b) => (
+                      <th
+                        key={b.key}
+                        className="px-4 py-2.5 text-right font-medium whitespace-nowrap"
+                      >
+                        {b.label}
+                      </th>
+                    ))}
+                    <th className="px-4 py-2.5 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.accounts.map((row) => {
+                    const indent = (row.level - 1) * 16;
+                    return (
+                      <tr
+                        key={row.accountId}
+                        className={
+                          row.isParent
+                            ? 'bg-muted/30 border-b font-semibold'
+                            : 'hover:bg-muted/20 border-b transition-colors last:border-0'
+                        }
+                      >
+                        <td
+                          className="px-4 py-2 text-xs"
+                          style={{ paddingLeft: `${16 + indent}px` }}
+                        >
+                          <span className="text-muted-foreground mr-2 font-mono">
+                            {row.accountCode}
+                          </span>
+                          {row.accountName}
+                        </td>
+                        {BUCKETS.map((b) => {
+                          const val = parseFloat(row.buckets[b.key]);
+                          return (
+                            <td
+                              key={b.key}
+                              className={`px-4 py-2 text-right tabular-nums ${
+                                Math.abs(val) < 0.005
+                                  ? 'text-muted-foreground'
+                                  : b.key === 'days90plus'
+                                    ? 'text-destructive font-medium'
+                                    : b.key === 'days61_90'
+                                      ? 'text-amber-600'
+                                      : ''
+                              }`}
+                            >
+                              {Math.abs(val) < 0.005 ? '—' : `L ${fmtAmount(row.buckets[b.key])}`}
+                            </td>
+                          );
+                        })}
+                        <td className="px-4 py-2 text-right font-semibold tabular-nums">
+                          L {fmtAmount(row.buckets.total)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {/* Totales */}
+                <tfoot>
+                  <tr className="bg-muted border-t-2 font-bold">
+                    <td className="px-4 py-3 text-sm">TOTAL</td>
+                    {BUCKETS.map((b) => (
+                      <td key={b.key} className="px-4 py-3 text-right tabular-nums">
+                        L {fmtAmount(report.totals[b.key])}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right text-base tabular-nums">
+                      L {fmtAmount(report.totals.total)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          {/* Resumen por bucket */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {BUCKETS.map((b) => {
+              const val = parseFloat(report.totals[b.key]);
+              const isHighRisk = b.key === 'days90plus' && val > 0;
+              return (
+                <div
+                  key={b.key}
+                  className={`rounded-lg border p-3 text-center ${
+                    isHighRisk ? 'border-destructive bg-red-50' : ''
+                  }`}
+                >
+                  <p className="text-muted-foreground text-xs">{b.label}</p>
+                  <p
+                    className={`mt-1 text-base font-bold tabular-nums ${
+                      isHighRisk ? 'text-destructive' : ''
+                    }`}
+                  >
+                    L {fmtAmount(report.totals[b.key])}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
@@ -420,15 +663,17 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reportes Financieros</h1>
           <p className="text-muted-foreground text-sm">
-            Estados financieros NIIF — Balance General y Estado de Resultados
+            Estados financieros NIIF — Balance, Resultados y Antigüedad de Saldos
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="balance-sheet">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="balance-sheet">Balance General</TabsTrigger>
           <TabsTrigger value="income-statement">Estado de Resultados</TabsTrigger>
+          <TabsTrigger value="cxc">CxC — Por Cobrar</TabsTrigger>
+          <TabsTrigger value="cxp">CxP — Por Pagar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="balance-sheet" className="mt-6">
@@ -437,6 +682,22 @@ export default function ReportsPage() {
 
         <TabsContent value="income-statement" className="mt-6">
           <IncomeStatementTab />
+        </TabsContent>
+
+        <TabsContent value="cxc" className="mt-6">
+          <AgingTab
+            endpoint="cxc-aging"
+            title="Antigüedad de Cuentas por Cobrar"
+            icon={<ArrowDownCircle className="h-5 w-5 text-green-600" />}
+          />
+        </TabsContent>
+
+        <TabsContent value="cxp" className="mt-6">
+          <AgingTab
+            endpoint="cxp-aging"
+            title="Antigüedad de Cuentas por Pagar"
+            icon={<ArrowUpCircle className="text-destructive h-5 w-5" />}
+          />
         </TabsContent>
       </Tabs>
     </div>

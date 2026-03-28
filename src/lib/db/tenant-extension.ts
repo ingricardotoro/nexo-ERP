@@ -47,6 +47,7 @@ const BUSINESS_MODELS = [
   'Journal',
   'JournalEntry',
   'JournalEntryLine',
+  'JournalSequence',
   'ExchangeRate',
 ] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];

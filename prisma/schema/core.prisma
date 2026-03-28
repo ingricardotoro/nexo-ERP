@@ -48,6 +48,7 @@ model Company {
   journals          Journal[]
   journalEntries    JournalEntry[]
   journalEntryLines JournalEntryLine[]
+  journalSequences  JournalSequence[]
   accounts          Account[]
   exchangeRates     ExchangeRate[]
 

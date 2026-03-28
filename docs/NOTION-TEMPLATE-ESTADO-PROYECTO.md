@@ -1,41 +1,64 @@
 # NexoERP — Estado del Proyecto (Marzo 2026)
 
 > **Copia este documento completo y pegalo en Notion (Create page > Paste Markdown)**
-> **Fecha de actualizacion:** 27 de marzo de 2026
+> **Fecha de actualizacion:** 28 de marzo de 2026
 > **Preparado por:** Claude Code (Doc Engineer)
-> **Rama activa:** `feat/fase-2-contabilidad-contactos`
-> **Ultimo commit:** `feat(accounting): add financial reports (balance sheet + income statement) (f2-11)`
+> **Rama activa:** `feat/fase-2-contabilidad-seed-niif`
+> **Ultimo commit:** `feat(accounting): add aging receivables/payables report (f2-14)`
 
 ---
 
 ## Resumen Ejecutivo
 
-**NexoERP** es un ERP multi-tenant en la nube para PYMEs hondurenas con cumplimiento fiscal SAR y contabilidad NIIF. Actualmente en **Fase 2 de 5**, con la Fase 1 completada exitosamente, el Modulo de Contactos completado y el Modulo de Contabilidad en progreso acelerado (F2-04 a F2-11 completados).
+**NexoERP** es un ERP multi-tenant en la nube para PYMEs hondurenas con cumplimiento fiscal SAR y contabilidad NIIF. Actualmente en **Fase 2 de 5 (~75% completada)**, con Fase 0 y Fase 1 completadas exitosamente. El Modulo de Contactos esta completo, y el Modulo de Contabilidad tiene 8 de 12 entregables completados (F2-01 a F2-11 y F2-14). Pendientes: exportacion PDF/Excel (F2-12), conciliacion bancaria (F2-13) y tests de integracion (F2-15).
 
 ### Metricas Generales del Proyecto
 
-| Metrica               | Valor                                                                                                                                                                                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Fases completadas** | 1 de 5 (Fase 0 + Fase 1)                                                                                                                                                                                                                                                                          |
-| **Fase en progreso**  | Fase 2 — Contabilidad + Contactos                                                                                                                                                                                                                                                                 |
-| **Endpoints REST**    | 47 endpoints (7 core + 17 contactos + 2 import + 21 contabilidad)                                                                                                                                                                                                                                 |
-| **Modelos Prisma**    | 19 modelos (Company, User, AuditLog, Module, CompanyModule, Permission, RolePermission, PaymentTerms, Contact, ContactAddress, ContactPerson, Currency, ExchangeRate, Account, FiscalYear, FiscalPeriod, Journal, JournalEntry, JournalEntryLine, JournalSequence — mas enums AccountType/Nature) |
-| **Migraciones**       | 4 (core, contacts, accounting-base, journal-sequences-cancellation)                                                                                                                                                                                                                               |
-| **Ambiente staging**  | AWS Amplify (activo)                                                                                                                                                                                                                                                                              |
-| **Presupuesto AWS**   | ~$1.35/mes con Free Tier activo                                                                                                                                                                                                                                                                   |
-| **Repositorio**       | GitHub — rama principal: `main`                                                                                                                                                                                                                                                                   |
+| Metrica                   | Valor                                                             |
+| ------------------------- | ----------------------------------------------------------------- |
+| **Fases completadas**     | 2 de 5 (Fase 0 + Fase 1)                                          |
+| **Fase en progreso**      | Fase 2 — Contabilidad + Contactos (~75%)                          |
+| **Endpoints REST**        | 47 endpoints (7 core + 17 contactos + 2 import + 21 contabilidad) |
+| **Modelos Prisma**        | 20 modelos activos                                                |
+| **Migraciones aplicadas** | 6                                                                 |
+| **Permisos RBAC seeded**  | 27 (core + contacts + accounting)                                 |
+| **Cuentas NIIF seeded**   | ~360 cuentas del Plan de Cuentas Honduras                         |
+| **Diarios seeded**        | 7 (DJ, LV, LC, CA, BK, NM, AJ)                                    |
+| **Monedas**               | 3 (HNL base, USD, EUR)                                            |
+| **Tests unitarios**       | ~52 tests                                                         |
+| **Ambiente staging**      | AWS Amplify (activo)                                              |
+| **Presupuesto AWS**       | ~$1.35/mes con Free Tier activo                                   |
+| **Repositorio**           | GitHub — rama principal: `main`                                   |
 
 ---
 
 ## Estado de Fases
 
-| Fase       | Nombre                         | Estado      | Periodo               | Duracion              |
-| ---------- | ------------------------------ | ----------- | --------------------- | --------------------- |
-| **Fase 0** | Fundamentos                    | Completada  | Marzo 2026            | ~3 dias               |
-| **Fase 1** | Core System                    | Completada  | 10-16 marzo 2026      | 6 dias                |
-| **Fase 2** | Contabilidad + Contactos       | En progreso | Marzo 2026 — presente | ~6 semanas estimadas  |
-| **Fase 3** | Facturacion Honduras           | Pendiente   | —                     | ~8 semanas estimadas  |
-| **Fase 4** | Compras + Ventas + Inventarios | Pendiente   | —                     | ~12 semanas estimadas |
+| Fase       | Nombre                         | Estado         | Periodo               | Progreso | Duracion              |
+| ---------- | ------------------------------ | -------------- | --------------------- | -------- | --------------------- |
+| **Fase 0** | Fundamentos                    | ✅ Completa    | Marzo 2026            | 100%     | ~3 dias               |
+| **Fase 1** | Core System                    | ✅ Completa    | 10-16 marzo 2026      | 100%     | 6 dias                |
+| **Fase 2** | Contabilidad + Contactos       | 🔄 En progreso | Marzo 2026 — presente | ~75%     | ~6 semanas estimadas  |
+| **Fase 3** | Facturacion Honduras           | ⏳ Pendiente   | —                     | 0%       | ~8 semanas estimadas  |
+| **Fase 4** | Compras + Ventas + Inventarios | ⏳ Pendiente   | —                     | 0%       | ~12 semanas estimadas |
+
+---
+
+## Modulos Fase 2 al 28 de marzo de 2026
+
+| Modulo                            | ID            | Estado       | Descripcion                                                                           |
+| --------------------------------- | ------------- | ------------ | ------------------------------------------------------------------------------------- |
+| Contactos                         | F2-01 a F2-03 | ✅ Completo  | CRUD clientes/proveedores, importacion Excel, terminos de pago                        |
+| Plan de Cuentas NIIF              | F2-05 / F2-06 | ✅ Completo  | ~360 cuentas NIIF, arbol jerarquico, API + UI                                         |
+| Anos y Periodos Fiscales          | F2-07         | ✅ Completo  | CRUD, apertura/cierre de periodos, RLS                                                |
+| Diarios Contables                 | F2-08         | ✅ Completo  | 7 diarios seeded, CRUD completo                                                       |
+| Asientos Contables                | F2-09         | ✅ Completo  | Ciclo DRAFT -> POSTED -> CANCELLED, partida doble, contraasientos, numeracion atomica |
+| Tipos de Cambio                   | F2-10         | ✅ Completo  | Global + empresa, lookup inteligente, auto-fill en formularios                        |
+| Reportes Financieros              | F2-11         | ✅ Completo  | Balance General + Estado de Resultados, propagacion bottom-up                         |
+| Aging CxC / CxP                   | F2-14         | ✅ Completo  | Antiguedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 dias)                       |
+| Exportacion PDF / Excel           | F2-12         | ⏳ Pendiente | Lambda PDF, S3 almacenamiento, export Excel                                           |
+| Conciliacion Bancaria             | F2-13         | ⏳ Pendiente | Match transacciones banco vs asientos contables                                       |
+| Tests de Integracion Contabilidad | F2-15         | ⏳ Pendiente | Tests unitarios e integracion, aislamiento tenant                                     |
 
 ---
 
@@ -101,7 +124,7 @@
 | Modulo       | Completado | Total tareas | Estado      |
 | ------------ | ---------- | ------------ | ----------- |
 | Contactos    | 3          | 3            | Completo    |
-| Contabilidad | 8          | 12           | En progreso |
+| Contabilidad | 9          | 12           | En progreso |
 
 ---
 
@@ -122,7 +145,7 @@ Ver detalle completo de Contactos en la version anterior de este documento (25 m
 | ID        | Tarea                                  | Estado     | Descripcion resumida                                                                               |
 | --------- | -------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
 | **F2-04** | Schema Contabilidad (8 modelos Prisma) | Completado | Currency, ExchangeRate, Account, FiscalYear, FiscalPeriod, Journal, JournalEntry, JournalEntryLine |
-| **F2-05** | Seed Plan de Cuentas NIIF Honduras     | Completado | ~200 cuentas NIIF para PYMEs, seed por empresa                                                     |
+| **F2-05** | Seed Plan de Cuentas NIIF Honduras     | Completado | ~360 cuentas NIIF para PYMEs Honduras, seed por empresa                                            |
 | **F2-06** | UI Plan de Cuentas                     | Completado | Arbol jerarquico con TanStack Table tree mode                                                      |
 | **F2-07** | Anos Fiscales + Periodos (CRUD)        | Completado | Apertura/cierre de anos fiscales, 12 periodos mensuales                                            |
 | **F2-08** | Diarios Contables (CRUD)               | Completado | 7 diarios seeded (DJ, LV, LC, CA, BK, NM, AJ), CRUD + UI                                           |
@@ -131,7 +154,7 @@ Ver detalle completo de Contactos en la version anterior de este documento (25 m
 | **F2-11** | Reportes Financieros                   | Completado | Balance General + Estado de Resultados, propagacion bottom-up                                      |
 | **F2-12** | Exportacion PDF + Excel                | Pendiente  | Lambda PDF, S3 almacenamiento, export Excel                                                        |
 | **F2-13** | Conciliacion Bancaria                  | Pendiente  | Match transacciones banco vs asientos                                                              |
-| **F2-14** | CxC / CxP Aging                        | Pendiente  | Estado de cuenta clientes y proveedores, aging por vencimiento                                     |
+| **F2-14** | CxC / CxP Aging                        | Completado | Antiguedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 dias); endpoints receivables + payables  |
 | **F2-15** | Tests Modulo Contabilidad              | Pendiente  | Tests unitarios e integracion modulo contabilidad                                                  |
 
 ---
@@ -456,12 +479,12 @@ prisma/schema/accounting.prisma
 - Endpoints: `/api/v1/accounting/bank-reconciliation`
 - UI: tabla de dos columnas (banco vs contabilidad) con lineas de match
 
-### Mediano plazo — F2-14: CxC / CxP Aging
+### Completado — F2-14: CxC / CxP Aging (28 marzo 2026)
 
-- Estado de cuenta de clientes (Cuentas por Cobrar): facturas pendientes + pagos aplicados
-- Estado de cuenta de proveedores (Cuentas por Pagar): facturas recibidas + pagos realizados
-- Aging report: vencimiento por rangos (0-30, 31-60, 61-90, 90+ dias)
-- Endpoints: `/api/v1/accounting/aging/receivables` y `/api/v1/accounting/aging/payables`
+- Aging de clientes (Cuentas por Cobrar): saldos pendientes en 4 tramos (0-30, 31-60, 61-90, 90+ dias)
+- Aging de proveedores (Cuentas por Pagar): saldos pendientes en los mismos tramos
+- Endpoints implementados: `GET /api/v1/accounting/aging/receivables` y `GET /api/v1/accounting/aging/payables`
+- UI: tabla resumen por contacto con totales por tramo de vencimiento
 
 ### Cierre de Fase 2 — F2-15: Tests Modulo Contabilidad
 
@@ -487,4 +510,4 @@ prisma/schema/accounting.prisma
 ---
 
 _Documento generado automaticamente por Claude Code (Doc Engineer)_
-_Fecha: 27 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_
+_Fecha: 28 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_

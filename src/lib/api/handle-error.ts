@@ -15,6 +15,8 @@ const NOT_FOUND_MESSAGES = [
   'Diario no encontrado',
   'Cuenta contable no encontrada',
   'Asiento contable no encontrado',
+  'Tipo de cambio no encontrado',
+  'Moneda no encontrada',
 ];
 
 export function handleApiError(error: unknown, context: string) {

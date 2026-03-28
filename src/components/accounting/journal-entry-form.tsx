@@ -64,6 +64,9 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
   const [journals, setJournals] = useState<JournalOption[]>([]);
   const [periods, setPeriods] = useState<PeriodOption[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [currencies, setCurrencies] = useState<{ code: string; name: string; isBase: boolean }[]>(
+    [],
+  );
   const [accountSearch, setAccountSearch] = useState<Record<number, string>>({});
 
   const today = new Date().toISOString().split('T')[0]!;
@@ -91,10 +94,36 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const lines = watch('lines');
+  const watchedCurrency = watch('currencyCode');
+  const watchedDate = watch('entryDate');
 
   const totalDebit = lines?.reduce((s, l) => s + (Number(l.debit) || 0), 0) ?? 0;
   const totalCredit = lines?.reduce((s, l) => s + (Number(l.credit) || 0), 0) ?? 0;
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.001;
+
+  // Auto-cargar tasa de cambio cuando cambia moneda o fecha
+  useEffect(() => {
+    if (!watchedCurrency || watchedCurrency === 'HNL' || !watchedDate) return;
+
+    const fetchRate = async () => {
+      try {
+        const params = new URLSearchParams({ currencyCode: watchedCurrency, date: watchedDate });
+        const res = await fetch(`/api/v1/accounting/exchange-rates/lookup?${params.toString()}`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const payload = (await res.json()) as { success: boolean; data?: { rate: string } };
+          if (payload.success && payload.data) {
+            setValue('exchangeRate', parseFloat(payload.data.rate));
+          }
+        }
+      } catch {
+        // silencioso — el usuario puede ingresar la tasa manualmente
+      }
+    };
+
+    void fetchRate();
+  }, [watchedCurrency, watchedDate, setValue]);
 
   // Cargar datos al abrir
   useEffect(() => {
@@ -102,13 +131,14 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
 
     const fetchData = async () => {
       try {
-        const [journalsRes, fiscalYearsRes, accountsRes] = await Promise.all([
+        const [journalsRes, fiscalYearsRes, accountsRes, currenciesRes] = await Promise.all([
           fetch('/api/v1/accounting/journals', { credentials: 'include' }),
           fetch('/api/v1/accounting/fiscal-years', { credentials: 'include' }),
           fetch('/api/v1/accounting/accounts', { credentials: 'include' }),
+          fetch('/api/v1/accounting/currencies', { credentials: 'include' }),
         ]);
 
-        const [journalsData, fiscalYearsData, accountsData] = await Promise.all([
+        const [journalsData, fiscalYearsData, accountsData, currenciesData] = await Promise.all([
           journalsRes.json() as Promise<{ success: boolean; data: JournalOption[] }>,
           fiscalYearsRes.json() as Promise<{
             success: boolean;
@@ -120,6 +150,10 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
             }>;
           }>,
           accountsRes.json() as Promise<{ success: boolean; data: AccountOption[] }>,
+          currenciesRes.json() as Promise<{
+            success: boolean;
+            data: { code: string; name: string; isBase: boolean }[];
+          }>,
         ]);
 
         setJournals((journalsData.data ?? []).filter((j) => j));
@@ -137,6 +171,8 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
 
         // Solo cuentas que admiten asientos directos
         setAccounts((accountsData.data ?? []).filter((a) => a.allowDirectEntry));
+
+        setCurrencies(currenciesData.data ?? []);
       } catch {
         toast.error('Error al cargar datos del formulario');
       }
@@ -253,6 +289,57 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
               <Input id="entryDate" type="date" {...register('entryDate')} />
               {errors.entryDate && (
                 <p className="text-destructive text-xs">{errors.entryDate.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Moneda y tipo de cambio */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>
+                Moneda <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                defaultValue="HNL"
+                onValueChange={(v) => {
+                  setValue('currencyCode', v);
+                  if (v === 'HNL') setValue('exchangeRate', 1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.code} — {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.currencyCode && (
+                <p className="text-destructive text-xs">{errors.currencyCode.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="exchangeRate">
+                Tipo de cambio (→ HNL){' '}
+                {watchedCurrency && watchedCurrency !== 'HNL' && (
+                  <span className="text-muted-foreground text-xs">(auto-cargado)</span>
+                )}
+              </Label>
+              <Input
+                id="exchangeRate"
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                placeholder="1.000000"
+                disabled={watchedCurrency === 'HNL'}
+                {...register('exchangeRate', { valueAsNumber: true })}
+              />
+              {errors.exchangeRate && (
+                <p className="text-destructive text-xs">{errors.exchangeRate.message}</p>
               )}
             </div>
           </div>

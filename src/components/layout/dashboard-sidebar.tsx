@@ -48,6 +48,7 @@ const navigation: NavigationGroup[] = [
       { name: 'Años Fiscales', href: '/dashboard/accounting/fiscal-years', icon: FileText },
       { name: 'Diarios', href: '/dashboard/accounting/journals', icon: FileText },
       { name: 'Asientos', href: '/dashboard/accounting/entries', icon: FileText },
+      { name: 'Tipos de Cambio', href: '/dashboard/accounting/exchange-rates', icon: FileText },
     ],
     badge: 'Fase 2',
   },

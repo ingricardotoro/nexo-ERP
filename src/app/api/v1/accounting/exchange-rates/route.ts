@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { exchangeRateService } from '@/lib/services/accounting/exchange-rate.service';
 import {
   exchangeRateFiltersSchema,
@@ -13,6 +14,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.exchange_rate.read');
     const p = request.nextUrl.searchParams;
 
     const filters = exchangeRateFiltersSchema.parse({
@@ -34,6 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.exchange_rate.write');
     const body = await request.json();
     const input = upsertExchangeRateSchema.parse(body);
     const rate = await exchangeRateService.upsertRate(auth.companyId, input);

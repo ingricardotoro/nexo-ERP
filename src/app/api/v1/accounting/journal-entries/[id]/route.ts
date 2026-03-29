@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { journalEntryService } from '@/lib/services/accounting/journal-entry.service';
 import { updateJournalEntrySchema } from '@/lib/validations/journal-entry.schema';
 import { handleApiError } from '@/lib/api/handle-error';
@@ -10,6 +11,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal_entry.read');
     const { id } = await params;
     const entry = await journalEntryService.getJournalEntry(auth.companyId, id);
     return NextResponse.json({ success: true, data: entry });
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal_entry.create');
     const { id } = await params;
     const body = await request.json();
     const input = updateJournalEntrySchema.parse(body);
@@ -39,6 +42,7 @@ export async function DELETE(
 ) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal_entry.cancel');
     const { id } = await params;
     await journalEntryService.deleteDraftEntry(auth.companyId, id);
     return NextResponse.json({ success: true, message: 'Asiento eliminado' });

@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { journalService } from '@/lib/services/accounting/journal.service';
 import { createJournalSchema } from '@/lib/validations/journal.schema';
 import { handleApiError } from '@/lib/api/handle-error';
@@ -10,6 +11,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal.read');
     const journals = await journalService.listJournals(auth.companyId);
     return NextResponse.json({ success: true, data: journals });
   } catch (error) {
@@ -21,6 +23,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal.create');
     const body = await request.json();
     const input = createJournalSchema.parse(body);
     const journal = await journalService.createJournal(auth.companyId, input);

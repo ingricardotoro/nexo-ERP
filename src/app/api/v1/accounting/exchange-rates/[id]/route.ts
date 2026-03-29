@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { exchangeRateService } from '@/lib/services/accounting/exchange-rate.service';
 import { handleApiError } from '@/lib/api/handle-error';
 
@@ -12,6 +13,7 @@ export async function DELETE(
 ) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.exchange_rate.write');
     const { id } = await params;
     await exchangeRateService.deleteRate(auth.companyId, id);
     return NextResponse.json({ success: true, message: 'Tipo de cambio eliminado' });

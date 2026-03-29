@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+import { ForbiddenError } from '@/lib/permissions/check-permission';
 
 const NOT_FOUND_MESSAGES = [
   // Contacts
@@ -21,6 +22,13 @@ const NOT_FOUND_MESSAGES = [
 
 export function handleApiError(error: unknown, context: string) {
   console.error(`Error en ${context}:`, error);
+
+  if (error instanceof ForbiddenError) {
+    return NextResponse.json(
+      { success: false, error: error.message, code: error.code },
+      { status: 403 },
+    );
+  }
 
   if (error instanceof ZodError) {
     return NextResponse.json(

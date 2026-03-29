@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { journalEntryService } from '@/lib/services/accounting/journal-entry.service';
 import {
   createJournalEntrySchema,
@@ -13,6 +14,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal_entry.read');
     const p = request.nextUrl.searchParams;
 
     const filters = journalEntryFiltersSchema.parse({
@@ -37,6 +39,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal_entry.create');
     const body = await request.json();
     const input = createJournalEntrySchema.parse(body);
     const entry = await journalEntryService.createDraftEntry(auth.companyId, auth.userId, input);

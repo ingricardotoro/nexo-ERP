@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { journalService } from '@/lib/services/accounting/journal.service';
 import { handleApiError } from '@/lib/api/handle-error';
 
@@ -9,6 +10,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal.update');
     const { id } = await params;
     const body = (await request.json()) as Record<string, unknown>;
 
@@ -30,6 +32,7 @@ export async function DELETE(
 ) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal.delete');
     const { id } = await params;
     await journalService.deleteJournal(auth.companyId, id);
     return NextResponse.json({ success: true, message: 'Diario eliminado' });

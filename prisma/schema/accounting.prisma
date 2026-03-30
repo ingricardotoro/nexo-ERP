@@ -44,6 +44,7 @@ model Currency {
   // Relaciones
   exchangeRates  ExchangeRate[]
   journalEntries JournalEntry[]
+  invoices       Invoice[] // facturas en esta moneda (Fase 3)
 
   @@map("currencies")
 }
@@ -120,6 +121,7 @@ model Account {
 
   // Relaciones hijas
   journalEntryLines JournalEntryLine[]
+  invoiceLines      InvoiceLine[] // líneas de factura que usan esta cuenta (Fase 3)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, code])
@@ -289,7 +291,8 @@ model JournalEntry {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  lines JournalEntryLine[]
+  lines   JournalEntryLine[]
+  invoice Invoice? // relación inversa desde Facturación (Fase 3)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, journalId, entryNumber])

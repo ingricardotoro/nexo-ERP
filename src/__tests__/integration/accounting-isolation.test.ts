@@ -141,7 +141,7 @@ beforeAll(async () => {
         year: 2099,
         startDate: new Date('2099-01-01'),
         endDate: new Date('2099-12-31'),
-        status: 'ACTIVE',
+        status: 'OPEN',
       },
     }),
   );
@@ -184,7 +184,6 @@ beforeAll(async () => {
         name: 'Cuenta Test A',
         accountType: 'ASSET',
         accountNature: 'DEBIT',
-        level: 1,
         isParent: false,
         isActive: true,
         allowDirectEntry: true,

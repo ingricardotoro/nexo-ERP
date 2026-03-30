@@ -11,6 +11,9 @@ import { PrismaClient, SystemRole } from '@prisma/client';
 import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
 import { seedAccountingJournals } from './accounting-journals';
 
+import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
+import { seedAccountingJournals } from './accounting-journals';
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -522,6 +525,29 @@ async function main() {
     });
   }
   console.log(`✅ RolePermissions seeded: ${rolePermissions.length} asignaciones`);
+
+  // === Monedas (catálogo global — sin companyId) ===
+  const currencies = [
+    { code: 'HNL', name: 'Lempira hondureño', symbol: 'L', isActive: true, isBase: true },
+    { code: 'USD', name: 'Dólar estadounidense', symbol: '$', isActive: true, isBase: false },
+    { code: 'EUR', name: 'Euro', symbol: '€', isActive: true, isBase: false },
+  ];
+
+  for (const currency of currencies) {
+    await prisma.currency.upsert({
+      where: { code: currency.code },
+      update: { name: currency.name, symbol: currency.symbol, isActive: currency.isActive },
+      create: currency,
+    });
+  }
+  console.log(`✅ Monedas: ${currencies.length} creadas (HNL, USD, EUR)`);
+
+  // === Plan de Cuentas NIIF Honduras — solo para empresa demo ===
+  // La empresa test solo tiene módulo core activo, no necesita plan de cuentas
+  await seedAccountingChartOfAccounts(demoCompany.id, prisma);
+
+  // === Diarios contables por defecto — solo para empresa demo ===
+  await seedAccountingJournals(demoCompany.id, prisma);
 
   // === Monedas (catálogo global — sin companyId) ===
   const currencies = [

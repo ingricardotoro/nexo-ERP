@@ -50,6 +50,12 @@ const BUSINESS_MODELS = [
   'JournalSequence',
   // ExchangeRate NO va — companyId nullable (tasas globales tienen NULL).
   // Filtrado manual en el servicio; RLS cubre: company_id IS NULL OR company_id = current_setting
+  // Invoicing (Fase 3 — F3-01)
+  'CAI',
+  'TaxRate',
+  'InvoiceSequence',
+  'Invoice',
+  'InvoiceLine',
 ] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 

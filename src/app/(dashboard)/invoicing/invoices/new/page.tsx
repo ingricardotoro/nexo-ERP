@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Plus, Trash2, Loader2, Calculator } from 'lucide-react';
@@ -109,7 +109,7 @@ export default function NewInvoicePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema),
+    resolver: zodResolver(invoiceFormSchema) as Resolver<InvoiceFormValues>,
     defaultValues: {
       invoiceType: 'FACTURA',
       issueDate: new Date().toISOString().split('T')[0],

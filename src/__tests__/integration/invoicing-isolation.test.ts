@@ -66,6 +66,15 @@ beforeAll(async () => {
     .$executeRawUnsafe(`DELETE FROM companies WHERE id IN ('${IDS.companyA}','${IDS.companyB}')`)
     .catch(() => {});
 
+  // Asegurar que existan las monedas base (la BD de CI no tiene seed)
+  await prismaOwner.currency
+    .upsert({
+      where: { code: 'HNL' },
+      update: {},
+      create: { code: 'HNL', name: 'Lempira hondureño', symbol: 'L', isActive: true, isBase: true },
+    })
+    .catch(() => {});
+
   // Crear empresas de test
   await prismaOwner.company.create({
     data: {

@@ -10,6 +10,8 @@ import {
   ShoppingCart,
   ReceiptText,
   Settings,
+  Shield,
+  Percent,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -57,7 +59,8 @@ const navigation: NavigationGroup[] = [
     name: 'Facturación',
     items: [
       { name: 'Facturas', href: '/dashboard/invoicing/invoices', icon: ReceiptText },
-      { name: 'CAI', href: '/dashboard/invoicing/cai', icon: FileText },
+      { name: 'CAI', href: '/dashboard/invoicing/cais', icon: Shield },
+      { name: 'Tasas de Impuesto', href: '/dashboard/invoicing/tax-rates', icon: Percent },
     ],
     badge: 'Fase 3',
   },

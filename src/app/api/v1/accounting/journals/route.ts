@@ -2,13 +2,16 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { journalService } from '@/lib/services/accounting/journal.service';
+import { createJournalSchema } from '@/lib/validations/journal.schema';
 import { handleApiError } from '@/lib/api/handle-error';
 
 /** GET /api/v1/accounting/journals — lista diarios con conteo de asientos */
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.journal.read');
     const journals = await journalService.listJournals(auth.companyId);
     return NextResponse.json({ success: true, data: journals });
   } catch (error) {
@@ -20,12 +23,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
-    const body = (await request.json()) as Record<string, unknown>;
-    const journal = await journalService.createJournal(auth.companyId, {
-      name: String(body.name ?? ''),
-      code: String(body.code ?? ''),
-      journalType: body.journalType as never,
-    });
+    await checkPermission(auth, 'accounting.journal.create');
+    const body = await request.json();
+    const input = createJournalSchema.parse(body);
+    const journal = await journalService.createJournal(auth.companyId, input);
     return NextResponse.json(
       { success: true, data: journal, message: 'Diario creado exitosamente' },
       { status: 201 },

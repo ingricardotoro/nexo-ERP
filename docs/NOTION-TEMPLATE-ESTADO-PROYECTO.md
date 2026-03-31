@@ -1,43 +1,64 @@
 # NexoERP — Estado del Proyecto (Marzo 2026)
 
 > **Copia este documento completo y pegalo en Notion (Create page > Paste Markdown)**
-> **Fecha de actualizacion:** 25 de marzo de 2026
+> **Fecha de actualizacion:** 28 de marzo de 2026
 > **Preparado por:** Claude Code (Doc Engineer)
-> **Rama activa:** `feat/fase-2-contabilidad-contactos`
-> **Ultimo commit:** `4cebfec feat(contacts): add bulk import from excel (f2-03)`
+> **Rama activa:** `feat/fase-2-contabilidad-seed-niif`
+> **Ultimo commit:** `feat(accounting): add aging receivables/payables report (f2-14)`
 
 ---
 
 ## Resumen Ejecutivo
 
-**NexoERP** es un ERP multi-tenant en la nube para PYMEs hondurenas con cumplimiento
-fiscal SAR y contabilidad NIIF. Actualmente en **Fase 2 de 5**, con la Fase 1 completada
-exitosamente y el Modulo de Contactos de la Fase 2 completado en su totalidad.
+**NexoERP** es un ERP multi-tenant en la nube para PYMEs hondurenas con cumplimiento fiscal SAR y contabilidad NIIF. Actualmente en **Fase 2 de 5 (~75% completada)**, con Fase 0 y Fase 1 completadas exitosamente. El Modulo de Contactos esta completo, y el Modulo de Contabilidad tiene 8 de 12 entregables completados (F2-01 a F2-11 y F2-14). Pendientes: exportacion PDF/Excel (F2-12), conciliacion bancaria (F2-13) y tests de integracion (F2-15).
 
 ### Metricas Generales del Proyecto
 
-| Metrica               | Valor                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Fases completadas** | 1 de 5 (Fase 0 + Fase 1)                                                                                                                      |
-| **Fase en progreso**  | Fase 2 — Contabilidad + Contactos                                                                                                             |
-| **Tests (CI)**        | 149 passing                                                                                                                                   |
-| **Endpoints REST**    | 19 endpoints (14 contactos + 5 core/health)                                                                                                   |
-| **Modelos Prisma**    | 11 modelos (Company, User, AuditLog, Module, CompanyModule, Permission, RolePermission, PaymentTerms, Contact, ContactAddress, ContactPerson) |
-| **Ambiente staging**  | AWS Amplify (activo)                                                                                                                          |
-| **Presupuesto AWS**   | ~$1.35/mes con Free Tier activo                                                                                                               |
-| **Repositorio**       | GitHub — rama principal: `main`                                                                                                               |
+| Metrica                   | Valor                                                             |
+| ------------------------- | ----------------------------------------------------------------- |
+| **Fases completadas**     | 2 de 5 (Fase 0 + Fase 1)                                          |
+| **Fase en progreso**      | Fase 2 — Contabilidad + Contactos (~75%)                          |
+| **Endpoints REST**        | 47 endpoints (7 core + 17 contactos + 2 import + 21 contabilidad) |
+| **Modelos Prisma**        | 20 modelos activos                                                |
+| **Migraciones aplicadas** | 6                                                                 |
+| **Permisos RBAC seeded**  | 27 (core + contacts + accounting)                                 |
+| **Cuentas NIIF seeded**   | ~360 cuentas del Plan de Cuentas Honduras                         |
+| **Diarios seeded**        | 7 (DJ, LV, LC, CA, BK, NM, AJ)                                    |
+| **Monedas**               | 3 (HNL base, USD, EUR)                                            |
+| **Tests unitarios**       | ~52 tests                                                         |
+| **Ambiente staging**      | AWS Amplify (activo)                                              |
+| **Presupuesto AWS**       | ~$1.35/mes con Free Tier activo                                   |
+| **Repositorio**           | GitHub — rama principal: `main`                                   |
 
 ---
 
 ## Estado de Fases
 
-| Fase       | Nombre                         | Estado      | Periodo               | Duracion              |
-| ---------- | ------------------------------ | ----------- | --------------------- | --------------------- |
-| **Fase 0** | Fundamentos                    | Completada  | Marzo 2026            | ~3 dias               |
-| **Fase 1** | Core System                    | Completada  | 10-16 marzo 2026      | 6 dias                |
-| **Fase 2** | Contabilidad + Contactos       | En progreso | Marzo 2026 — presente | ~6 semanas estimadas  |
-| **Fase 3** | Facturacion Honduras           | Pendiente   | —                     | ~8 semanas estimadas  |
-| **Fase 4** | Compras + Ventas + Inventarios | Pendiente   | —                     | ~12 semanas estimadas |
+| Fase       | Nombre                         | Estado         | Periodo               | Progreso | Duracion              |
+| ---------- | ------------------------------ | -------------- | --------------------- | -------- | --------------------- |
+| **Fase 0** | Fundamentos                    | ✅ Completa    | Marzo 2026            | 100%     | ~3 dias               |
+| **Fase 1** | Core System                    | ✅ Completa    | 10-16 marzo 2026      | 100%     | 6 dias                |
+| **Fase 2** | Contabilidad + Contactos       | 🔄 En progreso | Marzo 2026 — presente | ~75%     | ~6 semanas estimadas  |
+| **Fase 3** | Facturacion Honduras           | ⏳ Pendiente   | —                     | 0%       | ~8 semanas estimadas  |
+| **Fase 4** | Compras + Ventas + Inventarios | ⏳ Pendiente   | —                     | 0%       | ~12 semanas estimadas |
+
+---
+
+## Modulos Fase 2 al 28 de marzo de 2026
+
+| Modulo                            | ID            | Estado       | Descripcion                                                                           |
+| --------------------------------- | ------------- | ------------ | ------------------------------------------------------------------------------------- |
+| Contactos                         | F2-01 a F2-03 | ✅ Completo  | CRUD clientes/proveedores, importacion Excel, terminos de pago                        |
+| Plan de Cuentas NIIF              | F2-05 / F2-06 | ✅ Completo  | ~360 cuentas NIIF, arbol jerarquico, API + UI                                         |
+| Anos y Periodos Fiscales          | F2-07         | ✅ Completo  | CRUD, apertura/cierre de periodos, RLS                                                |
+| Diarios Contables                 | F2-08         | ✅ Completo  | 7 diarios seeded, CRUD completo                                                       |
+| Asientos Contables                | F2-09         | ✅ Completo  | Ciclo DRAFT -> POSTED -> CANCELLED, partida doble, contraasientos, numeracion atomica |
+| Tipos de Cambio                   | F2-10         | ✅ Completo  | Global + empresa, lookup inteligente, auto-fill en formularios                        |
+| Reportes Financieros              | F2-11         | ✅ Completo  | Balance General + Estado de Resultados, propagacion bottom-up                         |
+| Aging CxC / CxP                   | F2-14         | ✅ Completo  | Antiguedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 dias)                       |
+| Exportacion PDF / Excel           | F2-12         | ⏳ Pendiente | Lambda PDF, S3 almacenamiento, export Excel                                           |
+| Conciliacion Bancaria             | F2-13         | ⏳ Pendiente | Match transacciones banco vs asientos contables                                       |
+| Tests de Integracion Contabilidad | F2-15         | ⏳ Pendiente | Tests unitarios e integracion, aislamiento tenant                                     |
 
 ---
 
@@ -90,23 +111,6 @@ exitosamente y el Modulo de Contactos de la Fase 2 completado en su totalidad.
 | `DELETE` | `/api/v1/core/users/[id]` | Desactivar usuario (soft delete)            |
 | `GET`    | `/api/v1/core/tenant`     | Contexto del tenant activo                  |
 
-#### UI Implementada (Fase 1)
-
-- Dashboard principal con navegacion modular por sidebar
-- Pagina de lista de usuarios con TanStack Table (filtros, paginacion, sorting)
-- Modal de creacion/edicion de usuarios con React Hook Form + Zod
-- Pagina de perfil de usuario individual
-- Componentes: TenantContext, AuthGuard, LoadingSpinner, DataTable, UserForm
-
-#### Infraestructura (Fase 1)
-
-- AWS Amplify Gen 2 — hosting y CI/CD
-- Amazon Cognito — autenticacion JWT (HTTP-only cookies web, Bearer tokens movil)
-- Lambda PostConfirmation — sincronizacion Cognito -> PostgreSQL
-- Amazon RDS PostgreSQL 16 + RDS Proxy (staging)
-- GitHub Actions — CI con Jest + TypeScript + ESLint
-- Costo staging: ~$1.35/mes con Free Tier activo
-
 ---
 
 ## Fase 2 — Contabilidad + Contactos (EN PROGRESO)
@@ -117,153 +121,280 @@ exitosamente y el Modulo de Contactos de la Fase 2 completado en su totalidad.
 
 ### Progreso General Fase 2
 
-| Modulo       | Progreso                 | Estado    |
-| ------------ | ------------------------ | --------- |
-| Contactos    | 3 de 3 tareas — COMPLETO | Completo  |
-| Contabilidad | 0 de 12 tareas           | Pendiente |
+| Modulo       | Completado | Total tareas | Estado      |
+| ------------ | ---------- | ------------ | ----------- |
+| Contactos    | 3          | 3            | Completo    |
+| Contabilidad | 9          | 12           | En progreso |
 
 ---
 
-### Modulo Contactos
+### Modulo Contactos — COMPLETADO
 
-| ID        | Tarea                                       | Estado         | Commit    |
-| --------- | ------------------------------------------- | -------------- | --------- |
-| **F2-01** | Schema Contactos (4 modelos Prisma)         | Completado     | `52fc0a0` |
-| **F2-02** | UI Contactos (lista + detalle + CRUD forms) | Completado     | `32a52db` |
-| **F2-03** | Import Contactos (Excel masivo)             | **Completado** | `4cebfec` |
+| ID        | Tarea                                       | Estado     |
+| --------- | ------------------------------------------- | ---------- |
+| **F2-01** | Schema Contactos (4 modelos Prisma)         | Completado |
+| **F2-02** | UI Contactos (lista + detalle + CRUD forms) | Completado |
+| **F2-03** | Import Contactos (Excel masivo)             | Completado |
 
-#### F2-01: Schema Contactos — COMPLETADO
-
-**Modelos implementados en `prisma/schema/contacts.prisma`:**
-
-**`PaymentTerms`** — Terminos de pago configurables por empresa
-
-- Campos: `name`, `description`, `daysUntilDue`, `isDefault`, `isActive`
-- Seeds iniciales: Contado (0 dias), Neto 15, Neto 30, Neto 60, Personalizado
-- Restriccion: `UNIQUE(companyId, name)` — no hay duplicados por empresa
-- Multi-tenant: `companyId` + RLS directo
-
-**`Contact`** — Cliente y/o proveedor (dual role)
-
-- Tipo: `NATURAL` (persona fisica) o `JURIDICA` (empresa)
-- Roles independientes: `isCustomer` (true/false) + `isSupplier` (true/false)
-- RTN Honduras: campo `Citext` nullable — `UNIQUE(companyId, rtn)` con soporte multi-NULL
-- Campos: `legalName`, `tradeName`, `email`, `phone`, `website`, `notes`
-- FK opcional: `paymentTermsId` para credito por defecto
-- Multi-tenant: `companyId` con 6 indices optimizados
-
-**`ContactAddress`** — Direcciones multiples por contacto
-
-- Tipos: `BILLING` (facturacion), `SHIPPING` (entrega), `OFFICE`, `OTHER`
-- `company_id` desnormalizado para RLS sin JOIN al padre
-- Campos Honduras-centric: `addressLine1/2`, `city`, `department`, `country` (default HN), `postalCode`
-- Soporte `isDefault` por tipo de direccion
-
-**`ContactPerson`** — Personas de contacto multiples
-
-- `company_id` desnormalizado para RLS sin JOIN al padre
-- Campos: `fullName`, `jobTitle`, `email`, `phone`, `isPrimary`, `isActive`
-
-**Validacion RTN Honduras:**
-
-- Formato: `DDDD-DDDD-DDDDD` (14 digitos con guiones)
-- Implementado en schema Zod con regex: `/^\d{4}-\d{4}-\d{5}$/`
-- Almacenado como `Citext` (case-insensitive) en PostgreSQL
-- Nullable: contactos extranjeros sin RTN hondureno
-
-#### F2-02: UI Contactos — COMPLETADO
-
-**4 paginas implementadas:**
-
-| Pagina              | Ruta                  | Descripcion                                                     |
-| ------------------- | --------------------- | --------------------------------------------------------------- |
-| Lista de contactos  | `/contacts`           | TanStack Table con filtros por tipo/rol, busqueda, paginacion   |
-| Detalle de contacto | `/contacts/[id]`      | 3 tabs: Info General, Direcciones, Personas de Contacto         |
-| Crear contacto      | `/contacts/new`       | Formulario con React Hook Form + Zod, seleccion de tipo y roles |
-| Editar contacto     | `/contacts/[id]/edit` | Mismo formulario pre-poblado con datos existentes               |
-
-**Endpoints REST implementados (17 endpoints en 9 route handlers — sin contar import):**
-
-| Metodo   | Ruta                                          | Descripcion                     | Permisos                           |
-| -------- | --------------------------------------------- | ------------------------------- | ---------------------------------- |
-| `GET`    | `/api/v1/contacts`                            | Lista paginada de contactos     | Todos los roles                    |
-| `POST`   | `/api/v1/contacts`                            | Crear contacto                  | Admin, Gerente, Contador, Vendedor |
-| `GET`    | `/api/v1/contacts/[id]`                       | Detalle de contacto             | Todos los roles                    |
-| `PUT`    | `/api/v1/contacts/[id]`                       | Actualizar contacto             | Admin, Gerente, Contador, Vendedor |
-| `DELETE` | `/api/v1/contacts/[id]`                       | Eliminar contacto (soft delete) | Admin, Gerente                     |
-| `GET`    | `/api/v1/contacts/[id]/addresses`             | Lista de direcciones            | Todos los roles                    |
-| `POST`   | `/api/v1/contacts/[id]/addresses`             | Agregar direccion               | Admin, Gerente, Contador, Vendedor |
-| `PUT`    | `/api/v1/contacts/[id]/addresses/[addressId]` | Actualizar direccion            | Admin, Gerente, Contador, Vendedor |
-| `DELETE` | `/api/v1/contacts/[id]/addresses/[addressId]` | Eliminar direccion              | Admin, Gerente                     |
-| `GET`    | `/api/v1/contacts/[id]/persons`               | Lista de personas de contacto   | Todos los roles                    |
-| `POST`   | `/api/v1/contacts/[id]/persons`               | Agregar persona                 | Admin, Gerente, Contador, Vendedor |
-| `PUT`    | `/api/v1/contacts/[id]/persons/[personId]`    | Actualizar persona              | Admin, Gerente, Contador, Vendedor |
-| `DELETE` | `/api/v1/contacts/[id]/persons/[personId]`    | Eliminar persona                | Admin, Gerente                     |
-| `GET`    | `/api/v1/contacts/payment-terms`              | Lista de terminos de pago       | Todos los roles                    |
-| `POST`   | `/api/v1/contacts/payment-terms`              | Crear termino de pago           | Admin, Gerente, Contador           |
-| `PUT`    | `/api/v1/contacts/payment-terms/[id]`         | Actualizar termino de pago      | Admin, Gerente, Contador           |
-
-**Aislamiento multi-tenant:**
-
-- Todos los endpoints verifican `company_id` del JWT Cognito
-- Prisma Extension filtra automaticamente por tenant en todas las queries
-- RLS PostgreSQL como segunda capa de defensa
-- `ContactAddress` y `ContactPerson` tienen `company_id` desnormalizado para RLS directo sin JOIN
-
-#### F2-03: Import Contactos (Excel masivo) — COMPLETADO
-
-**Endpoints implementados:**
-
-| Metodo | Ruta                               | Descripcion                                        | Permisos                           |
-| ------ | ---------------------------------- | -------------------------------------------------- | ---------------------------------- |
-| `GET`  | `/api/v1/contacts/import/template` | Genera y descarga template .xlsx con instrucciones | Admin, Gerente, Contador, Vendedor |
-| `POST` | `/api/v1/contacts/import`          | Acepta multipart/form-data, procesa archivo Excel  | Admin, Gerente, Contador, Vendedor |
-
-**Backend — `ContactImportService`:**
-
-- Validacion de archivo: magic bytes, MIME type, tamano maximo 5 MB, maximo 500 filas
-- Pre-fetch de RTNs existentes para lookup O(1) sin N+1 queries
-- Deteccion de duplicados en DB y dentro del mismo archivo Excel
-- Procesamiento con soft-error: filas invalidas se acumulan, el batch continua
-- Insercion en transaccion Prisma con `createManyAndReturn`
-- Template .xlsx generado en memoria con 2 hojas: datos + instrucciones
-
-**Schema Zod (`contact-import.schema.ts`):**
-
-- Coerciones Excel: `SI`/`NO` -> boolean, normalizacion de strings con `trim`
-- Validacion RTN Honduras por fila (formato `DDDD-DDDD-DDDDD`)
-- Tipo `ContactImportResult` con campos: `imported`, `skipped`, `errors[]`, `duplicates[]`
-
-**Frontend — `ContactImportDialog`:**
-
-- Dialog con 3 estados internos: upload (drag & drop de archivo), procesando (spinner), resultado
-- Tarjetas de resultado en verde/rojo/amarillo con conteos de exitosos, errores y duplicados
-- Tablas detalladas de errores y duplicados con numero de fila y mensaje
-- Boton "Importar Excel" agregado en `/contacts` junto al boton "Nuevo Contacto"
-
-**Tests:**
-
-- 81 tests nuevos unitarios: schema Zod, servicio, API POST, GET template
-- Suite total del proyecto: 149/149 tests pasando
+Ver detalle completo de Contactos en la version anterior de este documento (25 marzo 2026). Los 3 entregables estan en produccion en staging.
 
 ---
 
-### Modulo Contabilidad — PENDIENTE
+### Modulo Contabilidad — EN PROGRESO
 
-| ID        | Tarea                           | Estado    | Descripcion                                                                                        |
-| --------- | ------------------------------- | --------- | -------------------------------------------------------------------------------------------------- |
-| **F2-04** | Schema Contabilidad             | Pendiente | Account, FiscalYear, FiscalPeriod, Journal, JournalEntry, JournalEntryLine, Currency, ExchangeRate |
-| **F2-05** | Seed Honduras ~200 cuentas NIIF | Pendiente | Plan de cuentas NIIF para PYMEs estandar Honduras                                                  |
-| **F2-06** | UI Plan de Cuentas              | Pendiente | Arbol jerarquico de cuentas (TanStack Table tree mode)                                             |
-| **F2-07** | Anos Fiscales (CRUD)            | Pendiente | Apertura y cierre de periodos fiscales                                                             |
-| **F2-08** | Asientos contables              | Pendiente | Partida doble, validacion cuadre debito=credito                                                    |
-| **F2-09** | Multimoneda                     | Pendiente | HNL + USD + tasas de cambio diarias BCH                                                            |
-| **F2-10** | Reportes financieros            | Pendiente | Balance General, Estado de Resultados, Flujo de Efectivo                                           |
-| **F2-11** | Exportacion PDF + Excel         | Pendiente | Lambda para generacion PDF, S3 para almacenamiento                                                 |
-| **F2-12** | Conciliacion Bancaria           | Pendiente | Match de transacciones banco vs asientos contables                                                 |
-| **F2-13** | Conciliacion CxC                | Pendiente | Estado de cuenta de clientes, aplicacion de pagos                                                  |
-| **F2-14** | Conciliacion CxP                | Pendiente | Estado de cuenta de proveedores, aplicacion de pagos                                               |
-| **F2-15** | Tests Fase 2                    | Pendiente | Tests unitarios e integracion del modulo contabilidad                                              |
+| ID        | Tarea                                  | Estado     | Descripcion resumida                                                                               |
+| --------- | -------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| **F2-04** | Schema Contabilidad (8 modelos Prisma) | Completado | Currency, ExchangeRate, Account, FiscalYear, FiscalPeriod, Journal, JournalEntry, JournalEntryLine |
+| **F2-05** | Seed Plan de Cuentas NIIF Honduras     | Completado | ~360 cuentas NIIF para PYMEs Honduras, seed por empresa                                            |
+| **F2-06** | UI Plan de Cuentas                     | Completado | Arbol jerarquico con TanStack Table tree mode                                                      |
+| **F2-07** | Anos Fiscales + Periodos (CRUD)        | Completado | Apertura/cierre de anos fiscales, 12 periodos mensuales                                            |
+| **F2-08** | Diarios Contables (CRUD)               | Completado | 7 diarios seeded (DJ, LV, LC, CA, BK, NM, AJ), CRUD + UI                                           |
+| **F2-09** | Asientos Contables (partida doble)     | Completado | Ciclo DRAFT -> POSTED -> CANCELLED, numeracion atomica                                             |
+| **F2-10** | Tipos de Cambio + Multimoneda          | Completado | HNL + USD, tasas globales y por empresa, lookup con fallback                                       |
+| **F2-11** | Reportes Financieros                   | Completado | Balance General + Estado de Resultados, propagacion bottom-up                                      |
+| **F2-12** | Exportacion PDF + Excel                | Pendiente  | Lambda PDF, S3 almacenamiento, export Excel                                                        |
+| **F2-13** | Conciliacion Bancaria                  | Pendiente  | Match transacciones banco vs asientos                                                              |
+| **F2-14** | CxC / CxP Aging                        | Completado | Antiguedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 dias); endpoints receivables + payables  |
+| **F2-15** | Tests Modulo Contabilidad              | Pendiente  | Tests unitarios e integracion modulo contabilidad                                                  |
+
+---
+
+### F2-08: Diarios Contables — COMPLETADO
+
+**7 diarios seeded por empresa (en `prisma/seed/`):**
+
+| Codigo | Nombre            | Tipo       |
+| ------ | ----------------- | ---------- |
+| DJ     | Diario General    | GENERAL    |
+| LV     | Libro de Ventas   | SALES      |
+| LC     | Libro de Compras  | PURCHASES  |
+| CA     | Diario de Caja    | CASH       |
+| BK     | Diario de Bancos  | BANK       |
+| NM     | Diario de Nomina  | PAYROLL    |
+| AJ     | Diario de Ajustes | ADJUSTMENT |
+
+**Endpoints REST implementados:**
+
+| Metodo   | Ruta                               | Descripcion                       | Permisos        |
+| -------- | ---------------------------------- | --------------------------------- | --------------- |
+| `GET`    | `/api/v1/accounting/journals`      | Lista diarios del tenant          | Todos los roles |
+| `POST`   | `/api/v1/accounting/journals`      | Crear diario                      | Admin, Gerente  |
+| `GET`    | `/api/v1/accounting/journals/[id]` | Detalle de diario                 | Todos los roles |
+| `PUT`    | `/api/v1/accounting/journals/[id]` | Actualizar diario                 | Admin, Gerente  |
+| `DELETE` | `/api/v1/accounting/journals/[id]` | Eliminar diario (si sin asientos) | Admin           |
+
+**UI:** Pagina de lista con CRUD, sidebar de contabilidad con acceso directo.
+
+---
+
+### F2-09: Asientos Contables — COMPLETADO
+
+**Ciclo de vida del asiento:**
+
+```
+DRAFT  -->  POSTED  -->  CANCELLED
+  |                           ^
+  +------ (cancelacion) ------+
+```
+
+- `DRAFT`: borrador editable, no afecta saldos contables
+- `POSTED`: contabilizado, inmutable, afecta saldos; requiere partida doble (totalDebit = totalCredit)
+- `CANCELLED`: anulado mediante contraasiento automatico; el asiento original queda con estado CANCELLED
+
+**Modelos Prisma nuevos:**
+
+- `JournalEntry` — cabecera del asiento con campos `entryNumber`, `status`, `postedBy`, `cancelledById`
+- `JournalSequence` — contador atomico por `(companyId, journalId)`, clave primaria compuesta
+
+**Migracion:** `20260327171502_add_journal_sequences_and_cancellation`
+
+**Numeracion atomica (`$queryRaw`):**
+
+El servicio usa `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` para garantizar que dos asientos concurrentes del mismo diario nunca obtengan el mismo `entryNumber`, incluso en entorno serverless con multiples instancias Lambda.
+
+**7 metodos del service (`journal-entry.service.ts`):**
+
+| Metodo        | Descripcion                                                             |
+| ------------- | ----------------------------------------------------------------------- |
+| `listEntries` | Lista paginada con filtros por diario, periodo, estado, fecha           |
+| `getEntry`    | Detalle con lineas y datos relacionados                                 |
+| `createEntry` | Crea asiento en DRAFT con lineas; asigna entryNumber atomicamente       |
+| `updateEntry` | Actualiza asiento en DRAFT (no permite editar POSTED)                   |
+| `deleteEntry` | Elimina asiento en DRAFT (no permite eliminar POSTED)                   |
+| `postEntry`   | Publica asiento: valida partida doble, calcula totales, cambia a POSTED |
+| `cancelEntry` | Anula asiento POSTED: genera contraasiento espejo, marca CANCELLED      |
+
+**Endpoints REST implementados:**
+
+| Metodo   | Ruta                                             | Descripcion                            | Permisos                 |
+| -------- | ------------------------------------------------ | -------------------------------------- | ------------------------ |
+| `GET`    | `/api/v1/accounting/journal-entries`             | Lista asientos (paginada, con filtros) | Todos los roles          |
+| `POST`   | `/api/v1/accounting/journal-entries`             | Crear asiento en DRAFT                 | Admin, Gerente, Contador |
+| `GET`    | `/api/v1/accounting/journal-entries/[id]`        | Detalle con lineas                     | Todos los roles          |
+| `PUT`    | `/api/v1/accounting/journal-entries/[id]`        | Actualizar asiento DRAFT               | Admin, Gerente, Contador |
+| `DELETE` | `/api/v1/accounting/journal-entries/[id]`        | Eliminar asiento DRAFT                 | Admin, Gerente, Contador |
+| `POST`   | `/api/v1/accounting/journal-entries/[id]/post`   | Publicar asiento (DRAFT -> POSTED)     | Admin, Gerente, Contador |
+| `POST`   | `/api/v1/accounting/journal-entries/[id]/cancel` | Anular asiento (POSTED -> CANCELLED)   | Admin, Gerente           |
+
+**UI:** Formulario de partida doble con balance en tiempo real (debit != credit muestra alerta), pagina de listado con acciones de publicar/anular inline.
+
+**Deuda tecnica resuelta (pre-F2-09):**
+
+- Capa 2 multi-tenancy: todos los servicios contables ahora usan `createTenantPrisma` correctamente
+- 13 permisos RBAC de contabilidad agregados al seed (`accounting.*`)
+- `handle-error.ts` extendido con entidades contables (Account, Journal, JournalEntry, FiscalYear, FiscalPeriod)
+- Handlers API corregidos: parseo de body con Zod directamente en route handlers (no en service)
+
+---
+
+### F2-10: Tipos de Cambio — COMPLETADO
+
+**Modelo de datos (`ExchangeRate`):**
+
+- `companyId` es **nullable**: `NULL` = tasa global de plataforma; UUID = tasa especifica de empresa
+- El modelo fue removido de `BUSINESS_MODELS` (lista de modelos con `companyId` obligatorio) porque la extension Prisma no puede filtrar automaticamente un campo nullable
+- El servicio filtra manualmente: `WHERE companyId = :id OR companyId IS NULL`
+- RLS cubre ambos casos con politica: `company_id IS NULL OR company_id = current_setting('app.current_company_id')`
+
+**4 metodos del service (`exchange-rate.service.ts`):**
+
+| Metodo       | Descripcion                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `listRates`  | Lista tasas propias de empresa + tasas globales (companyId IS NULL), paginado                 |
+| `upsertRate` | Crea o actualiza tasa por (currencyCode, date, companyId); empresa puede sobreescribir global |
+| `deleteRate` | Elimina tasa; solo Admin puede eliminar tasas globales                                        |
+| `lookupRate` | Busca tasa para fecha: empresa primero, fallback a global; error si no existe                 |
+
+**Endpoints REST implementados:**
+
+| Metodo   | Ruta                                       | Descripcion                                         | Permisos                 |
+| -------- | ------------------------------------------ | --------------------------------------------------- | ------------------------ |
+| `GET`    | `/api/v1/accounting/exchange-rates`        | Lista tasas (propias + globales)                    | Todos los roles          |
+| `POST`   | `/api/v1/accounting/exchange-rates`        | Crear o actualizar tasa (upsert por moneda+fecha)   | Admin, Gerente, Contador |
+| `DELETE` | `/api/v1/accounting/exchange-rates/[id]`   | Eliminar tasa                                       | Admin, Gerente           |
+| `GET`    | `/api/v1/accounting/exchange-rates/lookup` | Buscar tasa para fecha especifica (con fallback)    | Todos los roles          |
+| `GET`    | `/api/v1/accounting/currencies`            | Catalogo de monedas activas (global, sin companyId) | Todos los roles          |
+
+**Mejora en formulario de asientos:** El `journal-entry-form` incluye un selector de moneda que hace `auto-fetch` de la tasa via el endpoint `lookup`, evitando que el usuario ingrese la tasa manualmente.
+
+**UI:** Pagina con tabla dividida en dos secciones (Global / Empresa), formulario `ExchangeRateForm` con selector de moneda y fecha.
+
+---
+
+### F2-11: Reportes Financieros — COMPLETADO
+
+**2 reportes implementados (`financial-report.service.ts`):**
+
+#### Balance General (`getBalanceSheet`)
+
+- Solo considera asientos con `status = POSTED`
+- Corte a una fecha especifica (`asOfDate`): suma movimientos desde el inicio hasta esa fecha
+- Secciones: ASSET (Activos), LIABILITY (Pasivos), EQUITY (Patrimonio)
+- Propagacion bottom-up: los saldos de cuentas hoja se acumulan automaticamente en cuentas padre
+- Campo `isBalanced`: verifica que `totalAssets ≈ totalLiabilitiesAndEquity` (tolerancia 0.01 HNL)
+
+#### Estado de Resultados (`getIncomeStatement`)
+
+- Solo considera asientos con `status = POSTED`
+- Rango de fechas (`dateFrom`, `dateTo`)
+- Secciones: INCOME (Ingresos), COST (Costo de Ventas), EXPENSE (Gastos)
+- Calcula: Utilidad Bruta = Ingresos - Costos; Utilidad Neta = Utilidad Bruta - Gastos
+- Indicador visual de Utilidad o Perdida en la UI
+
+**Endpoints REST implementados:**
+
+| Metodo | Ruta                                          | Descripcion                              | Permisos        |
+| ------ | --------------------------------------------- | ---------------------------------------- | --------------- |
+| `GET`  | `/api/v1/accounting/reports/balance-sheet`    | Balance General al corte de fecha        | Todos los roles |
+| `GET`  | `/api/v1/accounting/reports/income-statement` | Estado de Resultados por rango de fechas | Todos los roles |
+
+**Query params:**
+
+- `balance-sheet`: `?asOfDate=YYYY-MM-DD`
+- `income-statement`: `?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`
+
+**UI:** Pagina con Tabs (Balance General / Estado de Resultados), arbol de cuentas con sangria por nivel de jerarquia, badge indicador de Utilidad (verde) o Perdida (rojo).
+
+---
+
+## Resumen de Endpoints REST — Contabilidad (F2-04 a F2-11)
+
+| Metodo   | Ruta                                                      | Modulo            |
+| -------- | --------------------------------------------------------- | ----------------- |
+| `GET`    | `/api/v1/accounting/accounts`                             | Plan de Cuentas   |
+| `POST`   | `/api/v1/accounting/accounts`                             | Plan de Cuentas   |
+| `GET`    | `/api/v1/accounting/fiscal-years`                         | Anos Fiscales     |
+| `POST`   | `/api/v1/accounting/fiscal-years`                         | Anos Fiscales     |
+| `GET`    | `/api/v1/accounting/fiscal-years/[id]`                    | Anos Fiscales     |
+| `PUT`    | `/api/v1/accounting/fiscal-years/[id]`                    | Anos Fiscales     |
+| `POST`   | `/api/v1/accounting/fiscal-years/[id]/activate`           | Anos Fiscales     |
+| `POST`   | `/api/v1/accounting/fiscal-years/[id]/close`              | Anos Fiscales     |
+| `GET`    | `/api/v1/accounting/fiscal-years/[id]/periods/[periodId]` | Periodos Fiscales |
+| `GET`    | `/api/v1/accounting/journals`                             | Diarios           |
+| `POST`   | `/api/v1/accounting/journals`                             | Diarios           |
+| `GET`    | `/api/v1/accounting/journals/[id]`                        | Diarios           |
+| `PUT`    | `/api/v1/accounting/journals/[id]`                        | Diarios           |
+| `DELETE` | `/api/v1/accounting/journals/[id]`                        | Diarios           |
+| `GET`    | `/api/v1/accounting/journal-entries`                      | Asientos          |
+| `POST`   | `/api/v1/accounting/journal-entries`                      | Asientos          |
+| `GET`    | `/api/v1/accounting/journal-entries/[id]`                 | Asientos          |
+| `PUT`    | `/api/v1/accounting/journal-entries/[id]`                 | Asientos          |
+| `DELETE` | `/api/v1/accounting/journal-entries/[id]`                 | Asientos          |
+| `POST`   | `/api/v1/accounting/journal-entries/[id]/post`            | Asientos          |
+| `POST`   | `/api/v1/accounting/journal-entries/[id]/cancel`          | Asientos          |
+| `GET`    | `/api/v1/accounting/exchange-rates`                       | Tipos de Cambio   |
+| `POST`   | `/api/v1/accounting/exchange-rates`                       | Tipos de Cambio   |
+| `DELETE` | `/api/v1/accounting/exchange-rates/[id]`                  | Tipos de Cambio   |
+| `GET`    | `/api/v1/accounting/exchange-rates/lookup`                | Tipos de Cambio   |
+| `GET`    | `/api/v1/accounting/currencies`                           | Monedas           |
+| `GET`    | `/api/v1/accounting/reports/balance-sheet`                | Reportes          |
+| `GET`    | `/api/v1/accounting/reports/income-statement`             | Reportes          |
+
+**Total endpoints contabilidad:** 28
+
+---
+
+## Decisiones Arquitectonicas Clave (Fase 2)
+
+### DAR-ACCT-001: ExchangeRate fuera de BUSINESS_MODELS
+
+**Decision:** El modelo `ExchangeRate` tiene `companyId` nullable (`NULL` = tasa global de plataforma) y fue excluido de la lista `BUSINESS_MODELS` que usa la extension Prisma para el filtrado automatico multi-tenant.
+
+**Por que:** La extension Prisma solo puede inyectar `WHERE companyId = :id` en modelos donde el campo es obligatorio. Con `companyId` nullable, el filtro automatico ocultaria las tasas globales a todas las empresas, rompiendo el comportamiento de fallback deseado.
+
+**Consecuencia:** El servicio `exchange-rate.service.ts` filtra manualmente con `OR: [{ companyId }, { companyId: null }]`. La politica RLS usa `company_id IS NULL OR company_id = current_setting(...)` para cubrir ambos casos en la capa de base de datos.
+
+**Patron reutilizable:** Cualquier catalogo global de plataforma (monedas, departamentos de Honduras, tasas SAR) debe seguir este mismo patron: `companyId` nullable, excluido de BUSINESS_MODELS, filtrado manual en service.
+
+---
+
+### DAR-ACCT-002: Numeracion Atomica de Asientos via $queryRaw
+
+**Decision:** El numero de asiento (`entryNumber`) se asigna mediante `INSERT INTO journal_sequences ... ON CONFLICT DO UPDATE ... RETURNING` ejecutado via `prisma.$queryRaw` dentro de la misma transaccion de creacion del asiento.
+
+**Por que:** En un entorno serverless (Next.js en Amplify + posibles Lambdas), multiples instancias concurrentes pueden intentar crear asientos en el mismo diario simultaneamente. Un simple `SELECT max(entryNumber) + 1` tiene race condition entre el SELECT y el INSERT. La instruccion SQL con `ON CONFLICT DO UPDATE` es atomica a nivel de fila en PostgreSQL y garantiza secuencialidad sin locks de tabla.
+
+**Consecuencia:** `JournalSequence` es una tabla de contadores con clave primaria `(companyId, journalId)`. Es la unica tabla del schema que usa `$queryRaw` (todos los demas usos son via API Prisma). Los numeros de asiento son consecutivos y nunca se repiten dentro del mismo diario de una empresa.
+
+---
+
+### DAR-ACCT-003: Propagacion Bottom-Up en Reportes Financieros
+
+**Decision:** Los reportes Balance General y Estado de Resultados calculan los saldos de cuentas padre acumulando bottom-up los saldos de sus cuentas hija en memoria, no mediante una query SQL recursiva (CTE).
+
+**Por que:** El plan de cuentas NIIF de una PYME hondurena tiene entre 3 y 5 niveles de jerarquia. Hacer una CTE recursiva con JOIN a `journal_entry_lines` por cada nivel seria costosa y dificil de mantener. En cambio, la query trae todas las cuentas activas con sus saldos de lineas de asiento en una sola consulta, y la logica de propagacion se ejecuta en JavaScript con un pase bottom-up sobre el arbol.
+
+**Consecuencia:** El servicio carga en memoria todas las cuentas del plan de cuentas de la empresa + sus saldos. Para PYMEs con 150-300 cuentas esto es trivial (~50KB). Si en el futuro se necesitan empresas con miles de cuentas, se puede migrar a CTE SQL sin cambiar la interfaz del servicio.
+
+---
+
+### DAR-ACCT-004: company_id Desnormalizado en Tablas Hijas
+
+**Decision:** Las tablas hijas `FiscalPeriod`, `JournalEntryLine`, `ContactAddress` y `ContactPerson` tienen `company_id` desnormalizado (redundante con el de su tabla padre).
+
+**Por que:** Las politicas RLS de PostgreSQL operan sobre la fila actual. Sin `company_id` en la fila, RLS tendria que hacer un JOIN a la tabla padre para verificar la empresa, lo que rompe el modelo de seguridad declarativo y agrega costo a cada SELECT.
+
+**Consecuencia:** Al crear registros hijos, el servicio debe propagar el `companyId` del padre explicitamente. Este patron esta consolidado y documentado en todos los servicios contables y de contactos.
 
 ---
 
@@ -292,27 +423,24 @@ exitosamente y el Modulo de Contactos de la Fase 2 completado en su totalidad.
 | Storage             | AWS S3 + CloudFront                 | —         |
 | Seguridad           | AWS WAF + Shield                    | —         |
 
-### Estructura del Repositorio
+### Schema Prisma — Modulo Contabilidad
 
 ```
-amplify/            # IaC Amplify Gen 2 (auth, functions, storage)
-prisma/
-  schema/           # Multi-file schema modular
-    base.prisma     # Datasource, generator, enums globales
-    core.prisma     # Company, User, AuditLog, Module, etc.
-    contacts.prisma # PaymentTerms, Contact, ContactAddress, ContactPerson
-  migrations/       # Migraciones declarativas
-src/
-  app/
-    (dashboard)/    # Rutas del dashboard (layout autenticado)
-      contacts/     # NUEVO: Modulo Contactos UI
-    api/v1/         # REST endpoints API-first
-      contacts/     # NUEVO: 9 route handlers de contactos
-      core/         # Users, Tenant
-  lib/              # auth, db, validators, permissions, utils
-  components/ui/    # shadcn/ui components
-  types/            # TypeScript types globales
-docs/               # Documentacion del proyecto
+prisma/schema/accounting.prisma
+  |
+  +-- Currency              (global, sin companyId, catalogo plataforma)
+  +-- ExchangeRate          (companyId NULLABLE — global o por empresa)
+  +-- Account               (companyId obligatorio — plan de cuentas NIIF)
+  |     +-- Account (self)  (jerarquia recursiva padre/hijos)
+  |
+  +-- FiscalYear            (companyId obligatorio — ano fiscal)
+  |     +-- FiscalPeriod    (companyId desnormalizado — mes contable)
+  |           +-- JournalEntry
+  |
+  +-- Journal               (companyId obligatorio — libro de diario)
+  |     +-- JournalSequence (PK compuesta: companyId + journalId)
+  |     +-- JournalEntry    (companyId obligatorio — asiento cabecera)
+  |           +-- JournalEntryLine (companyId desnormalizado — linea debito/credito)
 ```
 
 ---
@@ -327,23 +455,43 @@ docs/               # Documentacion del proyecto
 | **Vendedor**      | Gestion comercial                | CRUD contactos, cotizaciones, pedidos, facturas de venta            |
 | **Auditor**       | Solo lectura para trazabilidad   | Lectura total + logs de auditoria (sin modificaciones)              |
 
+**Permisos RBAC de contabilidad agregados (13 permisos en seed):**
+
+- `accounting.accounts.read` / `create` / `update` / `delete`
+- `accounting.journals.read` / `create` / `update` / `delete`
+- `accounting.journal-entries.read` / `create` / `update` / `post` / `cancel`
+
 ---
 
 ## Proximos Pasos
 
-### Inmediato (esta semana)
+### Inmediato — F2-12: Exportacion PDF y Excel
 
-1. **F2-04** — Disenar y crear schema de contabilidad en Prisma
+- Lambda para generacion de PDF del Balance General y Estado de Resultados
+- Descarga directa de Excel (.xlsx) via servicio en memory (sin Lambda)
+- S3 para almacenamiento temporal de PDFs generados
+- Endpoints: `GET /api/v1/accounting/reports/balance-sheet/export?format=pdf|xlsx`
 
-### Corto plazo (proximas 2 semanas)
+### Corto plazo — F2-13: Conciliacion Bancaria
 
-2. **F2-05** — Seed del plan de cuentas NIIF Honduras (~200 cuentas)
-3. **F2-06** — UI del plan de cuentas con arbol jerarquico
-4. **F2-07** — CRUD de anos y periodos fiscales
+- Match de movimientos bancarios importados (CSV/OFX) vs asientos contables POSTED
+- Estado: pendiente, conciliado, en disputa
+- Endpoints: `/api/v1/accounting/bank-reconciliation`
+- UI: tabla de dos columnas (banco vs contabilidad) con lineas de match
 
-### Mediano plazo (proximas 4-6 semanas)
+### Completado — F2-14: CxC / CxP Aging (28 marzo 2026)
 
-5. **F2-08 a F2-15** — Asientos contables, multimoneda, reportes, exportaciones, conciliaciones, tests
+- Aging de clientes (Cuentas por Cobrar): saldos pendientes en 4 tramos (0-30, 31-60, 61-90, 90+ dias)
+- Aging de proveedores (Cuentas por Pagar): saldos pendientes en los mismos tramos
+- Endpoints implementados: `GET /api/v1/accounting/aging/receivables` y `GET /api/v1/accounting/aging/payables`
+- UI: tabla resumen por contacto con totales por tramo de vencimiento
+
+### Cierre de Fase 2 — F2-15: Tests Modulo Contabilidad
+
+- Tests unitarios: servicios de asientos, reportes, tipos de cambio
+- Tests de integracion: ciclo completo DRAFT -> POSTED -> CANCELLED
+- Tests de aislamiento tenant: asientos de Empresa A no visibles para Empresa B
+- Meta: mantener 100% de tests pasando al cerrar la rama
 
 ---
 
@@ -362,4 +510,4 @@ docs/               # Documentacion del proyecto
 ---
 
 _Documento generado automaticamente por Claude Code (Doc Engineer)_
-_Fecha: 25 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_
+_Fecha: 28 de marzo de 2026 | Proyecto: NexoERP | Version en progreso: 0.2.x_

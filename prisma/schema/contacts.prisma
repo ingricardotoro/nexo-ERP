@@ -20,6 +20,7 @@ model PaymentTerms {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   contacts Contact[]
+  invoices Invoice[] // facturas con este término de pago (Fase 3)
 
   @@unique([companyId, name])
   @@index([companyId, isActive])
@@ -66,6 +67,7 @@ model Contact {
   // Relaciones hijas
   addresses ContactAddress[]
   persons   ContactPerson[]
+  invoices  Invoice[] // facturas emitidas a/de este contacto (Fase 3)
 
   // Índices — company_id siempre primero (DAR-005)
   // UNIQUE con rtn nullable: PostgreSQL permite múltiples NULL en constraints UNIQUE (DA-CONT-02)

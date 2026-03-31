@@ -1,6 +1,7 @@
 // src/lib/services/accounting/fiscal-year.service.ts
 import type { FiscalPeriodStatus } from '@prisma/client';
-import prisma from '@/lib/db/prisma';
+import basePrisma from '@/lib/db/prisma';
+import { createTenantPrisma } from '@/lib/db/tenant-extension';
 import {
   createFiscalYearSchema,
   type CreateFiscalYearInput,
@@ -106,7 +107,8 @@ function generateMonthlyPeriods(
 export const fiscalYearService = {
   /** Lista todos los años fiscales de la empresa con conteos de períodos. */
   async listFiscalYears(companyId: string): Promise<FiscalYearSummary[]> {
-    const years = await prisma.fiscalYear.findMany({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const years = await db.fiscalYear.findMany({
       where: { companyId },
       include: {
         _count: { select: { fiscalPeriods: true } },
@@ -132,7 +134,8 @@ export const fiscalYearService = {
 
   /** Obtiene un año fiscal con sus 12 períodos y conteo de asientos por período. */
   async getFiscalYear(companyId: string, id: string): Promise<FiscalYearDetail> {
-    const year = await prisma.fiscalYear.findFirst({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const year = await db.fiscalYear.findFirst({
       where: { id, companyId },
       include: {
         _count: { select: { fiscalPeriods: true } },
@@ -180,9 +183,10 @@ export const fiscalYearService = {
     input: CreateFiscalYearInput,
   ): Promise<FiscalYearDetail> {
     const data = createFiscalYearSchema.parse(input);
+    const db = createTenantPrisma(basePrisma, companyId);
 
     // Verificar que no exista ya un año con el mismo número para esta empresa
-    const existing = await prisma.fiscalYear.findFirst({
+    const existing = await db.fiscalYear.findFirst({
       where: { companyId, year: data.year },
     });
     if (existing) {
@@ -193,10 +197,10 @@ export const fiscalYearService = {
     const endDate = new Date(data.endDate);
 
     // Si no hay ningún año aún, el primero queda como activo
-    const hasAnyYear = await prisma.fiscalYear.count({ where: { companyId } });
+    const hasAnyYear = await db.fiscalYear.count({ where: { companyId } });
     const isFirstYear = hasAnyYear === 0;
 
-    const fiscalYear = await prisma.$transaction(async (tx) => {
+    const fiscalYear = await db.$transaction(async (tx) => {
       const created = await tx.fiscalYear.create({
         data: {
           companyId,
@@ -222,19 +226,20 @@ export const fiscalYearService = {
    * Solo años en estado OPEN pueden activarse.
    */
   async activateYear(companyId: string, id: string): Promise<void> {
-    const year = await prisma.fiscalYear.findFirst({ where: { id, companyId } });
+    const db = createTenantPrisma(basePrisma, companyId);
+    const year = await db.fiscalYear.findFirst({ where: { id, companyId } });
     if (!year) throw new Error('Año fiscal no encontrado');
     if (year.status !== 'OPEN') throw new Error('Solo los años en estado ABIERTO pueden activarse');
     if (year.isActive) throw new Error('El año fiscal ya está activo');
 
-    await prisma.$transaction([
+    await db.$transaction([
       // Desactivar el año activo actual
-      prisma.fiscalYear.updateMany({
+      db.fiscalYear.updateMany({
         where: { companyId, isActive: true },
         data: { isActive: false },
       }),
       // Activar el nuevo
-      prisma.fiscalYear.update({ where: { id }, data: { isActive: true } }),
+      db.fiscalYear.update({ where: { id }, data: { isActive: true } }),
     ]);
   },
 
@@ -243,20 +248,21 @@ export const fiscalYearService = {
    * Los períodos LOCKED no se tocan.
    */
   async closeYear(companyId: string, id: string): Promise<void> {
-    const year = await prisma.fiscalYear.findFirst({ where: { id, companyId } });
+    const db = createTenantPrisma(basePrisma, companyId);
+    const year = await db.fiscalYear.findFirst({ where: { id, companyId } });
     if (!year) throw new Error('Año fiscal no encontrado');
     if (year.status === 'CLOSED') throw new Error('El año fiscal ya está cerrado');
     if (year.status === 'LOCKED')
       throw new Error('El año fiscal está bloqueado y no puede modificarse');
 
-    await prisma.$transaction([
+    await db.$transaction([
       // Cerrar todos los períodos OPEN de este año
-      prisma.fiscalPeriod.updateMany({
+      db.fiscalPeriod.updateMany({
         where: { fiscalYearId: id, companyId, status: 'OPEN' },
         data: { status: 'CLOSED' },
       }),
       // Cerrar el año y desactivarlo
-      prisma.fiscalYear.update({
+      db.fiscalYear.update({
         where: { id },
         data: { status: 'CLOSED', isActive: false },
       }),
@@ -268,7 +274,8 @@ export const fiscalYearService = {
    * No afecta períodos LOCKED.
    */
   async closePeriod(companyId: string, periodId: string): Promise<void> {
-    const period = await prisma.fiscalPeriod.findFirst({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const period = await db.fiscalPeriod.findFirst({
       where: { id: periodId, companyId },
     });
     if (!period) throw new Error('Período fiscal no encontrado');
@@ -276,7 +283,7 @@ export const fiscalYearService = {
     if (period.status === 'LOCKED')
       throw new Error('El período está bloqueado y no puede modificarse');
 
-    await prisma.fiscalPeriod.update({ where: { id: periodId }, data: { status: 'CLOSED' } });
+    await db.fiscalPeriod.update({ where: { id: periodId }, data: { status: 'CLOSED' } });
   },
 
   /**
@@ -284,7 +291,8 @@ export const fiscalYearService = {
    * Operación irreversible — para cierre definitivo de auditoría.
    */
   async lockPeriod(companyId: string, periodId: string): Promise<void> {
-    const period = await prisma.fiscalPeriod.findFirst({
+    const db = createTenantPrisma(basePrisma, companyId);
+    const period = await db.fiscalPeriod.findFirst({
       where: { id: periodId, companyId },
     });
     if (!period) throw new Error('Período fiscal no encontrado');
@@ -292,6 +300,6 @@ export const fiscalYearService = {
       throw new Error('El período debe estar CERRADO antes de bloquearse');
     if (period.status === 'LOCKED') throw new Error('El período ya está bloqueado');
 
-    await prisma.fiscalPeriod.update({ where: { id: periodId }, data: { status: 'LOCKED' } });
+    await db.fiscalPeriod.update({ where: { id: periodId }, data: { status: 'LOCKED' } });
   },
 };

@@ -6,7 +6,7 @@ import { config as loadDotenv } from 'dotenv';
 // tsx no carga .env.local automáticamente → cargar manualmente
 loadDotenv({ path: '.env.local' });
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, SystemRole } from '@prisma/client';
 
 import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
 import { seedAccountingJournals } from './accounting-journals';
@@ -290,7 +290,122 @@ async function main() {
     },
   ];
 
-  const allPermissions = [...corePermissions, ...contactsPermissions];
+  const accountingPermissions = [
+    {
+      id: 'accounting.account.read',
+      moduleId: 'accounting',
+      resource: 'account',
+      action: 'read',
+      description: 'Ver plan de cuentas',
+    },
+    {
+      id: 'accounting.fiscal_year.create',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'create',
+      description: 'Crear años fiscales',
+    },
+    {
+      id: 'accounting.fiscal_year.read',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'read',
+      description: 'Ver años fiscales y períodos',
+    },
+    {
+      id: 'accounting.fiscal_year.close',
+      moduleId: 'accounting',
+      resource: 'fiscal_year',
+      action: 'close',
+      description: 'Cerrar años y períodos fiscales',
+    },
+    {
+      id: 'accounting.fiscal_period.lock',
+      moduleId: 'accounting',
+      resource: 'fiscal_period',
+      action: 'lock',
+      description: 'Bloquear períodos fiscales (irreversible)',
+    },
+    {
+      id: 'accounting.journal.create',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'create',
+      description: 'Crear diarios contables',
+    },
+    {
+      id: 'accounting.journal.read',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'read',
+      description: 'Ver diarios contables',
+    },
+    {
+      id: 'accounting.journal.update',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'update',
+      description: 'Editar diarios contables',
+    },
+    {
+      id: 'accounting.journal.delete',
+      moduleId: 'accounting',
+      resource: 'journal',
+      action: 'delete',
+      description: 'Eliminar diarios contables sin asientos',
+    },
+    {
+      id: 'accounting.journal_entry.create',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'create',
+      description: 'Crear asientos contables en borrador',
+    },
+    {
+      id: 'accounting.journal_entry.read',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'read',
+      description: 'Ver asientos contables',
+    },
+    {
+      id: 'accounting.journal_entry.post',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'post',
+      description: 'Publicar (contabilizar) asientos',
+    },
+    {
+      id: 'accounting.journal_entry.cancel',
+      moduleId: 'accounting',
+      resource: 'journal_entry',
+      action: 'cancel',
+      description: 'Anular asientos publicados (genera contraasiento)',
+    },
+    {
+      id: 'accounting.exchange_rate.read',
+      moduleId: 'accounting',
+      resource: 'exchange_rate',
+      action: 'read',
+      description: 'Ver tipos de cambio',
+    },
+    {
+      id: 'accounting.exchange_rate.write',
+      moduleId: 'accounting',
+      resource: 'exchange_rate',
+      action: 'write',
+      description: 'Crear, editar y eliminar tipos de cambio de empresa',
+    },
+    {
+      id: 'accounting.report.read',
+      moduleId: 'accounting',
+      resource: 'report',
+      action: 'read',
+      description: 'Ver reportes financieros (Balance General, Estado de Resultados, CxC/CxP)',
+    },
+  ];
+
+  const allPermissions = [...corePermissions, ...contactsPermissions, ...accountingPermissions];
 
   for (const perm of allPermissions) {
     await prisma.permission.upsert({
@@ -301,6 +416,112 @@ async function main() {
   }
   console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
   console.log(`✅ Permisos contacts: ${contactsPermissions.length} creados`);
+  console.log(`✅ Permisos accounting: ${accountingPermissions.length} creados`);
+
+  // === RolePermission — Matriz de permisos por rol ===
+  // ADMIN: acceso total
+  // MANAGER: lectura total + escritura operativa (sin cerrar fiscal years, sin cancelar asientos)
+  // ACCOUNTANT: acceso contable completo
+  // SALESPERSON: sin acceso contable
+  // AUDITOR: solo lectura
+  const rolePermissions: { role: SystemRole; permissionId: string }[] = [
+    // ── ADMIN — acceso total ──────────────────────────────────────────────────
+    { role: SystemRole.ADMIN, permissionId: 'core.user.create' },
+    { role: SystemRole.ADMIN, permissionId: 'core.user.read' },
+    { role: SystemRole.ADMIN, permissionId: 'core.user.update' },
+    { role: SystemRole.ADMIN, permissionId: 'core.user.delete' },
+    { role: SystemRole.ADMIN, permissionId: 'core.tenant.read' },
+    { role: SystemRole.ADMIN, permissionId: 'core.module.read' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.contact.create' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.contact.read' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.contact.update' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.contact.delete' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.payment_terms.create' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.payment_terms.read' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.payment_terms.update' },
+    { role: SystemRole.ADMIN, permissionId: 'contacts.payment_terms.delete' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.account.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.fiscal_year.create' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.fiscal_year.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.fiscal_year.close' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.fiscal_period.lock' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal.create' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal.update' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal.delete' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal_entry.create' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal_entry.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal_entry.post' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.journal_entry.cancel' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.exchange_rate.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.exchange_rate.write' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.report.read' },
+
+    // ── MANAGER — lectura total + escritura operativa ─────────────────────────
+    { role: SystemRole.MANAGER, permissionId: 'core.user.read' },
+    { role: SystemRole.MANAGER, permissionId: 'core.tenant.read' },
+    { role: SystemRole.MANAGER, permissionId: 'core.module.read' },
+    { role: SystemRole.MANAGER, permissionId: 'contacts.contact.create' },
+    { role: SystemRole.MANAGER, permissionId: 'contacts.contact.read' },
+    { role: SystemRole.MANAGER, permissionId: 'contacts.contact.update' },
+    { role: SystemRole.MANAGER, permissionId: 'contacts.payment_terms.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.account.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.fiscal_year.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.journal.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.journal_entry.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.exchange_rate.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.report.read' },
+
+    // ── ACCOUNTANT — acceso contable completo ─────────────────────────────────
+    { role: SystemRole.ACCOUNTANT, permissionId: 'core.tenant.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'core.module.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'contacts.contact.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'contacts.payment_terms.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.account.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.fiscal_year.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.fiscal_year.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.fiscal_year.close' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.fiscal_period.lock' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal.update' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal.delete' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal_entry.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal_entry.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal_entry.post' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.journal_entry.cancel' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.exchange_rate.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.exchange_rate.write' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.report.read' },
+
+    // ── SALESPERSON — solo contactos ──────────────────────────────────────────
+    { role: SystemRole.SALESPERSON, permissionId: 'core.tenant.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'contacts.contact.create' },
+    { role: SystemRole.SALESPERSON, permissionId: 'contacts.contact.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'contacts.contact.update' },
+    { role: SystemRole.SALESPERSON, permissionId: 'contacts.payment_terms.read' },
+
+    // ── AUDITOR — solo lectura ────────────────────────────────────────────────
+    { role: SystemRole.AUDITOR, permissionId: 'core.tenant.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'core.module.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'contacts.contact.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'contacts.payment_terms.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.account.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.fiscal_year.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.journal.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.journal_entry.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.exchange_rate.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.report.read' },
+  ];
+
+  for (const rp of rolePermissions) {
+    await prisma.rolePermission.upsert({
+      where: { role_permissionId: { role: rp.role, permissionId: rp.permissionId } },
+      update: {},
+      create: { role: rp.role, permissionId: rp.permissionId },
+    });
+  }
+  console.log(`✅ RolePermissions seeded: ${rolePermissions.length} asignaciones`);
 
   // === Monedas (catálogo global — sin companyId) ===
   const currencies = [

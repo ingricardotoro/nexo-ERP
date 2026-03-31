@@ -19,21 +19,29 @@ import { NextRequest } from 'next/server';
 
 // ─── Mocks de servicios y auth (vi.hoisted para que estén disponibles en vi.mock) ─
 
-const { accountServiceMock, fiscalYearServiceMock, getAuthContextMock } = vi.hoisted(() => ({
-  accountServiceMock: {
-    getAccountsTree: vi.fn(),
-    getAccountStats: vi.fn(),
-  },
-  fiscalYearServiceMock: {
-    listFiscalYears: vi.fn(),
-    createFiscalYear: vi.fn(),
-    closeYear: vi.fn(),
-    activateYear: vi.fn(),
-    closePeriod: vi.fn(),
-    lockPeriod: vi.fn(),
-  },
-  getAuthContextMock: vi.fn(),
-}));
+const { accountServiceMock, fiscalYearServiceMock, getAuthContextMock, prismaMock } = vi.hoisted(
+  () => ({
+    accountServiceMock: {
+      getAccountsTree: vi.fn(),
+      getAccountStats: vi.fn(),
+    },
+    fiscalYearServiceMock: {
+      listFiscalYears: vi.fn(),
+      createFiscalYear: vi.fn(),
+      closeYear: vi.fn(),
+      activateYear: vi.fn(),
+      closePeriod: vi.fn(),
+      lockPeriod: vi.fn(),
+    },
+    getAuthContextMock: vi.fn(),
+    // checkPermission calls basePrisma.rolePermission.findFirst — mock it to always grant
+    prismaMock: {
+      rolePermission: {
+        findFirst: vi.fn().mockResolvedValue({ role: 'ADMIN' }),
+      },
+    },
+  }),
+);
 
 vi.mock('@/lib/services/accounting/account.service', () => ({
   accountService: accountServiceMock,
@@ -46,6 +54,8 @@ vi.mock('@/lib/services/accounting/fiscal-year.service', () => ({
 vi.mock('@/lib/auth/request-auth', () => ({
   getAuthContextFromHeaders: getAuthContextMock,
 }));
+
+vi.mock('@/lib/db/prisma', () => ({ default: prismaMock }));
 
 // ─── Import de handlers (después de los mocks) ────────────────────────────────
 
@@ -349,7 +359,7 @@ describe('POST /api/v1/accounting/fiscal-years/:id/activate', () => {
     expect(body.message).toBe('Año fiscal activado exitosamente');
   });
 
-  it('debería retornar 400 cuando el servicio lanza error (ej: año no encontrado)', async () => {
+  it('debería retornar 404 cuando el servicio lanza error (ej: año no encontrado)', async () => {
     // Arrange
     fiscalYearServiceMock.activateYear.mockRejectedValue(new Error('Año fiscal no encontrado'));
     const params = Promise.resolve({ id: AÑO_ID });
@@ -359,7 +369,7 @@ describe('POST /api/v1/accounting/fiscal-years/:id/activate', () => {
     const body = await response.json();
 
     // Assert
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(body.success).toBe(false);
   });
 });

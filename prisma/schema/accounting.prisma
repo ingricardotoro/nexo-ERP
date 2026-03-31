@@ -44,6 +44,7 @@ model Currency {
   // Relaciones
   exchangeRates  ExchangeRate[]
   journalEntries JournalEntry[]
+  invoices       Invoice[] // facturas en esta moneda (Fase 3)
 
   @@map("currencies")
 }
@@ -120,6 +121,7 @@ model Account {
 
   // Relaciones hijas
   journalEntryLines JournalEntryLine[]
+  invoiceLines      InvoiceLine[] // líneas de factura que usan esta cuenta (Fase 3)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, code])
@@ -225,7 +227,8 @@ model Journal {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  journalEntries JournalEntry[]
+  journalEntries   JournalEntry[]
+  journalSequences JournalSequence[]
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, code])
@@ -278,11 +281,18 @@ model JournalEntry {
   postedBy  String?   @map("posted_by")
   postedAt  DateTime? @map("posted_at")
 
+  /// Enlace al asiento que anuló este (solo presente en asientos CANCELLED)
+  cancelledById String?        @map("cancelled_by_id") @db.Uuid
+  cancelledBy   JournalEntry?  @relation("EntryCancellation", fields: [cancelledById], references: [id])
+  /// Asientos de anulación generados a partir de este
+  cancellations JournalEntry[] @relation("EntryCancellation")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  lines JournalEntryLine[]
+  lines   JournalEntryLine[]
+  invoice Invoice? // relación inversa desde Facturación (Fase 3)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, journalId, entryNumber])
@@ -337,4 +347,26 @@ model JournalEntryLine {
   @@index([companyId, accountId])
   @@index([companyId, accountId, createdAt])
   @@map("journal_entry_lines")
+}
+
+// =============================================================================
+// JournalSequence — numeración secuencial atómica por diario (F2-09)
+// =============================================================================
+
+/// Contador de secuencia por (companyId, journalId).
+/// El servicio usa INSERT ... ON CONFLICT DO UPDATE ... RETURNING para garantizar
+/// atomicidad sin race conditions bajo concurrencia serverless.
+model JournalSequence {
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  journalId String  @map("journal_id") @db.Uuid
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Restrict)
+
+  lastNumber Int @default(0) @map("last_number")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([companyId, journalId])
+  @@map("journal_sequences")
 }

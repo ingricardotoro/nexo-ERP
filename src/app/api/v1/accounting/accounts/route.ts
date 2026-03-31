@@ -2,6 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { accountService } from '@/lib/services/accounting/account.service';
 import { handleApiError } from '@/lib/api/handle-error';
 
@@ -12,6 +13,7 @@ import { handleApiError } from '@/lib/api/handle-error';
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.account.read');
 
     const [tree, stats] = await Promise.all([
       accountService.getAccountsTree(auth.companyId),

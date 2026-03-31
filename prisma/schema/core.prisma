@@ -48,8 +48,16 @@ model Company {
   journals          Journal[]
   journalEntries    JournalEntry[]
   journalEntryLines JournalEntryLine[]
+  journalSequences  JournalSequence[]
   accounts          Account[]
   exchangeRates     ExchangeRate[]
+
+  // Invoicing (Fase 3)
+  cais             CAI[]
+  taxRates         TaxRate[]
+  invoiceSequences InvoiceSequence[]
+  invoices         Invoice[]
+  invoiceLines     InvoiceLine[]
 
   @@map("companies")
 }

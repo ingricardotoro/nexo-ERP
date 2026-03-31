@@ -2,13 +2,16 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getAuthContextFromHeaders } from '@/lib/auth/request-auth';
+import { checkPermission } from '@/lib/permissions/check-permission';
 import { fiscalYearService } from '@/lib/services/accounting/fiscal-year.service';
+import { createFiscalYearSchema } from '@/lib/validations/fiscal-year.schema';
 import { handleApiError } from '@/lib/api/handle-error';
 
 /** GET /api/v1/accounting/fiscal-years — lista años fiscales con conteos de períodos */
 export async function GET(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
+    await checkPermission(auth, 'accounting.fiscal_year.read');
     const years = await fiscalYearService.listFiscalYears(auth.companyId);
     return NextResponse.json({ success: true, data: years });
   } catch (error) {
@@ -20,12 +23,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthContextFromHeaders(request);
-    const body = (await request.json()) as Record<string, unknown>;
-    const year = await fiscalYearService.createFiscalYear(auth.companyId, {
-      year: Number(body.year),
-      startDate: String(body.startDate),
-      endDate: String(body.endDate),
-    });
+    await checkPermission(auth, 'accounting.fiscal_year.create');
+    const body = await request.json();
+    const input = createFiscalYearSchema.parse(body);
+    const year = await fiscalYearService.createFiscalYear(auth.companyId, input);
     return NextResponse.json(
       { success: true, data: year, message: 'Año fiscal creado exitosamente' },
       { status: 201 },

@@ -539,6 +539,21 @@ async function main() {
   }
   console.log(`✅ Monedas: ${currencies.length} creadas (HNL, USD, EUR)`);
 
+  // === Tasas de Impuesto (ISV Honduras) — solo para empresa demo ===
+  const taxRates = [
+    { code: 'ISV15', name: 'ISV 15%', rate: 0.15, isActive: true },
+    { code: 'ISV18', name: 'ISV 18% (Bebidas/Tabaco)', rate: 0.18, isActive: true },
+    { code: 'EXENTO', name: 'Exento', rate: 0.0, isActive: true },
+  ];
+  for (const tr of taxRates) {
+    await prisma.taxRate.upsert({
+      where: { companyId_code: { companyId: demoCompany.id, code: tr.code } },
+      update: { name: tr.name, rate: tr.rate, isActive: tr.isActive },
+      create: { companyId: demoCompany.id, ...tr },
+    });
+  }
+  console.log(`✅ Tasas de Impuesto (ISV): ${taxRates.length} creadas para ${demoCompany.tradeName}`);
+
   // === Plan de Cuentas NIIF Honduras — solo para empresa demo ===
   // La empresa test solo tiene módulo core activo, no necesita plan de cuentas
   await seedAccountingChartOfAccounts(demoCompany.id, prisma);
@@ -555,6 +570,7 @@ async function main() {
   console.log(
     `   Permisos: ${allPermissions.length} (${corePermissions.length} core + ${contactsPermissions.length} contacts)`,
   );
+  console.log(`   Tasas ISV: ${taxRates.length} (ISV15, ISV18, EXENTO)`);
   console.log(`   Plan de cuentas NIIF: seeded para ${demoCompany.tradeName}`);
   console.log(`   Diarios contables: 7 por defecto para ${demoCompany.tradeName}`);
 }

@@ -211,6 +211,11 @@ model Invoice {
   originalInvoice   Invoice?  @relation("InvoiceCorrections", fields: [originalInvoiceId], references: [id])
   corrections       Invoice[] @relation("InvoiceCorrections")
 
+  /// S3 key del PDF generado (null hasta que el Lambda lo genere)
+  pdfS3Key       String?   @map("pdf_s3_key")
+  /// Timestamp en que el PDF fue generado y subido a S3
+  pdfGeneratedAt DateTime? @map("pdf_generated_at")
+
   /// Trazabilidad de ciclo de vida
   createdBy    String    @map("created_by")
   issuedBy     String?   @map("issued_by")

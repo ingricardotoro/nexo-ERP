@@ -24,6 +24,7 @@ import {
   type ListInvoicesInput,
 } from '@/lib/validations/invoice.schema';
 import { getNextInvoiceNumber } from './sar-numbering.service';
+import { resolveInvoiceAccounts } from './system-accounts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,8 @@ export interface InvoiceRow {
   caiCode: string;
   journalEntryId: string | null;
   originalInvoiceId: string | null;
+  pdfS3Key: string | null;
+  pdfGeneratedAt: Date | null;
   createdBy: string;
   issuedBy: string | null;
   issuedAt: Date | null;
@@ -147,6 +150,8 @@ function toRow(inv: any, includeLines = true): InvoiceRow {
     caiCode: inv.cai?.caiCode ?? '',
     journalEntryId: inv.journalEntryId,
     originalInvoiceId: inv.originalInvoiceId,
+    pdfS3Key: inv.pdfS3Key ?? null,
+    pdfGeneratedAt: inv.pdfGeneratedAt ?? null,
     createdBy: inv.createdBy,
     issuedBy: inv.issuedBy,
     issuedAt: inv.issuedAt,
@@ -266,7 +271,36 @@ export const invoiceService = {
       );
     }
 
-    // 2. Validate tax rates
+    // 2. Validate originalInvoiceId rules for NC/ND
+    const isCorrection = data.invoiceType === 'NOTA_CREDITO' || data.invoiceType === 'NOTA_DEBITO';
+    if (isCorrection) {
+      if (!data.originalInvoiceId) {
+        throw new Error(
+          `Las ${data.invoiceType === 'NOTA_CREDITO' ? 'notas de crédito' : 'notas de débito'} requieren una factura original (originalInvoiceId)`,
+        );
+      }
+      const originalInvoice = await db.invoice.findFirst({
+        where: { id: data.originalInvoiceId, companyId },
+        include: {
+          corrections: {
+            where: { status: { not: 'CANCELLED' } },
+            select: { total: true },
+          },
+        },
+      });
+      if (!originalInvoice) {
+        throw new Error('Factura original no encontrada');
+      }
+      if (originalInvoice.status !== 'PUBLISHED' && originalInvoice.status !== 'PAID') {
+        throw new Error(
+          'Solo se pueden emitir notas de crédito/débito contra facturas emitidas o pagadas',
+        );
+      }
+    } else if (data.originalInvoiceId) {
+      throw new Error('Las facturas regulares no deben referenciar una factura original');
+    }
+
+    // 3. Validate tax rates
     const taxRateIds = [...new Set(data.lines.map((l) => l.taxRateId))];
     const taxRates = await db.taxRate.findMany({
       where: { companyId, id: { in: taxRateIds } },
@@ -298,8 +332,36 @@ export const invoiceService = {
     );
     const invoiceTotal = invoiceSubtotal.plus(invoiceTaxAmount);
 
-    // 4. Create invoice + lines in transaction
+    // 4b. For credit notes, validate total doesn't exceed original remaining balance
+    if (data.invoiceType === 'NOTA_CREDITO' && data.originalInvoiceId) {
+      const originalInvoice = await db.invoice.findFirst({
+        where: { id: data.originalInvoiceId, companyId },
+        include: {
+          corrections: {
+            where: { invoiceType: 'NOTA_CREDITO', status: { not: 'CANCELLED' } },
+            select: { total: true },
+          },
+        },
+      });
+      if (originalInvoice) {
+        const alreadyCredited = originalInvoice.corrections.reduce(
+          (sum, nc) => sum.plus(nc.total),
+          new Decimal(0),
+        );
+        const remaining = new Decimal(originalInvoice.total).minus(alreadyCredited);
+        if (invoiceTotal.greaterThan(remaining)) {
+          throw new Error(
+            `El total de la nota de crédito (${invoiceTotal.toFixed(2)}) excede el saldo disponible de la factura original (${remaining.toFixed(2)})`,
+          );
+        }
+      }
+    }
+
+    // 5. Create invoice + lines in transaction
+    // set_config establece app.current_company_id para que RLS (FORCE ROW LEVEL SECURITY)
+    // permita los INSERTs en invoices e invoice_lines dentro de esta transacción.
     const inv = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
       const created = await tx.invoice.create({
         data: {
           companyId,
@@ -410,6 +472,7 @@ export const invoiceService = {
     const invoiceTotal = invoiceSubtotal.plus(invoiceTaxAmount);
 
     const updated = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
       await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
       return tx.invoice.update({
         where: { id },
@@ -526,49 +589,40 @@ export const invoiceService = {
       );
     }
 
-    // 5. Build journal entry lines
-    // Debit: Accounts Receivable (total invoice)
-    // Credit: Revenue accounts per line (subtotal)
-    // Credit: ISV Payable (total tax)
-    //
-    // We look up standard accounts by code convention (can be overridden per line):
-    //  - AR: 1103 (Cuentas por Cobrar Clientes)
-    //  - ISV Payable: 2102 (ISV por Pagar)
-    //  - Revenue: use line.accountId if set, else find 4101 (Ventas)
-    const [arAccount, isvPayableAccount, defaultRevenueAccount] = await Promise.all([
-      db.account.findFirst({
-        where: { companyId, code: '1103', allowDirectEntry: true, isActive: true },
-      }),
-      db.account.findFirst({
-        where: { companyId, code: '2102', allowDirectEntry: true, isActive: true },
-      }),
-      db.account.findFirst({
-        where: { companyId, code: '4101', allowDirectEntry: true, isActive: true },
-      }),
-    ]);
-
-    if (!arAccount) {
-      throw new Error(
-        'Cuenta contable 1103 (Cuentas por Cobrar) no encontrada. Verifique el plan de cuentas.',
-      );
-    }
+    // 5. Resolve system accounts (by systemPurpose, fallback by NIIF code)
+    const sysAccounts = await resolveInvoiceAccounts(db, companyId);
 
     // Get next journal entry number atomically
-    const entryNumberResult = await (basePrisma as typeof basePrisma).$queryRaw<
-      Array<{ last_number: number }>
-    >`
-      INSERT INTO journal_sequences (company_id, journal_id, last_number, updated_at)
-      VALUES (${companyId}::uuid, ${salesJournal.id}::uuid, 1, NOW())
-      ON CONFLICT (company_id, journal_id)
-      DO UPDATE SET
-        last_number = journal_sequences.last_number + 1,
-        updated_at  = NOW()
-      RETURNING last_number
-    `;
-    const entryNumber = Number(entryNumberResult[0].last_number);
+    const [entryNumberResult] = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      return tx.$queryRaw<Array<{ last_number: number }>>`
+        INSERT INTO journal_sequences (company_id, journal_id, last_number, updated_at)
+        VALUES (${companyId}::uuid, ${salesJournal.id}::uuid, 1, NOW())
+        ON CONFLICT (company_id, journal_id)
+        DO UPDATE SET
+          last_number = journal_sequences.last_number + 1,
+          updated_at  = NOW()
+        RETURNING last_number
+      `;
+    });
+    const entryNumber = Number(entryNumberResult.last_number);
 
-    // Build debit/credit lines for the journal entry
-    const journalLines: Array<{
+    // 6. Build journal entry lines — logic depends on invoice type
+    //
+    // FACTURA / NOTA_DEBITO (venta o cargo adicional):
+    //   Debit  AR (total)      — aumenta Cuentas por Cobrar
+    //   Credit Revenue (subs)  — aumenta Ingresos
+    //   Credit ISV (tax)       — aumenta ISV por Pagar
+    //
+    // NOTA_CREDITO (devolución o descuento):
+    //   Debit  Revenue (subs)  — reduce Ingresos
+    //   Debit  ISV (tax)       — reduce ISV por Pagar
+    //   Credit AR (total)      — reduce Cuentas por Cobrar
+    //
+    const isCredit = inv.invoiceType === 'NOTA_CREDITO';
+    const ZERO = new Decimal(0);
+
+    type JournalLine = {
       companyId: string;
       lineNumber: number;
       accountId: string;
@@ -577,58 +631,61 @@ export const invoiceService = {
       credit: Decimal;
       currencyDebit: Decimal;
       currencyCredit: Decimal;
-    }> = [];
-
+    };
+    const journalLines: JournalLine[] = [];
     let lineNum = 1;
 
-    // Debit: full invoice total → AR
+    const docLabel = isCredit ? 'Nota de Crédito' : 'Factura';
+
+    // AR line
     journalLines.push({
       companyId,
       lineNumber: lineNum++,
-      accountId: arAccount.id,
-      description: `Factura ${invoiceNumber} — ${inv.contact.legalName}`,
-      debit: inv.total,
-      credit: new Decimal(0),
-      currencyDebit: inv.total,
-      currencyCredit: new Decimal(0),
+      accountId: sysAccounts.accountsReceivable.id,
+      description: `${docLabel} ${invoiceNumber} — ${inv.contact.legalName}`,
+      debit: isCredit ? ZERO : inv.total,
+      credit: isCredit ? inv.total : ZERO,
+      currencyDebit: isCredit ? ZERO : inv.total,
+      currencyCredit: isCredit ? inv.total : ZERO,
     });
 
-    // Credit: revenue per line
+    // Revenue lines (per invoice line)
     for (const line of inv.lines) {
-      const revenueAccountId = line.accountId ?? defaultRevenueAccount?.id;
-      if (!revenueAccountId) continue; // skip if no revenue account mapped
+      const revenueAccountId = line.accountId ?? sysAccounts.salesRevenue?.id;
+      if (!revenueAccountId) continue;
       journalLines.push({
         companyId,
         lineNumber: lineNum++,
         accountId: revenueAccountId,
         description: line.description,
-        debit: new Decimal(0),
-        credit: line.subtotal,
-        currencyDebit: new Decimal(0),
-        currencyCredit: line.subtotal,
+        debit: isCredit ? line.subtotal : ZERO,
+        credit: isCredit ? ZERO : line.subtotal,
+        currencyDebit: isCredit ? line.subtotal : ZERO,
+        currencyCredit: isCredit ? ZERO : line.subtotal,
       });
     }
 
-    // Credit: ISV payable (if any tax)
+    // ISV payable line
     const totalTax = inv.taxAmount;
-    if (isvPayableAccount && new Decimal(totalTax).greaterThan(0)) {
+    if (sysAccounts.isvPayable && new Decimal(totalTax).greaterThan(0)) {
       journalLines.push({
         companyId,
         lineNumber: lineNum++,
-        accountId: isvPayableAccount.id,
-        description: `ISV — Factura ${invoiceNumber}`,
-        debit: new Decimal(0),
-        credit: totalTax,
-        currencyDebit: new Decimal(0),
-        currencyCredit: totalTax,
+        accountId: sysAccounts.isvPayable.id,
+        description: `ISV — ${docLabel} ${invoiceNumber}`,
+        debit: isCredit ? totalTax : ZERO,
+        credit: isCredit ? ZERO : totalTax,
+        currencyDebit: isCredit ? totalTax : ZERO,
+        currencyCredit: isCredit ? ZERO : totalTax,
       });
     }
 
-    const totalDebit = journalLines.reduce((s, l) => s.plus(l.debit), new Decimal(0));
-    const totalCredit = journalLines.reduce((s, l) => s.plus(l.credit), new Decimal(0));
+    const totalDebit = journalLines.reduce((s, l) => s.plus(l.debit), ZERO);
+    const totalCredit = journalLines.reduce((s, l) => s.plus(l.credit), ZERO);
 
     // 6. Persist everything in a single transaction
     const published = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
       // Create and immediately post the journal entry
       const journalEntry = await tx.journalEntry.create({
         data: {
@@ -636,7 +693,7 @@ export const invoiceService = {
           journalId: salesJournal.id,
           fiscalPeriodId: fiscalPeriod.id,
           entryNumber,
-          description: `Factura ${invoiceNumber} — ${inv.contact.legalName}`,
+          description: `${docLabel} ${invoiceNumber} — ${inv.contact.legalName}`,
           entryDate: inv.issueDate,
           status: 'POSTED',
           currencyCode: inv.currencyCode,
@@ -692,6 +749,7 @@ export const invoiceService = {
     if (!cancelReason.trim()) throw new Error('El motivo de anulación es requerido');
 
     const cancelled = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
       // Reverse the journal entry if exists
       if (inv.journalEntryId) {
         const original = await tx.journalEntry.findUnique({
@@ -711,58 +769,64 @@ export const invoiceService = {
             },
           });
 
-          if (fiscalPeriod) {
-            // Get next entry number
-            const entryNumberResult = await tx.$queryRaw<Array<{ last_number: number }>>`
-              INSERT INTO journal_sequences (company_id, journal_id, last_number, updated_at)
-              VALUES (${companyId}::uuid, ${original.journalId}::uuid, 1, NOW())
-              ON CONFLICT (company_id, journal_id)
-              DO UPDATE SET
-                last_number = journal_sequences.last_number + 1,
-                updated_at  = NOW()
-              RETURNING last_number
-            `;
-            const reversalEntryNumber = Number(entryNumberResult[0].last_number);
-
-            // Create reversal (swap debit/credit)
-            const reversalEntry = await tx.journalEntry.create({
-              data: {
-                companyId,
-                journalId: original.journalId,
-                fiscalPeriodId: fiscalPeriod.id,
-                entryNumber: reversalEntryNumber,
-                description: `Anulación ${inv.invoiceNumber ?? id}: ${cancelReason}`,
-                entryDate: today,
-                status: 'POSTED',
-                currencyCode: original.currencyCode,
-                exchangeRate: original.exchangeRate,
-                totalDebit: original.totalCredit,
-                totalCredit: original.totalDebit,
-                createdBy: userId,
-                postedBy: userId,
-                postedAt: today,
-                cancelledById: original.id,
-                lines: {
-                  create: original.lines.map((l, i) => ({
-                    companyId,
-                    lineNumber: i + 1,
-                    accountId: l.accountId,
-                    description: l.description,
-                    debit: l.credit,
-                    credit: l.debit,
-                    currencyDebit: l.currencyCredit,
-                    currencyCredit: l.currencyDebit,
-                  })),
-                },
-              },
-            });
-
-            // Mark original as cancelled
-            await tx.journalEntry.update({
-              where: { id: original.id },
-              data: { status: 'CANCELLED', cancelledById: reversalEntry.id },
-            });
+          if (!fiscalPeriod) {
+            throw new Error(
+              `No existe un período fiscal abierto para la fecha de hoy (${today.toLocaleDateString('es-HN')}). ` +
+              'No se puede anular la factura sin registrar el asiento de reversión. ' +
+              'Abra el período fiscal correspondiente e intente de nuevo.',
+            );
           }
+
+          // Get next entry number
+          const entryNumberResult = await tx.$queryRaw<Array<{ last_number: number }>>`
+            INSERT INTO journal_sequences (company_id, journal_id, last_number, updated_at)
+            VALUES (${companyId}::uuid, ${original.journalId}::uuid, 1, NOW())
+            ON CONFLICT (company_id, journal_id)
+            DO UPDATE SET
+              last_number = journal_sequences.last_number + 1,
+              updated_at  = NOW()
+            RETURNING last_number
+          `;
+          const reversalEntryNumber = Number(entryNumberResult[0].last_number);
+
+          // Create reversal (swap debit/credit)
+          const reversalEntry = await tx.journalEntry.create({
+            data: {
+              companyId,
+              journalId: original.journalId,
+              fiscalPeriodId: fiscalPeriod.id,
+              entryNumber: reversalEntryNumber,
+              description: `Anulación ${inv.invoiceNumber ?? id}: ${cancelReason}`,
+              entryDate: today,
+              status: 'POSTED',
+              currencyCode: original.currencyCode,
+              exchangeRate: original.exchangeRate,
+              totalDebit: original.totalCredit,
+              totalCredit: original.totalDebit,
+              createdBy: userId,
+              postedBy: userId,
+              postedAt: today,
+              cancelledById: original.id,
+              lines: {
+                create: original.lines.map((l, i) => ({
+                  companyId,
+                  lineNumber: i + 1,
+                  accountId: l.accountId,
+                  description: l.description,
+                  debit: l.credit,
+                  credit: l.debit,
+                  currencyDebit: l.currencyCredit,
+                  currencyCredit: l.currencyDebit,
+                })),
+              },
+            },
+          });
+
+          // Mark original as cancelled
+          await tx.journalEntry.update({
+            where: { id: original.id },
+            data: { status: 'CANCELLED', cancelledById: reversalEntry.id },
+          });
         }
       }
 

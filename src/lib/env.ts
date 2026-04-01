@@ -46,6 +46,9 @@ const envSchema = z.object({
   // ============ Storage (S3) ============
   S3_BUCKET_DOCUMENTS: z.string().optional(),
 
+  // ============ SQS (F3-09 PDF Generation) ============
+  SQS_QUEUE_URL_INVOICE_PDF: z.string().url().optional(),
+
   // ============ Monitoring ============
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional().or(z.literal('')),

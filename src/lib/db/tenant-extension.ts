@@ -3,12 +3,15 @@
  *
  * CONTEXT:
  * - DAR-DBA-003: Workaround para limitación de Prisma + RLS
- * - Prisma Query Engine connection pooling hace que SET LOCAL no persista
- *   entre $executeRawUnsafe y queries ORM subsecuentes
- * - PostgreSQL RLS sigue activo como defensa secundaria (defense-in-depth)
+ * - SET LOCAL requiere ejecutarse en la misma transacción que la query
+ * - La extensión usa prisma.$transaction para garantizar co-localización
+ *   de set_config y la query en la misma conexión PostgreSQL
+ * - PostgreSQL RLS activo como defensa secundaria (defense-in-depth) ✅
  *
  * Esta extensión inyecta `company_id` automáticamente en todas las queries
  * a tablas de negocio (business tables que tienen company_id).
+ * Para tablas con FORCE ROW LEVEL SECURITY, además establece la variable
+ * de sesión `app.current_company_id` dentro de una transacción.
  *
  * USAGE (Tests):
  * ```typescript
@@ -18,8 +21,8 @@
  *
  * SECURITY LAYERS:
  * 1. Application (esta extensión): Filtra company_id en Prisma queries ✅
- * 2. Database (RLS policies): Filtra company_id en PostgreSQL❗ (actualmente inefectiva con Prisma $transaction)
- * 3. Future (API middleware): Validará company_id del JWT antes de queries
+ * 2. Database (RLS policies): Filtra company_id en PostgreSQL via app.current_company_id ✅
+ * 3. API middleware: Valida company_id del JWT antes de queries ✅
  *
  * @see DAR-DBA-003 en ARCHITECTURE.md
  */
@@ -60,6 +63,34 @@ const BUSINESS_MODELS = [
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 
 /**
+ * Modelos con FORCE ROW LEVEL SECURITY que requieren la variable de sesión
+ * `app.current_company_id` establecida en PostgreSQL antes de ejecutar queries.
+ *
+ * Para estos modelos la extensión usa prisma.$transaction + set_config(local=true)
+ * para garantizar que la variable persiste en la misma conexión que la query,
+ * sin riesgo de filtración entre tenants en el connection pool.
+ *
+ * Fuente: verificado con pg_class.relforcerowsecurity = true en la BD.
+ */
+const FORCE_RLS_MODELS = [
+  'User',
+  // Accounting (Fase 2)
+  'Account',
+  'FiscalYear',
+  'FiscalPeriod',
+  'Journal',
+  'JournalEntry',
+  'JournalEntryLine',
+  // Invoicing (Fase 3)
+  'CAI',
+  'TaxRate',
+  'InvoiceSequence',
+  'Invoice',
+  'InvoiceLine',
+] as const;
+type ForceRlsModel = (typeof FORCE_RLS_MODELS)[number];
+
+/**
  * Crea una instancia de Prisma Client con filtro automático de company_id
  *
  * @param prisma - Instancia base de PrismaClient
@@ -91,16 +122,17 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
 
           // Inyectar companyId en WHERE clause o data según la operación
           const isWriteOperation = ['create', 'createMany', 'upsert'].includes(operation);
-          const isReadOperation = [
+          // findMany/findFirst/count/aggregate/groupBy admiten AND en where
+          const isReadOperationWithAnd = [
             'findMany',
             'findFirst',
             'findFirstOrThrow',
-            'findUnique',
-            'findUniqueOrThrow',
             'count',
             'aggregate',
             'groupBy',
           ].includes(operation);
+          // findUnique/findUniqueOrThrow NO admiten AND — solo acepta campos únicos exactos.
+          // No se inyecta companyId: seguridad por FORCE RLS transaction + UUID global únicos.
           const isUpdateOperation = ['update', 'updateMany', 'delete', 'deleteMany'].includes(
             operation,
           );
@@ -111,13 +143,13 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
             console.log('[Extension DEBUG] Operation:', operation);
             console.log('[Extension DEBUG] Model:', model);
             console.log('[Extension DEBUG] Args BEFORE injection:', JSON.stringify(args, null, 2));
-            console.log('[Extension DEBUG] isReadOperation:', isReadOperation);
+            console.log('[Extension DEBUG] isReadOperationWithAnd:', isReadOperationWithAnd);
             console.log('[Extension DEBUG] isUpdateOperation:', isUpdateOperation);
             console.log('[Extension DEBUG] "where" in args:', 'where' in args);
           }
 
-          if (isReadOperation || isUpdateOperation) {
-            // SELECT/UPDATE/DELETE: inyectar companyId en WHERE
+          if (isReadOperationWithAnd || isUpdateOperation) {
+            // SELECT/UPDATE/DELETE con AND: inyectar companyId en WHERE usando AND
             // Type assertion necesaria para Next.js 16 + TypeScript 5.x (strict union types)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const currentWhere = (args as any).where;
@@ -135,6 +167,7 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
               );
             }
           }
+
 
           if (isWriteOperation) {
             // INSERT/UPSERT: inyectar companyId en data
@@ -168,6 +201,25 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (args as any).where = { ...args.where, companyId };
             }
+          }
+
+          // Para modelos con FORCE RLS: ejecutar dentro de una transacción que primero
+          // establece app.current_company_id como variable de sesión local.
+          // Esto garantiza que la RLS policy ve el companyId correcto sin filtración
+          // entre tenants en el connection pool (set_config local=true solo persiste
+          // durante la transacción actual).
+          //
+          // La query se despacha directamente sobre `tx` (base Prisma client, sin extensión)
+          // con los `args` ya modificados (WHERE/data inyectados arriba).
+          // Esto evita recursión infinita ya que `tx` no tiene la extensión aplicada.
+          if (FORCE_RLS_MODELS.includes(model as ForceRlsModel)) {
+            return prisma.$transaction(async (tx) => {
+              await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const modelKey = model.charAt(0).toLowerCase() + model.slice(1);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return (tx as any)[modelKey][operation](args);
+            });
           }
 
           return query(args);

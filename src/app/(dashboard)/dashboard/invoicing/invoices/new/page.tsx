@@ -90,6 +90,17 @@ const invoiceFormSchema = z.object({
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
+const INVOICE_TYPE_LABELS: Record<string, string> = {
+  FACTURA: 'Factura',
+  NOTA_CREDITO: 'Nota de Crédito',
+  NOTA_DEBITO: 'Nota de Débito',
+};
+
+const CURRENCY_LABELS: Record<string, string> = {
+  HNL: 'Lempiras (HNL)',
+  USD: 'Dólares (USD)',
+};
+
 // Valor de línea vacío por defecto
 const emptyLine = {
   lineNumber: 1,
@@ -282,10 +293,12 @@ export default function NewInvoicePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel htmlFor="invoiceType">Tipo de Documento *</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger id="invoiceType">
-                            <SelectValue />
+                            <span className={!field.value ? 'text-muted-foreground' : ''}>
+                              {INVOICE_TYPE_LABELS[field.value] ?? 'Selecciona tipo de documento'}
+                            </span>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -306,10 +319,12 @@ export default function NewInvoicePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel htmlFor="currencyCode">Moneda *</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger id="currencyCode">
-                            <SelectValue />
+                            <span className={!field.value ? 'text-muted-foreground' : ''}>
+                              {CURRENCY_LABELS[field.value] ?? 'Selecciona moneda'}
+                            </span>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

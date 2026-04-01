@@ -30,6 +30,7 @@ const { prismaMock } = vi.hoisted(() => {
     journalEntry: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
     fiscalPeriod: { findFirst: vi.fn() },
     $queryRaw: vi.fn().mockResolvedValue([{ last_number: 1 }]),
+    $executeRaw: vi.fn().mockResolvedValue(0),
   };
 
   return {
@@ -54,6 +55,7 @@ const { prismaMock } = vi.hoisted(() => {
         findUnique: vi.fn(),
       },
       $queryRaw: vi.fn().mockResolvedValue([{ last_number: 1 }]),
+      $executeRaw: vi.fn().mockResolvedValue(0),
       $transaction: vi.fn().mockImplementation((fn) => {
         if (typeof fn === 'function') return fn(txMock);
         return Promise.all(fn);
@@ -148,6 +150,8 @@ function makeInvoiceRecord(status = 'DRAFT', overrides: Record<string, unknown> 
   };
 }
 
+const ORIGINAL_INVOICE_ID = '00000000-0000-0000-0000-000000000011';
+
 const VALID_CREATE_INPUT = {
   invoiceType: 'FACTURA' as const,
   issueDate: '2026-03-01',
@@ -159,6 +163,25 @@ const VALID_CREATE_INPUT = {
       lineNumber: 1,
       description: 'Servicio de consultoría',
       quantity: 10,
+      unitPrice: 100,
+      discountPct: 0,
+      taxRateId: TAX_RATE_ID,
+    },
+  ],
+};
+
+const VALID_NC_INPUT = {
+  invoiceType: 'NOTA_CREDITO' as const,
+  issueDate: '2026-03-15',
+  contactId: CONTACT_ID,
+  currencyCode: 'HNL',
+  exchangeRate: 1,
+  originalInvoiceId: ORIGINAL_INVOICE_ID,
+  lines: [
+    {
+      lineNumber: 1,
+      description: 'Devolución parcial',
+      quantity: 5,
       unitPrice: 100,
       discountPct: 0,
       taxRateId: TAX_RATE_ID,
@@ -388,5 +411,123 @@ describe('invoiceService.cancelInvoice', () => {
     await expect(invoiceService.cancelInvoice(COMPANY, INVOICE_ID, USER_ID, '   ')).rejects.toThrow(
       /motivo de anulación/,
     );
+  });
+});
+
+// ─── Tests: Notas de Crédito (F3-08) ────────────────────────────────────────
+
+describe('invoiceService.createInvoice — Notas de Crédito', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('lanza error si NOTA_CREDITO no tiene originalInvoiceId', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+
+    const input = { ...VALID_NC_INPUT, originalInvoiceId: undefined };
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, input),
+    ).rejects.toThrow(/notas de crédito requieren una factura original/);
+  });
+
+  it('lanza error si NOTA_DEBITO no tiene originalInvoiceId', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+
+    const input = {
+      ...VALID_NC_INPUT,
+      invoiceType: 'NOTA_DEBITO' as const,
+      originalInvoiceId: undefined,
+    };
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, input),
+    ).rejects.toThrow(/notas de débito requieren una factura original/);
+  });
+
+  it('lanza error si FACTURA tiene originalInvoiceId', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+
+    const input = { ...VALID_CREATE_INPUT, originalInvoiceId: ORIGINAL_INVOICE_ID };
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, input),
+    ).rejects.toThrow(/facturas regulares no deben referenciar/);
+  });
+
+  it('lanza error si factura original no existe', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+    prismaMock.invoice.findFirst.mockResolvedValue(null);
+
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
+    ).rejects.toThrow('Factura original no encontrada');
+  });
+
+  it('lanza error si factura original está en DRAFT', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+    prismaMock.invoice.findFirst.mockResolvedValue(
+      makeInvoiceRecord('DRAFT', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
+    );
+
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
+    ).rejects.toThrow(/facturas emitidas o pagadas/);
+  });
+
+  it('lanza error si factura original está en CANCELLED', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+    prismaMock.invoice.findFirst.mockResolvedValue(
+      makeInvoiceRecord('CANCELLED', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
+    );
+
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
+    ).rejects.toThrow(/facturas emitidas o pagadas/);
+  });
+
+  it('permite NC contra factura PUBLISHED', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+    // First findFirst call: original invoice validation (step 2)
+    // Second findFirst call: NC amount validation (step 4b)
+    prismaMock.invoice.findFirst
+      .mockResolvedValueOnce(
+        makeInvoiceRecord('PUBLISHED', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
+      )
+      .mockResolvedValueOnce(
+        makeInvoiceRecord('PUBLISHED', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
+      );
+    prismaMock.taxRate.findMany.mockResolvedValue([makeTaxRate('0.15')]);
+
+    prismaMock.$transaction.mockImplementation(async (fn: (tx: typeof prismaMock) => unknown) => {
+      prismaMock.invoice.create.mockResolvedValue(
+        makeInvoiceRecord('DRAFT', { invoiceType: 'NOTA_CREDITO' }),
+      );
+      return fn(prismaMock);
+    });
+
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
+    ).resolves.toBeDefined();
+  });
+
+  it('lanza error si NC excede saldo disponible de factura original', async () => {
+    prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
+    // Original invoice: total = 1150, already credited = 1000
+    prismaMock.invoice.findFirst
+      .mockResolvedValueOnce(
+        makeInvoiceRecord('PUBLISHED', {
+          id: ORIGINAL_INVOICE_ID,
+          corrections: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeInvoiceRecord('PUBLISHED', {
+          id: ORIGINAL_INVOICE_ID,
+          corrections: [{ total: '1000.00' }],
+        }),
+      );
+    prismaMock.taxRate.findMany.mockResolvedValue([makeTaxRate('0.15')]);
+
+    // NC for 5 units × 100 = 500 subtotal + 75 ISV = 575
+    // Remaining = 1150 - 1000 = 150. NC total 575 > 150 → should fail
+    await expect(
+      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
+    ).rejects.toThrow(/excede el saldo disponible/);
   });
 });

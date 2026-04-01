@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = listInvoicesSchema.parse(Object.fromEntries(searchParams));
     const result = await invoiceService.listInvoices(auth.companyId, query);
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json({ success: true, data: result.invoices, pagination: result.pagination });
   } catch (error) {
     return handleApiError(error, 'GET /api/v1/invoicing/invoices');
   }

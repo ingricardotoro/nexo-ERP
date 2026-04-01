@@ -109,6 +109,12 @@ model Account {
   accountType   AccountType   @map("account_type")
   accountNature AccountNature @map("account_nature")
 
+  /// Propósito del sistema — solo para cuentas con rol especial en automatización
+  /// de asientos (ej: ACCOUNTS_RECEIVABLE para publishInvoice).
+  /// Nullable — la mayoría de cuentas no tienen propósito especial.
+  /// Máximo UNA cuenta activa por (companyId, systemPurpose).
+  systemPurpose SystemAccountPurpose? @map("system_purpose")
+
   /// true = cuenta de agrupación; false = cuenta hoja que admite asientos
   isParent         Boolean @default(false) @map("is_parent")
   /// false en cuentas padre — evita asientos directos en cuentas de agrupación
@@ -129,6 +135,7 @@ model Account {
   @@index([companyId, accountType])
   @@index([companyId, isActive])
   @@index([companyId, allowDirectEntry])
+  @@index([companyId, systemPurpose])
   @@map("accounts")
 }
 

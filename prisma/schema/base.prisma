@@ -70,6 +70,17 @@ enum AccountType {
   CONTRA // Cuenta de orden/contrarrestante (ej: depreciación acumulada)
 }
 
+/// Propósito del sistema para cuentas con rol especial (automatización de asientos)
+/// Permite que publishInvoice encuentre las cuentas correctas sin depender de códigos fijos.
+/// Cada empresa puede tener como máximo UNA cuenta activa por systemPurpose.
+enum SystemAccountPurpose {
+  ACCOUNTS_RECEIVABLE // Cuentas por Cobrar Clientes (ej: 1103)
+  ISV_PAYABLE // ISV por Pagar (ej: 2102)
+  SALES_REVENUE // Ingresos por Ventas (ej: 4101)
+  ACCOUNTS_PAYABLE // Cuentas por Pagar Proveedores (ej: 2103) — Fase futura
+  PURCHASE_EXPENSE // Gastos de Compra (ej: 5101) — Fase futura
+}
+
 /// Estados de período fiscal
 enum FiscalPeriodStatus {
   OPEN // Abierto — permite asientos

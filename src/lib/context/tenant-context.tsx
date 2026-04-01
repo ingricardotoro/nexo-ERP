@@ -40,6 +40,41 @@ interface TenantContextValue {
 
 const TenantContext = createContext<TenantContextValue | null>(null);
 
+// Cache key para sessionStorage — persiste entre HMR reloads (misma pestaña)
+// localStorage persiste entre reloads de HMR (Turbopack/OneDrive) y entre sesiones.
+// Solo se limpia en logout explícito o expiración de sesión.
+const TENANT_CACHE_KEY = 'nexoerp:tenant_cache';
+
+interface TenantCache {
+  tenant: TenantInfo;
+  session: SessionInfo;
+}
+
+function readTenantCache(): TenantCache | null {
+  try {
+    const raw = localStorage.getItem(TENANT_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as TenantCache) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeTenantCache(data: TenantCache): void {
+  try {
+    localStorage.setItem(TENANT_CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage no disponible (SSR, modo privado sin storage, etc.)
+  }
+}
+
+function clearTenantCache(): void {
+  try {
+    localStorage.removeItem(TENANT_CACHE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 interface TenantApiResponse {
   success: boolean;
   data?: {
@@ -75,12 +110,28 @@ async function fetchTenantInfo(): Promise<NonNullable<TenantApiResponse['data']>
   return payload.data;
 }
 
-export function TenantProvider({ children }: { children: ReactNode }) {
-  const [tenant, setTenant] = useState<TenantInfo | null>(null);
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface TenantProviderProps {
+  children: ReactNode;
+  /** Datos pre-cargados desde el server component del layout (SSR). Evita loading flash. */
+  initialData?: TenantCache | null;
+}
+
+export function TenantProvider({ children, initialData }: TenantProviderProps) {
+  // Prioridad: 1) initialData (SSR, disponible de inmediato sin fetch),
+  //            2) caché localStorage (sobrevive HMR reloads si ya se guardó),
+  //            3) null → isLoading=true hasta que el fetch complete
+  const cached = initialData ?? readTenantCache();
+
+  const [tenant, setTenantState] = useState<TenantInfo | null>(cached?.tenant ?? null);
+  const [session, setSession] = useState<SessionInfo | null>(cached?.session ?? null);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  const setTenant = useCallback((t: TenantInfo | null) => {
+    setTenantState(t);
+    if (!t) clearTenantCache();
+  }, []);
 
   const refreshTenant = useCallback(async () => {
     setIsLoading(true);
@@ -89,13 +140,15 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     try {
       const data = await fetchTenantInfo();
-      setTenant(data.tenant);
+      setTenantState(data.tenant);
       setSession(data.session);
+      writeTenantCache(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error cargando empresa';
       setError(message);
-      setTenant(null);
+      setTenantState(null);
       setSession(null);
+      clearTenantCache();
       if (err instanceof Error && err.name === 'UNAUTHORIZED') {
         setIsSessionExpired(true);
       }
@@ -105,8 +158,46 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refreshTenant();
-  }, [refreshTenant]);
+    let cancelled = false;
+
+    const load = async () => {
+      // Si ya hay datos del caché, no mostrar loading — solo refrescar en background
+      if (!cancelled) {
+        setError(null);
+        setIsSessionExpired(false);
+        if (!readTenantCache()) setIsLoading(true);
+      }
+
+      try {
+        const data = await fetchTenantInfo();
+        if (!cancelled) {
+          setTenantState(data.tenant);
+          setSession(data.session);
+          writeTenantCache(data);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        clearTenantCache();
+        const message = err instanceof Error ? err.message : 'Error cargando empresa';
+        setError(message);
+        setTenantState(null);
+        setSession(null);
+        if (err instanceof Error && err.name === 'UNAUTHORIZED') {
+          setIsSessionExpired(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const value = useMemo<TenantContextValue>(
     () => ({
@@ -120,7 +211,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       refreshTenant,
       setTenant,
     }),
-    [tenant, session, isLoading, error, isSessionExpired, refreshTenant],
+    [tenant, session, isLoading, error, isSessionExpired, refreshTenant, setTenant],
   );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

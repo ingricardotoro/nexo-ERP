@@ -42,23 +42,27 @@ export async function getNextInvoiceNumber(
   // 2. Atomic UPSERT on invoice_sequences
   //    INSERT a new sequence row if none exists for this CAI,
   //    or UPDATE last_number += 1 atomically.
-  //    We use $queryRaw to get the updated value back in one round-trip.
-  const result = await (basePrisma as PrismaClient).$queryRaw<Array<{ last_number: number }>>`
-    INSERT INTO invoice_sequences (id, company_id, cai_id, last_number, updated_at)
-    VALUES (
-      gen_random_uuid(),
-      ${companyId}::uuid,
-      ${cai.id}::uuid,
-      1,
-      NOW()
-    )
-    ON CONFLICT (cai_id) DO UPDATE
-      SET last_number = invoice_sequences.last_number + 1,
-          updated_at  = NOW()
-    RETURNING last_number
-  `;
+  //    Wrapped in $transaction with set_config because invoice_sequences
+  //    has FORCE ROW LEVEL SECURITY — RLS requires app.current_company_id. (Bug fix: same pattern as invoice.service.ts)
+  const [result] = await (basePrisma as PrismaClient).$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+    return tx.$queryRaw<Array<{ last_number: number }>>`
+      INSERT INTO invoice_sequences (id, company_id, cai_id, last_number, updated_at)
+      VALUES (
+        gen_random_uuid(),
+        ${companyId}::uuid,
+        ${cai.id}::uuid,
+        1,
+        NOW()
+      )
+      ON CONFLICT (cai_id) DO UPDATE
+        SET last_number = invoice_sequences.last_number + 1,
+            updated_at  = NOW()
+      RETURNING last_number
+    `;
+  });
 
-  const sequenceNumber = Number(result[0].last_number);
+  const sequenceNumber = Number(result.last_number);
 
   // Validate still within authorized range
   if (sequenceNumber > cai.rangeTo) {

@@ -53,6 +53,9 @@
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.7.2",
+    "@aws-sdk/client-s3": "^3.1021.0",
+    "@aws-sdk/client-sqs": "^3.1021.0",
+    "@aws-sdk/s3-request-presigner": "^3.1021.0",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -99,6 +102,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.17.10",
+    "@types/pdfkit": "^0.17.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "@typescript-eslint/eslint-plugin": "^8.57.0",

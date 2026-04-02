@@ -111,7 +111,8 @@ model TaxRate {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  invoiceLines InvoiceLine[]
+  invoiceLines         InvoiceLine[]
+  supplierInvoiceLines SupplierInvoiceLine[]
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
@@ -211,6 +212,11 @@ model Invoice {
   originalInvoice   Invoice?  @relation("InvoiceCorrections", fields: [originalInvoiceId], references: [id])
   corrections       Invoice[] @relation("InvoiceCorrections")
 
+  /// S3 key del PDF generado (null hasta que el Lambda lo genere)
+  pdfS3Key       String?   @map("pdf_s3_key")
+  /// Timestamp en que el PDF fue generado y subido a S3
+  pdfGeneratedAt DateTime? @map("pdf_generated_at")
+
   /// Trazabilidad de ciclo de vida
   createdBy    String    @map("created_by")
   issuedBy     String?   @map("issued_by")
@@ -287,4 +293,132 @@ model InvoiceLine {
   @@unique([invoiceId, lineNumber])
   @@index([companyId, invoiceId])
   @@map("invoice_lines")
+}
+
+// =============================================================================
+// SupplierInvoice — Factura de Compra / Proveedor (F3-07)
+// =============================================================================
+
+/// Tipo de documento de compra para registro de facturas de proveedores.
+enum SupplierInvoiceType {
+  FACTURA_COMPRA // Factura de compra estándar
+  NOTA_CREDITO_COMPRA // Nota de crédito de proveedor (ajuste a favor del comprador)
+}
+
+/// Factura de compra emitida por un proveedor — registrada como gasto/costo.
+/// Al registrar (DRAFT → POSTED):
+///   1. Se genera asiento contable en el diario de Compras:
+///      Debit  Gasto/Inventario (líneas)
+///      Debit  ISV Acreditable (si aplica)
+///      Credit Cuentas por Pagar (total)
+///   2. Estado pasa a POSTED (diferente de las facturas de venta para evitar confusión con SAR)
+model SupplierInvoice {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Tipo de documento de compra
+  invoiceType SupplierInvoiceType @default(FACTURA_COMPRA) @map("invoice_type")
+
+  /// Estado: DRAFT → POSTED → PAID | CANCELLED
+  status InvoiceStatus @default(DRAFT)
+
+  /// Número de factura del proveedor (tal como aparece en el documento físico)
+  supplierInvoiceNumber String? @map("supplier_invoice_number")
+
+  /// Fecha de emisión del documento del proveedor
+  issueDate DateTime @map("issue_date") @db.Date
+
+  /// Fecha de vencimiento para el pago
+  dueDate DateTime? @map("due_date") @db.Date
+
+  /// Proveedor que emite la factura
+  contactId String  @map("contact_id") @db.Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  /// Términos de pago (opcional)
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+
+  /// Moneda y tipo de cambio
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  exchangeRate Decimal  @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  /// Totales calculados
+  subtotal  Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @default(0) @db.Decimal(18, 2)
+
+  /// Notas o referencia interna
+  notes String?
+
+  /// Asiento contable generado al registrar (null mientras DRAFT)
+  journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Para notas de crédito de compra: factura original del proveedor que se referencia
+  originalInvoiceId String?           @map("original_invoice_id") @db.Uuid
+  originalInvoice   SupplierInvoice?  @relation("SupplierInvoiceCorrections", fields: [originalInvoiceId], references: [id])
+  corrections       SupplierInvoice[] @relation("SupplierInvoiceCorrections")
+
+  /// Trazabilidad
+  createdBy    String    @map("created_by")
+  postedBy     String?   @map("posted_by")
+  postedAt     DateTime? @map("posted_at")
+  cancelledBy  String?   @map("cancelled_by")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lines SupplierInvoiceLine[]
+
+  @@index([companyId, status])
+  @@index([companyId, invoiceType, status])
+  @@index([companyId, contactId])
+  @@index([companyId, issueDate])
+  @@map("supplier_invoices")
+}
+
+/// Línea de factura de compra — ítem/servicio recibido del proveedor.
+model SupplierInvoiceLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado para RLS sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  invoiceId String          @map("invoice_id") @db.Uuid
+  invoice   SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  lineNumber  Int    @map("line_number")
+  description String
+
+  quantity    Decimal @db.Decimal(12, 4)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(18, 4)
+  discountPct Decimal @default(0) @map("discount_pct") @db.Decimal(5, 2)
+
+  /// subtotal = quantity * unitPrice * (1 - discountPct/100)
+  subtotal Decimal @db.Decimal(18, 2)
+
+  taxRateId String  @map("tax_rate_id") @db.Uuid
+  taxRate   TaxRate @relation(fields: [taxRateId], references: [id], onDelete: Restrict)
+
+  taxAmount Decimal @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @db.Decimal(18, 2)
+
+  /// Cuenta contable de gasto/inventario para el asiento automático
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([invoiceId, lineNumber])
+  @@index([companyId, invoiceId])
+  @@map("supplier_invoice_lines")
 }

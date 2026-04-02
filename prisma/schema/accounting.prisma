@@ -42,9 +42,11 @@ model Currency {
   isBase   Boolean @default(false) @map("is_base")
 
   // Relaciones
-  exchangeRates  ExchangeRate[]
-  journalEntries JournalEntry[]
-  invoices       Invoice[] // facturas en esta moneda (Fase 3)
+  exchangeRates    ExchangeRate[]
+  journalEntries   JournalEntry[]
+  invoices         Invoice[] // facturas en esta moneda (Fase 3)
+  supplierInvoices SupplierInvoice[] // facturas de compra en esta moneda (F3-07)
+  bankAccounts     BankAccount[] // cuentas bancarias en esta moneda (F2-13)
 
   @@map("currencies")
 }
@@ -109,6 +111,12 @@ model Account {
   accountType   AccountType   @map("account_type")
   accountNature AccountNature @map("account_nature")
 
+  /// Propósito del sistema — solo para cuentas con rol especial en automatización
+  /// de asientos (ej: ACCOUNTS_RECEIVABLE para publishInvoice).
+  /// Nullable — la mayoría de cuentas no tienen propósito especial.
+  /// Máximo UNA cuenta activa por (companyId, systemPurpose).
+  systemPurpose SystemAccountPurpose? @map("system_purpose")
+
   /// true = cuenta de agrupación; false = cuenta hoja que admite asientos
   isParent         Boolean @default(false) @map("is_parent")
   /// false en cuentas padre — evita asientos directos en cuentas de agrupación
@@ -120,8 +128,10 @@ model Account {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  journalEntryLines JournalEntryLine[]
-  invoiceLines      InvoiceLine[] // líneas de factura que usan esta cuenta (Fase 3)
+  journalEntryLines    JournalEntryLine[]
+  invoiceLines         InvoiceLine[] // líneas de factura que usan esta cuenta (Fase 3)
+  supplierInvoiceLines SupplierInvoiceLine[] // líneas de factura de compra (F3-07)
+  bankAccounts         BankAccount[] // cuentas bancarias vinculadas (F2-13)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, code])
@@ -129,6 +139,7 @@ model Account {
   @@index([companyId, accountType])
   @@index([companyId, isActive])
   @@index([companyId, allowDirectEntry])
+  @@index([companyId, systemPurpose])
   @@map("accounts")
 }
 
@@ -291,8 +302,9 @@ model JournalEntry {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  lines   JournalEntryLine[]
-  invoice Invoice? // relación inversa desde Facturación (Fase 3)
+  lines           JournalEntryLine[]
+  invoice         Invoice? // relación inversa desde Facturación (Fase 3)
+  supplierInvoice SupplierInvoice? // relación inversa desde Facturas de Compra (F3-07)
 
   // Índices — company_id siempre primero (DAR-005)
   @@unique([companyId, journalId, entryNumber])
@@ -341,6 +353,9 @@ model JournalEntryLine {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Relaciones inversas
+  bankTransactions BankTransaction[] // transacciones bancarias conciliadas contra esta línea (F2-13)
+
   // Índices — company_id siempre primero (DAR-005)
   @@unique([journalEntryId, lineNumber])
   @@index([companyId, journalEntryId])
@@ -369,4 +384,196 @@ model JournalSequence {
 
   @@id([companyId, journalId])
   @@map("journal_sequences")
+}
+
+// =============================================================================
+// Conciliación Bancaria — F2-13
+// =============================================================================
+
+/// Tipo de cuenta bancaria
+enum BankAccountType {
+  CHECKING // Cuenta corriente
+  SAVINGS // Cuenta de ahorros
+  CREDIT // Tarjeta de crédito
+}
+
+/// Estado de la conciliación bancaria
+enum BankReconciliationStatus {
+  DRAFT // En proceso de conciliación
+  RECONCILED // Conciliada y cerrada
+}
+
+/// Estado de una transacción bancaria
+enum BankTransactionStatus {
+  PENDING // Sin conciliar
+  MATCHED // Asociada a un asiento contable
+  RECONCILED // Conciliada y cerrada (parte de una BankReconciliation finalizada)
+  IGNORED // Marcada como ignorada (ej: comisión sin asiento)
+}
+
+/// Cuenta bancaria — vincula el estado de cuenta físico con la cuenta contable.
+/// Un BankAccount corresponde a una cuenta contable de tipo ASSET que representa
+/// el saldo del banco en el libro mayor.
+model BankAccount {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Nombre descriptivo del banco (ej: "Banco Atlántida — CTA CTE 001-12345")
+  name String
+
+  /// Nombre de la institución bancaria
+  bankName String @map("bank_name")
+
+  /// Número de cuenta bancaria (puede ser parcialmente enmascarado)
+  accountNumber String @map("account_number")
+
+  /// Tipo de cuenta
+  accountType BankAccountType @default(CHECKING) @map("account_type")
+
+  /// Cuenta contable en el plan de cuentas que representa este banco (tipo ASSET)
+  ledgerAccountId String  @map("ledger_account_id") @db.Uuid
+  ledgerAccount   Account @relation(fields: [ledgerAccountId], references: [id], onDelete: Restrict)
+
+  /// Moneda de la cuenta
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+
+  /// Saldo actual según los libros (actualizado al conciliar)
+  currentBalance Decimal @default(0) @map("current_balance") @db.Decimal(18, 2)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  statements      BankStatement[]
+  reconciliations BankReconciliation[]
+
+  @@unique([companyId, accountNumber])
+  @@index([companyId, isActive])
+  @@map("bank_accounts")
+}
+
+/// Estado de cuenta bancario importado (mensual o por rango de fechas).
+/// Contiene las transacciones del banco para un período.
+model BankStatement {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  bankAccountId String      @map("bank_account_id") @db.Uuid
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+
+  /// Período que cubre este estado de cuenta
+  statementDate DateTime @map("statement_date") @db.Date
+  periodFrom    DateTime @map("period_from") @db.Date
+  periodTo      DateTime @map("period_to") @db.Date
+
+  /// Saldo inicial y final del estado de cuenta
+  beginningBalance Decimal @map("beginning_balance") @db.Decimal(18, 2)
+  endingBalance    Decimal @map("ending_balance") @db.Decimal(18, 2)
+
+  /// Referencia del archivo importado
+  importedFileName String?  @map("imported_file_name")
+  importedAt       DateTime @default(now()) @map("imported_at")
+  importedBy       String   @map("imported_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  transactions    BankTransaction[]
+  reconciliations BankReconciliation[]
+
+  @@index([companyId, bankAccountId])
+  @@index([companyId, periodFrom, periodTo])
+  @@map("bank_statements")
+}
+
+/// Transacción individual del estado de cuenta bancario.
+model BankTransaction {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  bankStatementId String        @map("bank_statement_id") @db.Uuid
+  bankStatement   BankStatement @relation(fields: [bankStatementId], references: [id], onDelete: Cascade)
+
+  /// Fecha de la transacción según el banco
+  transactionDate DateTime @map("transaction_date") @db.Date
+
+  /// Descripción o referencia tal como aparece en el estado de cuenta
+  description String
+
+  /// Referencia adicional (número de cheque, número de transacción, etc.)
+  reference String?
+
+  /// Monto: positivo = crédito (depósito), negativo = débito (retiro/pago)
+  /// Usamos un solo campo con signo para simplificar
+  amount Decimal @db.Decimal(18, 2)
+
+  status BankTransactionStatus @default(PENDING)
+
+  /// Línea de asiento contable asociada (cuando status=MATCHED o RECONCILED)
+  journalEntryLineId String?           @map("journal_entry_line_id") @db.Uuid
+  journalEntryLine   JournalEntryLine? @relation(fields: [journalEntryLineId], references: [id])
+
+  /// Notas de la conciliación
+  matchNotes String? @map("match_notes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId, bankStatementId])
+  @@index([companyId, status])
+  @@index([companyId, transactionDate])
+  @@map("bank_transactions")
+}
+
+/// Conciliación bancaria — registro del proceso de conciliación para un período.
+model BankReconciliation {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  bankAccountId String      @map("bank_account_id") @db.Uuid
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+
+  bankStatementId String        @map("bank_statement_id") @db.Uuid
+  bankStatement   BankStatement @relation(fields: [bankStatementId], references: [id], onDelete: Restrict)
+
+  status BankReconciliationStatus @default(DRAFT)
+
+  /// Saldo según el estado de cuenta (banco)
+  statementEndingBalance Decimal @map("statement_ending_balance") @db.Decimal(18, 2)
+
+  /// Saldo según los libros contables (libro mayor de la cuenta bancaria)
+  ledgerBalance Decimal @map("ledger_balance") @db.Decimal(18, 2)
+
+  /// Diferencia no conciliada = statementEndingBalance - ledgerBalance
+  difference Decimal @default(0) @db.Decimal(18, 2)
+
+  /// Total de transacciones del banco conciliadas
+  reconciledAmount Decimal @default(0) @map("reconciled_amount") @db.Decimal(18, 2)
+
+  /// Total de transacciones pendientes (del banco sin contabilizar)
+  unreconciledStatementAmount Decimal @default(0) @map("unreconciled_statement_amount") @db.Decimal(18, 2)
+
+  /// Total de asientos contables sin transacción bancaria
+  unreconciledLedgerAmount Decimal @default(0) @map("unreconciled_ledger_amount") @db.Decimal(18, 2)
+
+  reconciledBy String?   @map("reconciled_by")
+  reconciledAt DateTime? @map("reconciled_at")
+
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, bankAccountId, bankStatementId])
+  @@index([companyId, bankAccountId])
+  @@index([companyId, status])
+  @@map("bank_reconciliations")
 }

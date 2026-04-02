@@ -20,10 +20,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Bypass de autenticación solo en desarrollo para pruebas de UI (nunca en producción)
-  if (
-    process.env.BYPASS_AUTH_DEV === 'true' &&
-    process.env.NODE_ENV === 'development'
-  ) {
+  if (process.env.BYPASS_AUTH_DEV === 'true' && process.env.NODE_ENV === 'development') {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-company-id', process.env.DEV_COMPANY_ID ?? '');
     requestHeaders.set('x-user-id', process.env.DEV_USER_ID ?? 'dev-user');

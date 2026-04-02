@@ -168,7 +168,6 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
             }
           }
 
-
           if (isWriteOperation) {
             // INSERT/UPSERT: inyectar companyId en data
             if (operation === 'create') {
@@ -215,7 +214,7 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
           if (FORCE_RLS_MODELS.includes(model as ForceRlsModel)) {
             return prisma.$transaction(async (tx) => {
               await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
               const modelKey = model.charAt(0).toLowerCase() + model.slice(1);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               return (tx as any)[modelKey][operation](args);

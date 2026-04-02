@@ -83,6 +83,18 @@ describe('tenant-extension.ts — Operaciones de Lectura (findMany, findFirst, e
 
         return extendedClient;
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
+      }),
     } as unknown as PrismaClient;
   });
 
@@ -153,7 +165,7 @@ describe('tenant-extension.ts — Operaciones de Lectura (findMany, findFirst, e
     });
   });
 
-  it('findUnique debería inyectar companyId en WHERE (sin romper unique constraint)', async () => {
+  it('findUnique NO inyecta companyId en WHERE (AND inválido para unique) — seguridad por FORCE RLS', async () => {
     // Arrange
     const tenantPrisma = createTenantPrisma(mockPrisma, companyId);
     const handler = (tenantPrisma as any).__extensionHandler;
@@ -170,12 +182,9 @@ describe('tenant-extension.ts — Operaciones de Lectura (findMany, findFirst, e
     await handler(queryContext);
 
     // Assert
-    // Inyectar companyId en findUnique permite validar tenant + unique key
-    expect(mockQuery).toHaveBeenCalledWith({
-      where: {
-        AND: [{ id: userId }, { companyId }],
-      },
-    });
+    // findUnique no admite AND — companyId no se inyecta en WHERE.
+    // La seguridad multi-tenant se garantiza mediante set_config en la transacción FORCE RLS.
+    expect(mockQuery).toHaveBeenCalledWith({ where: { id: userId } });
   });
 
   it('count debería filtrar por companyId', async () => {
@@ -301,6 +310,18 @@ describe('tenant-extension.ts — Operaciones de Escritura (create, createMany)'
         const extendedClient = { ...mockPrisma };
         (extendedClient as any).__extensionHandler = extension.query?.$allModels?.$allOperations;
         return extendedClient;
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
       }),
     } as unknown as PrismaClient;
   });
@@ -476,6 +497,18 @@ describe('tenant-extension.ts — Operaciones UPDATE/DELETE', () => {
         (extendedClient as any).__extensionHandler = extension.query?.$allModels?.$allOperations;
         return extendedClient;
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
+      }),
     } as unknown as PrismaClient;
   });
 
@@ -600,6 +633,18 @@ describe('tenant-extension.ts — Modelos sin Filtro (Company table)', () => {
         (extendedClient as any).__extensionHandler = extension.query?.$allModels?.$allOperations;
         return extendedClient;
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
+      }),
     } as unknown as PrismaClient;
   });
 
@@ -671,6 +716,18 @@ describe('tenant-extension.ts — Relaciones y Proyecciones', () => {
         const extendedClient = { ...mockPrisma };
         (extendedClient as any).__extensionHandler = extension.query?.$allModels?.$allOperations;
         return extendedClient;
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
       }),
     } as unknown as PrismaClient;
   });
@@ -797,6 +854,18 @@ describe('tenant-extension.ts — Edge Cases', () => {
         const extendedClient = { ...mockPrisma };
         (extendedClient as any).__extensionHandler = extension.query?.$allModels?.$allOperations;
         return extendedClient;
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      $transaction: vi.fn(async (fn: (tx: any) => unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txMock: any = new Proxy({ $executeRaw: vi.fn().mockResolvedValue(0) } as any, {
+          get(target: any, prop: string) {
+            if (prop === '$executeRaw') return target.$executeRaw;
+            // Model access (e.g. tx.user, tx.invoice) — route operation calls to mockQuery
+            return new Proxy({} as any, { get: () => mockQuery });
+          },
+        });
+        return fn(txMock);
       }),
     } as unknown as PrismaClient;
   });

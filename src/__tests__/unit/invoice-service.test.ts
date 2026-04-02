@@ -423,9 +423,9 @@ describe('invoiceService.createInvoice — Notas de Crédito', () => {
     prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
 
     const input = { ...VALID_NC_INPUT, originalInvoiceId: undefined };
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, input),
-    ).rejects.toThrow(/notas de crédito requieren una factura original/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, input)).rejects.toThrow(
+      /notas de crédito requieren una factura original/,
+    );
   });
 
   it('lanza error si NOTA_DEBITO no tiene originalInvoiceId', async () => {
@@ -436,27 +436,27 @@ describe('invoiceService.createInvoice — Notas de Crédito', () => {
       invoiceType: 'NOTA_DEBITO' as const,
       originalInvoiceId: undefined,
     };
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, input),
-    ).rejects.toThrow(/notas de débito requieren una factura original/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, input)).rejects.toThrow(
+      /notas de débito requieren una factura original/,
+    );
   });
 
   it('lanza error si FACTURA tiene originalInvoiceId', async () => {
     prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
 
     const input = { ...VALID_CREATE_INPUT, originalInvoiceId: ORIGINAL_INVOICE_ID };
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, input),
-    ).rejects.toThrow(/facturas regulares no deben referenciar/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, input)).rejects.toThrow(
+      /facturas regulares no deben referenciar/,
+    );
   });
 
   it('lanza error si factura original no existe', async () => {
     prismaMock.cAI.findFirst.mockResolvedValue(makeActiveCai());
     prismaMock.invoice.findFirst.mockResolvedValue(null);
 
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
-    ).rejects.toThrow('Factura original no encontrada');
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT)).rejects.toThrow(
+      'Factura original no encontrada',
+    );
   });
 
   it('lanza error si factura original está en DRAFT', async () => {
@@ -465,9 +465,9 @@ describe('invoiceService.createInvoice — Notas de Crédito', () => {
       makeInvoiceRecord('DRAFT', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
     );
 
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
-    ).rejects.toThrow(/facturas emitidas o pagadas/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT)).rejects.toThrow(
+      /facturas emitidas o pagadas/,
+    );
   });
 
   it('lanza error si factura original está en CANCELLED', async () => {
@@ -476,9 +476,9 @@ describe('invoiceService.createInvoice — Notas de Crédito', () => {
       makeInvoiceRecord('CANCELLED', { id: ORIGINAL_INVOICE_ID, corrections: [] }),
     );
 
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
-    ).rejects.toThrow(/facturas emitidas o pagadas/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT)).rejects.toThrow(
+      /facturas emitidas o pagadas/,
+    );
   });
 
   it('permite NC contra factura PUBLISHED', async () => {
@@ -526,8 +526,8 @@ describe('invoiceService.createInvoice — Notas de Crédito', () => {
 
     // NC for 5 units × 100 = 500 subtotal + 75 ISV = 575
     // Remaining = 1150 - 1000 = 150. NC total 575 > 150 → should fail
-    await expect(
-      invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT),
-    ).rejects.toThrow(/excede el saldo disponible/);
+    await expect(invoiceService.createInvoice(COMPANY, USER_ID, VALID_NC_INPUT)).rejects.toThrow(
+      /excede el saldo disponible/,
+    );
   });
 });

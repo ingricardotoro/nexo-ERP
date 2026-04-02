@@ -28,7 +28,11 @@ function notionRequest(method, path, body = null) {
       let raw = '';
       res.on('data', (c) => (raw += c));
       res.on('end', () => {
-        try { resolve(JSON.parse(raw)); } catch { resolve(raw); }
+        try {
+          resolve(JSON.parse(raw));
+        } catch {
+          resolve(raw);
+        }
       });
     });
     req.on('error', reject);
@@ -54,37 +58,62 @@ const code = (content) => ({ type: 'text', text: { content }, annotations: { cod
 
 // ─── Block builders ───────────────────────────────────────────────────────────
 
-const h1 = (content) => ({ object: 'block', type: 'heading_1', heading_1: { rich_text: [t(content)] } });
-const h2 = (content) => ({ object: 'block', type: 'heading_2', heading_2: { rich_text: [t(content)] } });
-const h3 = (content) => ({ object: 'block', type: 'heading_3', heading_3: { rich_text: [t(content)] } });
-const para = (richText) => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: richText } });
+const h1 = (content) => ({
+  object: 'block',
+  type: 'heading_1',
+  heading_1: { rich_text: [t(content)] },
+});
+const h2 = (content) => ({
+  object: 'block',
+  type: 'heading_2',
+  heading_2: { rich_text: [t(content)] },
+});
+const h3 = (content) => ({
+  object: 'block',
+  type: 'heading_3',
+  heading_3: { rich_text: [t(content)] },
+});
+const para = (richText) => ({
+  object: 'block',
+  type: 'paragraph',
+  paragraph: { rich_text: richText },
+});
 const divider = () => ({ object: 'block', type: 'divider', divider: {} });
 const callout = (richText, emoji = '📌') => ({
-  object: 'block', type: 'callout',
+  object: 'block',
+  type: 'callout',
   callout: { rich_text: richText, icon: { type: 'emoji', emoji }, color: 'gray_background' },
 });
 const todo = (content, checked = false) => ({
-  object: 'block', type: 'to_do',
+  object: 'block',
+  type: 'to_do',
   to_do: { rich_text: [t(content)], checked },
 });
-const bullet = (richText) => ({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: richText } });
+const bullet = (richText) => ({
+  object: 'block',
+  type: 'bulleted_list_item',
+  bulleted_list_item: { rich_text: richText },
+});
 
 // Tabla simple (sin row header)
 function table(headers, rows) {
   const width = headers.length;
   const tableBlock = {
-    object: 'block', type: 'table',
+    object: 'block',
+    type: 'table',
     table: { table_width: width, has_column_header: true, has_row_header: false },
   };
   const rowBlocks = [
     // header row
     {
-      object: 'block', type: 'table_row',
+      object: 'block',
+      type: 'table_row',
       table_row: { cells: headers.map((h) => [bold(h)]) },
     },
     // data rows
     ...rows.map((row) => ({
-      object: 'block', type: 'table_row',
+      object: 'block',
+      type: 'table_row',
       table_row: { cells: row.map((cell) => [t(cell)]) },
     })),
   ];
@@ -99,21 +128,36 @@ function buildHeaderBlocks() {
     h1('NexoERP — Estado del Proyecto'),
 
     // Callout de metadata
-    callout([
-      bold('Última actualización:'), t(' 28 de marzo de 2026  |  '),
-      bold('Rama activa:'), t(' '), code('feat/fase-2-contabilidad-seed-niif'), t('  |  '),
-      bold('Fase 2:'), t(' ~75% completada'),
-    ], '🗓️'),
+    callout(
+      [
+        bold('Última actualización:'),
+        t(' 28 de marzo de 2026  |  '),
+        bold('Rama activa:'),
+        t(' '),
+        code('feat/fase-2-contabilidad-seed-niif'),
+        t('  |  '),
+        bold('Fase 2:'),
+        t(' ~75% completada'),
+      ],
+      '🗓️',
+    ),
 
     divider(),
 
     // Resumen ejecutivo
     h2('Resumen Ejecutivo'),
     para([
-      t('NexoERP es un ERP multi-tenant en la nube para PYMEs hondureñas con cumplimiento fiscal SAR y contabilidad NIIF. '),
-      t('Actualmente en '), bold('Fase 2 de 5 (~75% completada)'), t(', con Fase 0 y Fase 1 completadas. '),
-      t('El Módulo de Contactos está completo y el Módulo de Contabilidad tiene '), bold('9 de 12 entregables completados'),
-      t(' (F2-01 a F2-11 y F2-14). Pendientes: exportación PDF/Excel (F2-12), conciliación bancaria (F2-13) y tests de integración (F2-15).'),
+      t(
+        'NexoERP es un ERP multi-tenant en la nube para PYMEs hondureñas con cumplimiento fiscal SAR y contabilidad NIIF. ',
+      ),
+      t('Actualmente en '),
+      bold('Fase 2 de 5 (~75% completada)'),
+      t(', con Fase 0 y Fase 1 completadas. '),
+      t('El Módulo de Contactos está completo y el Módulo de Contabilidad tiene '),
+      bold('9 de 12 entregables completados'),
+      t(
+        ' (F2-01 a F2-11 y F2-14). Pendientes: exportación PDF/Excel (F2-12), conciliación bancaria (F2-13) y tests de integración (F2-15).',
+      ),
     ]),
 
     divider(),
@@ -152,17 +196,62 @@ function buildPhasesTableBlocks() {
 
 function buildModulesTableBlocks() {
   const rows = [
-    ['Contactos', 'F2-01 a F2-03', '✅ Completo', 'CRUD clientes/proveedores, importación Excel, términos de pago'],
-    ['Plan de Cuentas NIIF', 'F2-05 / F2-06', '✅ Completo', '~360 cuentas NIIF, árbol jerárquico, API + UI'],
+    [
+      'Contactos',
+      'F2-01 a F2-03',
+      '✅ Completo',
+      'CRUD clientes/proveedores, importación Excel, términos de pago',
+    ],
+    [
+      'Plan de Cuentas NIIF',
+      'F2-05 / F2-06',
+      '✅ Completo',
+      '~360 cuentas NIIF, árbol jerárquico, API + UI',
+    ],
     ['Años y Períodos Fiscales', 'F2-07', '✅ Completo', 'CRUD, apertura/cierre de períodos, RLS'],
     ['Diarios Contables', 'F2-08', '✅ Completo', '7 diarios seeded, CRUD completo'],
-    ['Asientos Contables', 'F2-09', '✅ Completo', 'Ciclo DRAFT→POSTED→CANCELLED, partida doble, contraasientos, numeración atómica'],
-    ['Tipos de Cambio', 'F2-10', '✅ Completo', 'Global + empresa, lookup inteligente, auto-fill en formularios'],
-    ['Reportes Financieros', 'F2-11', '✅ Completo', 'Balance General + Estado de Resultados, propagación bottom-up'],
-    ['Aging CxC / CxP', 'F2-14', '✅ Completo', 'Antigüedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 días)'],
-    ['Exportación PDF / Excel', 'F2-12', '⏳ Pendiente', 'Lambda PDF, S3 almacenamiento, export Excel'],
-    ['Conciliación Bancaria', 'F2-13', '⏳ Pendiente', 'Match transacciones banco vs asientos contables'],
-    ['Tests de Integración', 'F2-15', '⏳ Pendiente', 'Tests unitarios e integración, aislamiento tenant'],
+    [
+      'Asientos Contables',
+      'F2-09',
+      '✅ Completo',
+      'Ciclo DRAFT→POSTED→CANCELLED, partida doble, contraasientos, numeración atómica',
+    ],
+    [
+      'Tipos de Cambio',
+      'F2-10',
+      '✅ Completo',
+      'Global + empresa, lookup inteligente, auto-fill en formularios',
+    ],
+    [
+      'Reportes Financieros',
+      'F2-11',
+      '✅ Completo',
+      'Balance General + Estado de Resultados, propagación bottom-up',
+    ],
+    [
+      'Aging CxC / CxP',
+      'F2-14',
+      '✅ Completo',
+      'Antigüedad de saldos en 4 tramos (0-30, 31-60, 61-90, +90 días)',
+    ],
+    [
+      'Exportación PDF / Excel',
+      'F2-12',
+      '⏳ Pendiente',
+      'Lambda PDF, S3 almacenamiento, export Excel',
+    ],
+    [
+      'Conciliación Bancaria',
+      'F2-13',
+      '⏳ Pendiente',
+      'Match transacciones banco vs asientos contables',
+    ],
+    [
+      'Tests de Integración',
+      'F2-15',
+      '⏳ Pendiente',
+      'Tests unitarios e integración, aislamiento tenant',
+    ],
   ];
   return table(['Módulo', 'ID', 'Estado', 'Descripción'], rows);
 }
@@ -263,14 +352,26 @@ async function main() {
   await appendChildren(PAGE_ID, [
     h2('Próximos Pasos'),
     bullet([bold('F2-12'), t(' — Exportación PDF/Excel de reportes financieros (Lambda + S3)')]),
-    bullet([bold('F2-13'), t(' — Conciliación bancaria (import extractos OFX/CSV, match automático)')]),
-    bullet([bold('F2-15'), t(' — Tests de integración del módulo contable (vitest + Prisma real)')]),
+    bullet([
+      bold('F2-13'),
+      t(' — Conciliación bancaria (import extractos OFX/CSV, match automático)'),
+    ]),
+    bullet([
+      bold('F2-15'),
+      t(' — Tests de integración del módulo contable (vitest + Prisma real)'),
+    ]),
     bullet([bold('Fase 3'), t(' — Facturación Honduras: CAI, numeración SAR, ISV 15%')]),
     divider(),
-    callout([
-      bold('Nota técnica:'), t(' Los reportes de CxC/CxP (F2-14) utilizan antigüedad por fecha del asiento contable. '),
-      t('El aging basado en fecha de vencimiento de factura requiere el módulo de Facturación (Fase 3).'),
-    ], '⚠️'),
+    callout(
+      [
+        bold('Nota técnica:'),
+        t(' Los reportes de CxC/CxP (F2-14) utilizan antigüedad por fecha del asiento contable. '),
+        t(
+          'El aging basado en fecha de vencimiento de factura requiere el módulo de Facturación (Fase 3).',
+        ),
+      ],
+      '⚠️',
+    ),
   ]);
   console.log('   → Próximos pasos creados');
 

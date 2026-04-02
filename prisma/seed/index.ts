@@ -552,7 +552,9 @@ async function main() {
       create: { companyId: demoCompany.id, ...tr },
     });
   }
-  console.log(`✅ Tasas de Impuesto (ISV): ${taxRates.length} creadas para ${demoCompany.tradeName}`);
+  console.log(
+    `✅ Tasas de Impuesto (ISV): ${taxRates.length} creadas para ${demoCompany.tradeName}`,
+  );
 
   // === Plan de Cuentas NIIF Honduras — solo para empresa demo ===
   // La empresa test solo tiene módulo core activo, no necesita plan de cuentas

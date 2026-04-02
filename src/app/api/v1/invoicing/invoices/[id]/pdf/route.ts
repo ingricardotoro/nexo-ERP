@@ -36,7 +36,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         {
           success: false,
           code: 'PDF_NOT_READY',
-          message: 'El PDF de esta factura aún está siendo generado. Intente de nuevo en unos segundos.',
+          message:
+            'El PDF de esta factura aún está siendo generado. Intente de nuevo en unos segundos.',
         },
         { status: 202 },
       );
@@ -45,7 +46,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const bucket = process.env.S3_BUCKET_DOCUMENTS;
     if (!bucket) {
       return NextResponse.json(
-        { success: false, code: 'STORAGE_NOT_CONFIGURED', message: 'Almacenamiento S3 no configurado.' },
+        {
+          success: false,
+          code: 'STORAGE_NOT_CONFIGURED',
+          message: 'Almacenamiento S3 no configurado.',
+        },
         { status: 503 },
       );
     }

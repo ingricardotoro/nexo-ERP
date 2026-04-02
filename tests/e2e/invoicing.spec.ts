@@ -119,9 +119,9 @@ test.describe('Facturación — Formulario Nueva Factura', () => {
     await page.goto('/dashboard/invoicing/invoices/new');
     await page.waitForLoadState('networkidle');
 
-    await expect(
-      page.getByText('Completa los datos y agrega las líneas de detalle'),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Completa los datos y agrega las líneas de detalle')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('debe mostrar el botón de retroceso con aria-label correcto', async ({ page }) => {

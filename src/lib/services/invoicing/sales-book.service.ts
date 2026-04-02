@@ -272,19 +272,19 @@ export const salesBookService = {
 
     for (const line of salesBook.lines) {
       const fields = [
-        company.rtn,                      // RTN del emisor
-        period,                           // Período (YYYYMM)
-        line.documentType,                // Tipo de documento
-        line.invoiceNumber,               // Número SAR
+        company.rtn, // RTN del emisor
+        period, // Período (YYYYMM)
+        line.documentType, // Tipo de documento
+        line.invoiceNumber, // Número SAR
         formatDateDDMMYYYY(line.issueDate), // Fecha emisión
-        line.clientRtn ?? '',             // RTN del cliente
-        line.clientName,                  // Nombre del cliente
-        line.exemptSales,                 // Ventas exentas
-        line.taxedSales15,                // Ventas gravadas 15%
-        line.taxedSales18,                // Ventas gravadas 18%
-        line.isv15,                       // ISV 15%
-        line.isv18,                       // ISV 18%
-        line.total,                       // Total
+        line.clientRtn ?? '', // RTN del cliente
+        line.clientName, // Nombre del cliente
+        line.exemptSales, // Ventas exentas
+        line.taxedSales15, // Ventas gravadas 15%
+        line.taxedSales18, // Ventas gravadas 18%
+        line.isv15, // ISV 15%
+        line.isv18, // ISV 18%
+        line.total, // Total
       ];
       csvLines.push(fields.join('|'));
     }

@@ -123,9 +123,9 @@ describe('salesBookService.getSalesBook', () => {
   it('lanza error si período fiscal no existe', async () => {
     prismaMock.fiscalPeriod.findFirst.mockResolvedValue(null);
 
-    await expect(
-      salesBookService.getSalesBook(COMPANY, PERIOD_ID),
-    ).rejects.toThrow('Período fiscal no encontrado');
+    await expect(salesBookService.getSalesBook(COMPANY, PERIOD_ID)).rejects.toThrow(
+      'Período fiscal no encontrado',
+    );
   });
 
   it('retorna libro vacío si no hay facturas en el período', async () => {
@@ -198,9 +198,9 @@ describe('salesBookService.getSalesBook', () => {
   it('calcula totales de resumen con múltiples facturas mixtas', async () => {
     prismaMock.fiscalPeriod.findFirst.mockResolvedValue(PERIOD);
     prismaMock.invoice.findMany.mockResolvedValue([
-      makeInvoice(),          // 1000 gravada 15%, 150 ISV
-      makeExemptInvoice(),    // 500 exenta
-      makeInvoice18(),        // 500 gravada 18%, 90 ISV
+      makeInvoice(), // 1000 gravada 15%, 150 ISV
+      makeExemptInvoice(), // 500 exenta
+      makeInvoice18(), // 500 gravada 18%, 90 ISV
       makeCancelledInvoice(), // anulada → 0
     ]);
 
@@ -226,9 +226,9 @@ describe('salesBookService.generateDetCsv', () => {
   it('lanza error si empresa no existe', async () => {
     prismaMock.company.findFirst.mockResolvedValue(null);
 
-    await expect(
-      salesBookService.generateDetCsv(COMPANY, PERIOD_ID),
-    ).rejects.toThrow('Empresa no encontrada');
+    await expect(salesBookService.generateDetCsv(COMPANY, PERIOD_ID)).rejects.toThrow(
+      'Empresa no encontrada',
+    );
   });
 
   it('genera CSV pipe-delimited con formato correcto', async () => {
@@ -240,19 +240,19 @@ describe('salesBookService.generateDetCsv', () => {
     const fields = csv.split('|');
 
     expect(fields).toHaveLength(13);
-    expect(fields[0]).toBe('08019999123456');     // RTN emisor
-    expect(fields[1]).toBe('202603');              // Período
-    expect(fields[2]).toBe('01');                  // Tipo doc
+    expect(fields[0]).toBe('08019999123456'); // RTN emisor
+    expect(fields[1]).toBe('202603'); // Período
+    expect(fields[2]).toBe('01'); // Tipo doc
     expect(fields[3]).toBe('001-001-01-00000001'); // Número SAR
-    expect(fields[4]).toBe('15/03/2026');          // Fecha emisión
-    expect(fields[5]).toBe('08011985123456');      // RTN cliente
-    expect(fields[6]).toBe('Cliente Test S.A.');   // Nombre cliente
-    expect(fields[7]).toBe('0.00');                // Vta exenta
-    expect(fields[8]).toBe('1000.00');             // Vta gravada 15%
-    expect(fields[9]).toBe('0.00');                // Vta gravada 18%
-    expect(fields[10]).toBe('150.00');             // ISV 15%
-    expect(fields[11]).toBe('0.00');               // ISV 18%
-    expect(fields[12]).toBe('1150.00');            // Total
+    expect(fields[4]).toBe('15/03/2026'); // Fecha emisión
+    expect(fields[5]).toBe('08011985123456'); // RTN cliente
+    expect(fields[6]).toBe('Cliente Test S.A.'); // Nombre cliente
+    expect(fields[7]).toBe('0.00'); // Vta exenta
+    expect(fields[8]).toBe('1000.00'); // Vta gravada 15%
+    expect(fields[9]).toBe('0.00'); // Vta gravada 18%
+    expect(fields[10]).toBe('150.00'); // ISV 15%
+    expect(fields[11]).toBe('0.00'); // ISV 18%
+    expect(fields[12]).toBe('1150.00'); // Total
   });
 
   it('maneja RTN de cliente null (extranjero)', async () => {
@@ -266,17 +266,14 @@ describe('salesBookService.generateDetCsv', () => {
     const csv = await salesBookService.generateDetCsv(COMPANY, PERIOD_ID);
     const fields = csv.split('|');
 
-    expect(fields[5]).toBe('');                   // RTN vacío para extranjero
+    expect(fields[5]).toBe(''); // RTN vacío para extranjero
     expect(fields[6]).toBe('Foreign Corp');
   });
 
   it('genera múltiples líneas separadas por newline', async () => {
     prismaMock.company.findFirst.mockResolvedValue({ rtn: '08019999123456' });
     prismaMock.fiscalPeriod.findFirst.mockResolvedValue(PERIOD);
-    prismaMock.invoice.findMany.mockResolvedValue([
-      makeInvoice(),
-      makeExemptInvoice(),
-    ]);
+    prismaMock.invoice.findMany.mockResolvedValue([makeInvoice(), makeExemptInvoice()]);
 
     const csv = await salesBookService.generateDetCsv(COMPANY, PERIOD_ID);
     const lines = csv.split('\n');
@@ -285,6 +282,6 @@ describe('salesBookService.generateDetCsv', () => {
     // Second line should have exempt sale
     const fields2 = lines[1].split('|');
     expect(fields2[7]).toBe('500.00'); // Vta exenta
-    expect(fields2[8]).toBe('0.00');   // Vta gravada 15%
+    expect(fields2[8]).toBe('0.00'); // Vta gravada 15%
   });
 });

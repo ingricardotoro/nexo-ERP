@@ -26,7 +26,7 @@ import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { invoiceService } from '@/lib/services/invoicing/invoice.service';
-import { withRLSContext, withAdminContext } from '../helpers/rls-session';
+import { withRLSContext } from '../helpers/rls-session';
 
 const prismaOwner = new PrismaClient();
 
@@ -56,8 +56,8 @@ const IDS = {
   // Período de Abril — necesario para que cancelInvoice cree el asiento de reversión
   // (cancelInvoice busca un período OPEN para "hoy", y hoy es 2026-04-01)
   fiscalPeriodApr: '00000000-0000-0000-0005-000000000071',
-  accountAR: '00000000-0000-0000-0005-000000000080',      // 1103
-  accountISV: '00000000-0000-0000-0005-000000000081',     // 2102
+  accountAR: '00000000-0000-0000-0005-000000000080', // 1103
+  accountISV: '00000000-0000-0000-0005-000000000081', // 2102
   accountRevenue: '00000000-0000-0000-0005-000000000082', // 4101
 };
 
@@ -66,11 +66,7 @@ const ISSUE_DATE = new Date('2026-03-15');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeInvoiceData(
-  id: string,
-  caiId: string,
-  overrides: Record<string, unknown> = {},
-) {
+function makeInvoiceData(id: string, caiId: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
     companyId: IDS.companyA,
@@ -209,9 +205,7 @@ beforeAll(async () => {
   ];
 
   for (const acc of accountsData) {
-    await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
-      tx.account.create({ data: acc }),
-    );
+    await withRLSContext(prismaOwner, IDS.companyA, (tx) => tx.account.create({ data: acc }));
   }
 
   // Año fiscal 2026
@@ -294,9 +288,9 @@ beforeAll(async () => {
     }),
   );
 
-  // CAI expirado para NOTA_CREDITO (tipo '03') — activo pero vencido.
-  // Al intentar publicar una NOTA_CREDITO, getActiveCai('03') lanza "CAI vencido".
-  // Usamos tipo '03' para no interferir con caiActive (tipo '01').
+  // CAI expirado para NOTA_DEBITO (tipo '04') — activo pero vencido.
+  // Usamos tipo '04' para no interferir con el CAI válido de tipo '03' (caiNC).
+  // Al publicar la invoiceExpiredCai (NOTA_DEBITO), getActiveCai('04') lo encuentra y lanza "CAI vencido".
   await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
     tx.cAI.create({
       data: {
@@ -305,11 +299,30 @@ beforeAll(async () => {
         caiCode: 'PUBEXP-PUBEXP-PUBEXP-PUBEXP-PUBEXP-EE',
         establishmentCode: '002',
         emissionPointCode: '001',
-        documentType: '03',
+        documentType: '04',
         rangeFrom: 1,
         rangeTo: 9999,
         issuedAt: new Date('2025-01-01'),
         expiresAt: new Date('2025-12-31'), // Expirado
+        isActive: true,
+      },
+    }),
+  );
+
+  // CAI válido para NOTA_CREDITO (tipo '03') — usado por los tests F3-08.
+  await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
+    tx.cAI.create({
+      data: {
+        id: IDS.caiNC,
+        companyId: IDS.companyA,
+        caiCode: 'PUBNC0-PUBNC0-PUBNC0-PUBNC0-PUBNC0-NC',
+        establishmentCode: '001',
+        emissionPointCode: '001',
+        documentType: '03',
+        rangeFrom: 1,
+        rangeTo: 9999,
+        issuedAt: new Date('2026-01-01'),
+        expiresAt: new Date('2027-12-31'),
         isActive: true,
       },
     }),
@@ -331,18 +344,18 @@ beforeAll(async () => {
 
   // Facturas de test (DRAFT)
   // Facturas tipo FACTURA (usan caiActive, tipo '01')
-  for (const id of [IDS.invoice1, IDS.invoice2, IDS.invoiceForCancel]) {
+  for (const id of [IDS.invoice1, IDS.invoice2, IDS.invoiceForCancel, IDS.invoiceForNC]) {
     await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
       tx.invoice.create({ data: makeInvoiceData(id, IDS.caiActive) }),
     );
   }
 
-  // Factura tipo NOTA_CREDITO (usa caiExpiredNC, tipo '03', expirado)
-  // Al publicar, getActiveCai('03') lanza error porque el CAI activo para '03' está vencido.
+  // Factura tipo NOTA_DEBITO (usa caiExpiredNC, tipo '04', expirado).
+  // Al publicar, getActiveCai('04') encuentra el CAI vencido y lanza error.
   await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
     tx.invoice.create({
       data: makeInvoiceData(IDS.invoiceExpiredCai, IDS.caiExpiredNC, {
-        invoiceType: 'NOTA_CREDITO',
+        invoiceType: 'NOTA_DEBITO',
       }),
     }),
   );
@@ -365,7 +378,9 @@ afterAll(async () => {
   await rawDelete(`DELETE FROM fiscal_years WHERE company_id IN (${ids})`);
   await rawDelete(`DELETE FROM accounts WHERE company_id IN (${ids})`);
   await rawDelete(`DELETE FROM contacts WHERE id = '${IDS.contact}'`);
-  await prismaOwner.company.deleteMany({ where: { id: { in: [IDS.companyA, IDS.companyB] } } }).catch(() => {});
+  await prismaOwner.company
+    .deleteMany({ where: { id: { in: [IDS.companyA, IDS.companyB] } } })
+    .catch(() => {});
   await prismaOwner.$disconnect();
 }, 20_000);
 
@@ -440,9 +455,9 @@ describe('publishInvoice — end-to-end con BD real', () => {
     expect(Math.abs(inv1!.sequenceNumber! - inv2!.sequenceNumber!)).toBe(1);
   });
 
-  it('lanza error al publicar NOTA_CREDITO cuando el único CAI activo para tipo 03 está vencido', async () => {
-    // caiExpiredNC es activo (isActive=true) pero expiresAt=2025-12-31.
-    // getActiveCai('03') lo encuentra y lanza "El CAI activo... está vencido".
+  it('lanza error al publicar NOTA_DEBITO cuando el único CAI activo para tipo 04 está vencido', async () => {
+    // caiExpiredNC es activo (isActive=true, tipo '04') pero expiresAt=2025-12-31.
+    // getActiveCai('04') lo encuentra y lanza "El CAI activo... está vencido".
     await expect(
       invoiceService.publishInvoice(IDS.companyA, IDS.invoiceExpiredCai, USER_A),
     ).rejects.toThrow(/vencido|expirado/i);
@@ -450,9 +465,9 @@ describe('publishInvoice — end-to-end con BD real', () => {
 
   it('aislamiento multi-tenant: Empresa B no puede publicar factura de Empresa A', async () => {
     // invoice1 is already PUBLISHED — use a fresh DRAFT in companyA's name but accessed from companyB
-    await expect(
-      invoiceService.publishInvoice(IDS.companyB, IDS.invoice1, USER_A),
-    ).rejects.toThrow('Factura no encontrada');
+    await expect(invoiceService.publishInvoice(IDS.companyB, IDS.invoice1, USER_A)).rejects.toThrow(
+      'Factura no encontrada',
+    );
   });
 });
 
@@ -552,6 +567,133 @@ describe('cancelInvoice — end-to-end con BD real', () => {
     // Restore the period for cleanup
     await prismaOwner.$executeRawUnsafe(
       `UPDATE fiscal_periods SET status = 'OPEN' WHERE id = '${IDS.fiscalPeriodApr}'`,
+    );
+  });
+});
+
+// ─── Tests: Notas de Crédito (F3-08) ─────────────────────────────────────────
+
+describe('Nota de Crédito — flujo completo F3-08', () => {
+  // We'll create invoices via service in these tests (not pre-seeded)
+  // to test the createInvoice validation rules.
+
+  const ncInput = {
+    invoiceType: 'NOTA_CREDITO' as const,
+    issueDate: '2026-03-20',
+    contactId: IDS.contact,
+    currencyCode: 'HNL',
+    exchangeRate: 1,
+    originalInvoiceId: IDS.invoiceForNC, // set after publish in each test
+    lines: [
+      {
+        lineNumber: 1,
+        description: 'Devolución parcial de servicio',
+        quantity: 3,
+        unitPrice: 100,
+        discountPct: 0,
+        taxRateId: IDS.taxRate,
+        accountId: IDS.accountRevenue,
+      },
+    ],
+  };
+
+  it('lanza error al crear NC sin originalInvoiceId', async () => {
+    const input = { ...ncInput, originalInvoiceId: undefined };
+    await expect(invoiceService.createInvoice(IDS.companyA, USER_A, input)).rejects.toThrow(
+      /notas de crédito requieren una factura original/i,
+    );
+  });
+
+  it('lanza error al crear NC con factura original en DRAFT', async () => {
+    // invoiceForNC is still DRAFT at this point
+    await expect(invoiceService.createInvoice(IDS.companyA, USER_A, ncInput)).rejects.toThrow(
+      /facturas emitidas o pagadas/i,
+    );
+  });
+
+  it('permite crear NC contra factura PUBLISHED y publicarla con asiento invertido', async () => {
+    // Step 1: Publish the base invoice
+    const published = await invoiceService.publishInvoice(IDS.companyA, IDS.invoiceForNC, USER_A);
+    expect(published.status).toBe('PUBLISHED');
+
+    // Step 2: Create NC against it
+    const nc = await invoiceService.createInvoice(IDS.companyA, USER_A, {
+      ...ncInput,
+      originalInvoiceId: IDS.invoiceForNC,
+    });
+    expect(nc.status).toBe('DRAFT');
+    expect(nc.invoiceType).toBe('NOTA_CREDITO');
+    expect(nc.originalInvoiceId).toBe(IDS.invoiceForNC);
+
+    // Step 3: Publish the NC
+    const publishedNC = await invoiceService.publishInvoice(IDS.companyA, nc.id, USER_A);
+    expect(publishedNC.status).toBe('PUBLISHED');
+    expect(publishedNC.invoiceNumber).toMatch(/^\d{3}-\d{3}-03-\d{8}$/); // tipo 03
+    expect(publishedNC.journalEntryId).not.toBeNull();
+
+    // Step 4: Verify journal entry is a credit entry (AR credited, Revenue debited)
+    const entry = await prismaOwner.journalEntry.findUnique({
+      where: { id: publishedNC.journalEntryId! },
+      include: { lines: { orderBy: { lineNumber: 'asc' } } },
+    });
+
+    expect(entry).not.toBeNull();
+    expect(entry!.status).toBe('POSTED');
+
+    // Balanced
+    const totalDebit = entry!.lines.reduce((s, l) => s + Number(l.debit), 0);
+    const totalCredit = entry!.lines.reduce((s, l) => s + Number(l.credit), 0);
+    expect(totalDebit).toBeCloseTo(totalCredit, 2);
+
+    // NOTA_CREDITO: AR is credited (not debited) — reversal of normal sale
+    const arLine = entry!.lines.find((l) => l.accountId === IDS.accountAR);
+    expect(arLine).toBeDefined();
+    expect(Number(arLine!.credit)).toBeGreaterThan(0); // AR credited
+    expect(Number(arLine!.debit)).toBe(0);
+
+    // Revenue line is debited (reducing income)
+    const revLine = entry!.lines.find((l) => l.accountId === IDS.accountRevenue);
+    expect(revLine).toBeDefined();
+    expect(Number(revLine!.debit)).toBeGreaterThan(0); // Revenue debited
+    expect(Number(revLine!.credit)).toBe(0);
+  });
+
+  it('NC aparece en Libro de Ventas del período con montos correctos', async () => {
+    const { salesBookService } = await import('@/lib/services/invoicing/sales-book.service');
+
+    const book = await salesBookService.getSalesBook(IDS.companyA, IDS.fiscalPeriodMar);
+
+    // Find the NC line (documentType '03')
+    const ncLine = book.lines.find((l) => l.documentType === '03');
+    expect(ncLine).toBeDefined();
+    expect(ncLine!.isCancelled).toBe(false);
+
+    // 3 × 100 = 300 subtotal; ISV 15% = 45; total = 345
+    expect(ncLine!.taxedSales15).toBe('300.00');
+    expect(ncLine!.isv15).toBe('45.00');
+    expect(ncLine!.total).toBe('345.00');
+  });
+
+  it('lanza error al crear NC que excede saldo de factura original', async () => {
+    // invoiceForNC total = 1150. NC of 345 already issued. Remaining = 805.
+    // Try to create a NC for 10 × 100 = 1000 subtotal + ISV → total 1150 > 805
+    const oversizedNC = {
+      ...ncInput,
+      originalInvoiceId: IDS.invoiceForNC,
+      lines: [
+        {
+          lineNumber: 1,
+          description: 'NC excesiva',
+          quantity: 10,
+          unitPrice: 100,
+          discountPct: 0,
+          taxRateId: IDS.taxRate,
+        },
+      ],
+    };
+
+    await expect(invoiceService.createInvoice(IDS.companyA, USER_A, oversizedNC)).rejects.toThrow(
+      /excede el saldo disponible/i,
     );
   });
 });

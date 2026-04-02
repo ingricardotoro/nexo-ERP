@@ -91,7 +91,8 @@ enum FiscalPeriodStatus {
 /// Estados de factura fiscal
 enum InvoiceStatus {
   DRAFT // Borrador
-  PUBLISHED // Publicada (con número SAR)
+  PUBLISHED // Publicada con número SAR (facturas de venta)
+  POSTED // Registrada contablemente (facturas de compra — sin número SAR)
   PAID // Pagada
-  CANCELLED // Cancelada
+  CANCELLED // Cancelada / Anulada
 }

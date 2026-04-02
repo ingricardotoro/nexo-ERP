@@ -53,11 +53,18 @@ model Company {
   exchangeRates     ExchangeRate[]
 
   // Invoicing (Fase 3)
-  cais             CAI[]
-  taxRates         TaxRate[]
-  invoiceSequences InvoiceSequence[]
-  invoices         Invoice[]
-  invoiceLines     InvoiceLine[]
+  cais                 CAI[]
+  taxRates             TaxRate[]
+  invoiceSequences     InvoiceSequence[]
+  invoices             Invoice[]
+  invoiceLines         InvoiceLine[]
+  supplierInvoices     SupplierInvoice[]
+  supplierInvoiceLines SupplierInvoiceLine[]
+  // Banking (F2-13)
+  bankAccounts         BankAccount[]
+  bankStatements       BankStatement[]
+  bankTransactions     BankTransaction[]
+  bankReconciliations  BankReconciliation[]
 
   @@map("companies")
 }

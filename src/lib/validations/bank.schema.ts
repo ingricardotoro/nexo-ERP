@@ -14,7 +14,8 @@ export const createBankAccountSchema = z.object({
 
 export const updateBankAccountSchema = createBankAccountSchema
   .partial()
-  .omit({ ledgerAccountId: true, currencyCode: true });
+  .omit({ ledgerAccountId: true, currencyCode: true })
+  .extend({ isActive: z.boolean().optional() });
 
 // Bank statement import — CSV row from Honduras bank
 export const bankStatementImportSchema = z.object({

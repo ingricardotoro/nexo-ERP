@@ -1,8 +1,9 @@
 import type { SQSHandler, SQSRecord } from 'aws-lambda';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { PrismaClient, Prisma } from '@prisma/client';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PDFDocument = require('pdfkit') as typeof import('pdfkit');
+import { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PDFDocument = require('pdfkit') as any;
 
 /**
  * Lambda — Generación de PDF de Facturas (F3-09)
@@ -47,7 +48,10 @@ async function processRecord(record: SQSRecord): Promise<void> {
     const msg = JSON.parse(record.body) as PdfJobMessage;
     invoiceId = msg.invoiceId;
 
-    console.info('[PDF] Processing invoice', { invoiceId: msg.invoiceId, invoiceNumber: msg.invoiceNumber });
+    console.info('[PDF] Processing invoice', {
+      invoiceId: msg.invoiceId,
+      invoiceNumber: msg.invoiceNumber,
+    });
 
     // 1. Fetch invoice with all related data
     const invoice = await prisma.invoice.findUnique({
@@ -192,7 +196,13 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
       `L ${Number(amount).toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const fmtDate = (d: Date | null) =>
-      d ? new Date(d).toLocaleDateString('es-HN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+      d
+        ? new Date(d).toLocaleDateString('es-HN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          })
+        : '—';
 
     const docTypeLabel: Record<string, string> = {
       '01': 'FACTURA',
@@ -202,13 +212,19 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     const invoiceTitle = docTypeLabel[invoice.cai.documentType] ?? 'FACTURA';
 
     // ── Header: Empresa emisora ──
-    doc.fontSize(16).font('Helvetica-Bold').text(invoice.company.tradeName ?? invoice.company.legalName, { align: 'center' });
+    doc
+      .fontSize(16)
+      .font('Helvetica-Bold')
+      .text(invoice.company.tradeName ?? invoice.company.legalName, { align: 'center' });
     doc.fontSize(10).font('Helvetica').text(`RTN: ${invoice.company.rtn}`, { align: 'center' });
     doc.moveDown(0.5);
 
     // ── Tipo de documento y número ──
     doc.fontSize(14).font('Helvetica-Bold').text(invoiceTitle, { align: 'center' });
-    doc.fontSize(11).font('Helvetica-Bold').text(invoice.invoiceNumber ?? '(pendiente)', { align: 'center' });
+    doc
+      .fontSize(11)
+      .font('Helvetica-Bold')
+      .text(invoice.invoiceNumber ?? '(pendiente)', { align: 'center' });
     doc.moveDown(0.5);
 
     // ── Línea divisoria ──
@@ -222,7 +238,7 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     doc.text(`CAI: ${invoice.cai.caiCode}`, 50);
     doc.text(
       `Rango autorizado: ${invoice.cai.establishmentCode}-${invoice.cai.emissionPointCode}-${invoice.cai.documentType}-${String(invoice.cai.rangeFrom).padStart(8, '0')} al ` +
-      `${invoice.cai.establishmentCode}-${invoice.cai.emissionPointCode}-${invoice.cai.documentType}-${String(invoice.cai.rangeTo).padStart(8, '0')}`,
+        `${invoice.cai.establishmentCode}-${invoice.cai.emissionPointCode}-${invoice.cai.documentType}-${String(invoice.cai.rangeTo).padStart(8, '0')}`,
       50,
     );
     doc.text(`Fecha vencimiento CAI: ${fmtDate(invoice.cai.expiresAt)}`, 50);
@@ -237,11 +253,17 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     const infoY = doc.y;
 
     doc.fontSize(8).font('Helvetica-Bold').text('FECHA DE EMISIÓN:', colLeft, infoY);
-    doc.fontSize(8).font('Helvetica').text(fmtDate(invoice.issueDate), colLeft + 110, infoY);
+    doc
+      .fontSize(8)
+      .font('Helvetica')
+      .text(fmtDate(invoice.issueDate), colLeft + 110, infoY);
 
     if (invoice.dueDate) {
       doc.fontSize(8).font('Helvetica-Bold').text('FECHA DE VENCIMIENTO:', colRight, infoY);
-      doc.fontSize(8).font('Helvetica').text(fmtDate(invoice.dueDate), colRight + 130, infoY);
+      doc
+        .fontSize(8)
+        .font('Helvetica')
+        .text(fmtDate(invoice.dueDate), colRight + 130, infoY);
     }
 
     doc.moveDown(1);
@@ -264,13 +286,31 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     const colWidths = { no: 25, desc: 195, qty: 45, price: 70, sub: 70, isv: 60, total: 72 };
     let cx = 50;
     doc.fontSize(8).font('Helvetica-Bold');
-    doc.text('#', cx, doc.y, { width: colWidths.no }); cx += colWidths.no;
-    doc.text('Descripción', cx, doc.y - doc.currentLineHeight(), { width: colWidths.desc }); cx += colWidths.desc;
-    doc.text('Cant.', cx, doc.y - doc.currentLineHeight(), { width: colWidths.qty, align: 'right' }); cx += colWidths.qty;
-    doc.text('P. Unit.', cx, doc.y - doc.currentLineHeight(), { width: colWidths.price, align: 'right' }); cx += colWidths.price;
-    doc.text('Subtotal', cx, doc.y - doc.currentLineHeight(), { width: colWidths.sub, align: 'right' }); cx += colWidths.sub;
-    doc.text('ISV', cx, doc.y - doc.currentLineHeight(), { width: colWidths.isv, align: 'right' }); cx += colWidths.isv;
-    doc.text('Total', cx, doc.y - doc.currentLineHeight(), { width: colWidths.total, align: 'right' });
+    doc.text('#', cx, doc.y, { width: colWidths.no });
+    cx += colWidths.no;
+    doc.text('Descripción', cx, doc.y - doc.currentLineHeight(), { width: colWidths.desc });
+    cx += colWidths.desc;
+    doc.text('Cant.', cx, doc.y - doc.currentLineHeight(), {
+      width: colWidths.qty,
+      align: 'right',
+    });
+    cx += colWidths.qty;
+    doc.text('P. Unit.', cx, doc.y - doc.currentLineHeight(), {
+      width: colWidths.price,
+      align: 'right',
+    });
+    cx += colWidths.price;
+    doc.text('Subtotal', cx, doc.y - doc.currentLineHeight(), {
+      width: colWidths.sub,
+      align: 'right',
+    });
+    cx += colWidths.sub;
+    doc.text('ISV', cx, doc.y - doc.currentLineHeight(), { width: colWidths.isv, align: 'right' });
+    cx += colWidths.isv;
+    doc.text('Total', cx, doc.y - doc.currentLineHeight(), {
+      width: colWidths.total,
+      align: 'right',
+    });
     doc.moveDown(0.3);
     doc.moveTo(50, doc.y).lineTo(562, doc.y).strokeColor('#aaaaaa').stroke();
     doc.moveDown(0.2);
@@ -279,12 +319,21 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     for (const line of invoice.lines) {
       const rowY = doc.y;
       cx = 50;
-      doc.text(String(line.lineNumber), cx, rowY, { width: colWidths.no }); cx += colWidths.no;
-      doc.text(line.description, cx, rowY, { width: colWidths.desc }); cx += colWidths.desc;
-      doc.text(Number(line.quantity).toFixed(2), cx, rowY, { width: colWidths.qty, align: 'right' }); cx += colWidths.qty;
-      doc.text(L(line.unitPrice), cx, rowY, { width: colWidths.price, align: 'right' }); cx += colWidths.price;
-      doc.text(L(line.subtotal), cx, rowY, { width: colWidths.sub, align: 'right' }); cx += colWidths.sub;
-      doc.text(L(line.taxAmount), cx, rowY, { width: colWidths.isv, align: 'right' }); cx += colWidths.isv;
+      doc.text(String(line.lineNumber), cx, rowY, { width: colWidths.no });
+      cx += colWidths.no;
+      doc.text(line.description, cx, rowY, { width: colWidths.desc });
+      cx += colWidths.desc;
+      doc.text(Number(line.quantity).toFixed(2), cx, rowY, {
+        width: colWidths.qty,
+        align: 'right',
+      });
+      cx += colWidths.qty;
+      doc.text(L(line.unitPrice), cx, rowY, { width: colWidths.price, align: 'right' });
+      cx += colWidths.price;
+      doc.text(L(line.subtotal), cx, rowY, { width: colWidths.sub, align: 'right' });
+      cx += colWidths.sub;
+      doc.text(L(line.taxAmount), cx, rowY, { width: colWidths.isv, align: 'right' });
+      cx += colWidths.isv;
       doc.text(L(line.total), cx, rowY, { width: colWidths.total, align: 'right' });
       doc.moveDown(0.8);
     }
@@ -298,11 +347,17 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     doc.font('Helvetica').fontSize(9);
 
     doc.text('Subtotal:', totalsX, doc.y);
-    doc.text(L(invoice.subtotal), totalsValX, doc.y - doc.currentLineHeight(), { align: 'right', width: 72 });
+    doc.text(L(invoice.subtotal), totalsValX, doc.y - doc.currentLineHeight(), {
+      align: 'right',
+      width: 72,
+    });
     doc.moveDown(0.4);
 
     doc.text('ISV:', totalsX, doc.y);
-    doc.text(L(invoice.taxAmount), totalsValX, doc.y - doc.currentLineHeight(), { align: 'right', width: 72 });
+    doc.text(L(invoice.taxAmount), totalsValX, doc.y - doc.currentLineHeight(), {
+      align: 'right',
+      width: 72,
+    });
     doc.moveDown(0.4);
 
     doc.moveTo(390, doc.y).lineTo(562, doc.y).strokeColor('#333333').stroke();
@@ -310,7 +365,10 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
 
     doc.font('Helvetica-Bold').fontSize(11);
     doc.text('TOTAL:', totalsX, doc.y);
-    doc.text(L(invoice.total), totalsValX, doc.y - doc.currentLineHeight(), { align: 'right', width: 72 });
+    doc.text(L(invoice.total), totalsValX, doc.y - doc.currentLineHeight(), {
+      align: 'right',
+      width: 72,
+    });
     doc.moveDown(0.8);
 
     // ── Notas ──
@@ -321,7 +379,10 @@ function generateInvoicePdf(invoice: InvoiceForPdf): Promise<Buffer> {
     }
 
     // ── Footer ──
-    doc.fontSize(7).font('Helvetica').fillColor('#888888')
+    doc
+      .fontSize(7)
+      .font('Helvetica')
+      .fillColor('#888888')
       .text(
         `Documento generado por NexoERP • ${new Date().toISOString()}`,
         50,

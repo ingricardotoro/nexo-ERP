@@ -196,7 +196,6 @@ export function TenantProvider({ children, initialData }: TenantProviderProps) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo<TenantContextValue>(

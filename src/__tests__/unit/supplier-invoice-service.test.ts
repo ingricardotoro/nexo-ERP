@@ -129,6 +129,7 @@ function makeInvoiceRecord(status = 'DRAFT', overrides: Record<string, unknown> 
 }
 
 const VALID_CREATE_INPUT = {
+  invoiceType: 'FACTURA_COMPRA' as const,
   issueDate: '2026-03-01',
   contactId: CONTACT_ID,
   currencyCode: 'HNL',

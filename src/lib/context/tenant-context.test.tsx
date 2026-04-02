@@ -20,6 +20,7 @@ function TenantSnapshot() {
 describe('tenant-context', () => {
   afterEach(() => {
     cleanup();
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 

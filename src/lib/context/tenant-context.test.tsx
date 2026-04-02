@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TenantProvider, useTenant } from '@/lib/context/tenant-context';
 
@@ -19,6 +19,7 @@ function TenantSnapshot() {
 
 describe('tenant-context', () => {
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 

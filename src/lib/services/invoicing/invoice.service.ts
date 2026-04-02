@@ -248,9 +248,11 @@ export const invoiceService = {
    *
    * Steps:
    *  1. Resolve active CAI for the document type.
-   *  2. Validate tax rates belong to this company.
-   *  3. Calculate line amounts + invoice totals.
-   *  4. Insert invoice + lines in a transaction.
+   *  2. Validate originalInvoiceId rules for NC/ND.
+   *  3. Validate tax rates belong to this company.
+   *  4. Calculate line amounts + invoice totals.
+   *  4b. For credit notes, validate total doesn't exceed original remaining balance.
+   *  5. Insert invoice + lines in a transaction.
    */
   async createInvoice(
     companyId: string,
@@ -534,8 +536,9 @@ export const invoiceService = {
    *  2. Atomically assign the next SAR sequential number from the CAI range.
    *  3. Find the active Sales journal (SALES type) to book the accounting entry.
    *  4. Resolve the active fiscal period for the issue date.
-   *  5. Build and post the journal entry (debits AR + credits revenue + ISV payable).
-   *  6. Update invoice: status → PUBLISHED, invoiceNumber, sequenceNumber, journalEntryId.
+   *  5. Resolve system accounts (by systemPurpose, fallback by NIIF code).
+   *  6. Build and post the journal entry (debits AR + credits revenue + ISV payable).
+   *  7. Update invoice: status → PUBLISHED, invoiceNumber, sequenceNumber, journalEntryId.
    *
    * All in one $transaction for atomicity.
    */
@@ -772,8 +775,8 @@ export const invoiceService = {
           if (!fiscalPeriod) {
             throw new Error(
               `No existe un período fiscal abierto para la fecha de hoy (${today.toLocaleDateString('es-HN')}). ` +
-              'No se puede anular la factura sin registrar el asiento de reversión. ' +
-              'Abra el período fiscal correspondiente e intente de nuevo.',
+                'No se puede anular la factura sin registrar el asiento de reversión. ' +
+                'Abra el período fiscal correspondiente e intente de nuevo.',
             );
           }
 

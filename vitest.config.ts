@@ -57,9 +57,13 @@ export default defineConfig({
     // Globals (describe, it, expect sin imports)
     globals: true,
 
-    // Timeouts
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    // Timeouts (integration tests hitting real DB need more time)
+    testTimeout: 30000,
+    hookTimeout: 30000,
+
+    // Run test FILES sequentially to avoid DB deadlocks between integration tests
+    // (multi-tenant-isolation, accounting-isolation, invoicing-isolation all write to PostgreSQL)
+    fileParallelism: false,
   },
   resolve: {
     alias: {

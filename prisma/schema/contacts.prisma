@@ -1,0 +1,139 @@
+// prisma/schema/contacts.prisma
+// Módulo Contactos (Fase 2): PaymentTerms, Contact, ContactAddress, ContactPerson
+
+/// Términos de pago — tabla de negocio por empresa (RF-CONT-06).
+/// Configurable por tenant: cada empresa define sus plazos de pago.
+/// Seed inicial: Contado, Neto 15, Neto 30, Neto 60, Personalizado.
+model PaymentTerms {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  name         String // "Contado", "Neto 15", "Neto 30", "Neto 60", "Personalizado"
+  description  String?
+  daysUntilDue Int     @default(0) @map("days_until_due") // 0 = contado
+  isDefault    Boolean @default(false) @map("is_default")
+  isActive     Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  contacts         Contact[]
+  invoices         Invoice[] // facturas con este término de pago (Fase 3)
+  supplierInvoices SupplierInvoice[] // facturas de compra con este término de pago (F3-07)
+
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+  @@map("payment_terms")
+}
+
+/// Contacto (cliente y/o proveedor) — tabla de negocio multi-tenant.
+/// Un contacto puede ser cliente, proveedor o ambos simultáneamente (DA-CONT-01).
+/// RTN nullable para contactos extranjeros sin registro tributario hondureño (DA-CONT-03).
+model Contact {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  // Identidad
+  contactType ContactType @default(NATURAL) @map("contact_type")
+  legalName   String      @map("legal_name") // Razón social / nombre completo
+  tradeName   String?     @map("trade_name") // Nombre comercial (personas jurídicas)
+  // RTN: nullable para contactos extranjeros; UNIQUE(companyId, rtn) permite múltiples NULL
+  rtn         String?     @db.Citext
+
+  // Roles — flags independientes: puede ser cliente, proveedor o ambos
+  isCustomer Boolean @default(false) @map("is_customer")
+  isSupplier Boolean @default(false) @map("is_supplier")
+
+  // Datos de contacto principal
+  email   String? @db.Citext
+  phone   String?
+  website String?
+
+  // Términos de pago (FK opcional)
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id], onDelete: SetNull)
+
+  // Estado
+  isActive Boolean @default(true) @map("is_active")
+  notes    String?
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  addresses        ContactAddress[]
+  persons          ContactPerson[]
+  invoices         Invoice[] // facturas emitidas a/de este contacto (Fase 3)
+  supplierInvoices SupplierInvoice[] // facturas de compra de este proveedor (F3-07)
+
+  // Índices — company_id siempre primero (DAR-005)
+  // UNIQUE con rtn nullable: PostgreSQL permite múltiples NULL en constraints UNIQUE (DA-CONT-02)
+  @@unique([companyId, rtn])
+  @@index([companyId, isActive])
+  @@index([companyId, isCustomer])
+  @@index([companyId, isSupplier])
+  @@index([companyId, contactType])
+  @@index([companyId, legalName])
+  @@map("contacts")
+}
+
+/// Dirección de contacto — tabla hija con company_id propio para RLS directo.
+/// Un contacto puede tener múltiples direcciones de distintos tipos (RF-CONT-04).
+model ContactAddress {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // company_id desnormalizado: RLS opera sobre la fila directamente sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  contactId String  @map("contact_id") @db.Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  addressType AddressType @default(BILLING) @map("address_type")
+  isDefault   Boolean     @default(false) @map("is_default")
+
+  // Campos de dirección (Honduras-centric, flexible para extranjeros)
+  addressLine1 String  @map("address_line1")
+  addressLine2 String? @map("address_line2")
+  city         String
+  department   String? // Departamento de Honduras
+  country      String  @default("HN")
+  postalCode   String? @map("postal_code")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId, contactId])
+  @@map("contact_addresses")
+}
+
+/// Persona de contacto — tabla hija con company_id propio para RLS directo.
+/// Un contacto puede tener múltiples personas de contacto (RF-CONT-05).
+model ContactPerson {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // company_id desnormalizado: RLS opera sobre la fila directamente sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  contactId String  @map("contact_id") @db.Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  fullName  String  @map("full_name")
+  jobTitle  String? @map("job_title")
+  email     String? @db.Citext
+  phone     String?
+  isPrimary Boolean @default(false) @map("is_primary")
+  isActive  Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId, contactId])
+  @@map("contact_persons")
+}

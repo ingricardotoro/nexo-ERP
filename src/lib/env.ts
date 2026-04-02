@@ -32,6 +32,8 @@ const envSchema = z.object({
 
   // ============ AWS ============
   AWS_REGION: z.string().default('us-east-1'),
+  COGNITO_USER_POOL_ID: z.string().default('us-east-1_adYn3n5fz'),
+  COGNITO_USER_POOL_CLIENT_ID: z.string().default('5biqgmo64jb7i1ob9pl53hkfcq'),
 
   // ============ Email ============
   SMTP_HOST: z.string().optional(),
@@ -43,6 +45,9 @@ const envSchema = z.object({
 
   // ============ Storage (S3) ============
   S3_BUCKET_DOCUMENTS: z.string().optional(),
+
+  // ============ SQS (F3-09 PDF Generation) ============
+  SQS_QUEUE_URL_INVOICE_PDF: z.string().url().optional(),
 
   // ============ Monitoring ============
   SENTRY_DSN: z.string().url().optional().or(z.literal('')),

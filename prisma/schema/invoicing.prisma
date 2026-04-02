@@ -1,0 +1,424 @@
+// prisma/schema/invoicing.prisma
+// Módulo Facturación Honduras — Fase 3 (F3-01):
+// CAI (SAR), TaxRate, InvoiceSequence, Invoice, InvoiceLine
+//
+// Requerimientos SAR Honduras:
+//   - CAI: Código de Autorización de Impresión (autoriza rango de numeración)
+//   - Formato número: PPP-PPP-TT-NNNNNNNN (establecimiento-caja-tipo-correlativo)
+//   - ISV: Impuesto Sobre Ventas 15% (exento posible)
+//   - Límite de fecha: factura dentro del rango de vigencia del CAI
+
+// =============================================================================
+// Enums de Facturación
+// =============================================================================
+
+// InvoiceStatus ya definido en base.prisma:
+//   DRAFT, PUBLISHED (numerada SAR), PAID, CANCELLED
+
+/// Tipo de documento fiscal Honduras (SAR)
+enum InvoiceType {
+  FACTURA // 01 — Factura de venta al cliente
+  NOTA_CREDITO // 03 — Nota de crédito (reversa parcial o total)
+  NOTA_DEBITO // 04 — Nota de débito (cargo adicional)
+}
+
+// =============================================================================
+// CAI — Código de Autorización de Impresión (tabla de negocio multi-tenant)
+// =============================================================================
+
+/// CAI (Código de Autorización de Impresión) emitido por el SAR.
+/// Autoriza a una empresa a emitir facturas dentro de un rango numérico y período.
+///
+/// Formato CAI SAR: XXXXXX-XXXXXX-XXXXXX-XXXXXX-XXXXXX-XX (36 caracteres alfanuméricos)
+/// Estructura de número: PPP-PPP-TT-NNNNNNNN
+///   PPP = código establecimiento (3 dígitos)
+///   PPP = código caja/punto emisión (3 dígitos)
+///   TT  = tipo de documento (01=Factura, 03=NC, 04=ND)
+///   NNNNNNNN = correlativo autorizado por este CAI
+model CAI {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Código CAI tal como lo entrega el SAR
+  caiCode String @map("cai_code")
+
+  /// Código de establecimiento (3 dígitos, primer bloque PPP)
+  establishmentCode String @map("establishment_code") @db.VarChar(3)
+
+  /// Código de punto de emisión/caja (3 dígitos, segundo bloque PPP)
+  emissionPointCode String @map("emission_point_code") @db.VarChar(3)
+
+  /// Tipo de documento que autoriza este CAI (01=Factura, 03=NC, 04=ND)
+  documentType String @map("document_type") @db.VarChar(2)
+
+  /// Primer número autorizado del rango (NNNNNNNN)
+  rangeFrom Int @map("range_from")
+
+  /// Último número autorizado del rango (NNNNNNNN)
+  rangeTo Int @map("range_to")
+
+  /// Fecha de emisión del CAI por parte del SAR
+  issuedAt DateTime @map("issued_at") @db.Date
+
+  /// Fecha de vencimiento del CAI (facturas emitidas después son inválidas)
+  expiresAt DateTime @map("expires_at") @db.Date
+
+  /// CAI activo — solo un CAI por tipo de documento puede estar activo a la vez
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  invoices        Invoice[]
+  invoiceSequence InvoiceSequence?
+
+  // Un solo CAI activo por empresa+tipo de documento (se gestiona en la lógica de negocio)
+  @@unique([companyId, caiCode])
+  @@index([companyId, isActive])
+  @@index([companyId, documentType, isActive])
+  @@map("cais")
+}
+
+// =============================================================================
+// TaxRate — Tasa de impuesto (ISV Honduras)
+// =============================================================================
+
+/// Tasa de impuesto — catálogo por empresa.
+/// Honduras: ISV 15% (estándar), ISV 18% (bebidas alcohólicas/tabaco), EXENTO 0%.
+model TaxRate {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Código interno (e.g. "ISV15", "ISV18", "EXENTO")
+  code String
+
+  /// Nombre descriptivo (e.g. "ISV 15%", "ISV 18%", "Exento")
+  name String
+
+  /// Porcentaje como decimal (0.15 = 15%, 0 = exento)
+  rate Decimal @db.Decimal(5, 4)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  invoiceLines         InvoiceLine[]
+  supplierInvoiceLines SupplierInvoiceLine[]
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@map("tax_rates")
+}
+
+// =============================================================================
+// InvoiceSequence — correlativo atómico por CAI
+// =============================================================================
+
+/// Secuencia de numeración de facturas por CAI.
+/// Garantiza números únicos y consecutivos sin race conditions
+/// usando INSERT ... ON CONFLICT DO UPDATE (mismo patrón que JournalSequence).
+model InvoiceSequence {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  caiId String @unique @map("cai_id") @db.Uuid
+  cai   CAI    @relation(fields: [caiId], references: [id], onDelete: Restrict)
+
+  /// Último número emitido dentro del rango del CAI
+  lastNumber Int      @default(0) @map("last_number")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, caiId])
+  @@map("invoice_sequences")
+}
+
+// =============================================================================
+// Invoice — Factura / Nota de Crédito / Nota de Débito
+// =============================================================================
+
+/// Factura fiscal Honduras — cabecera del documento.
+/// Al emitirse (DRAFT → ISSUED):
+///   1. Se asigna número SAR correlativo del CAI
+///   2. Se genera asiento contable en el diario de Ventas (DJ-LV)
+///   3. El estado pasa a ISSUED (inmutable desde entonces)
+model Invoice {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// CAI que autoriza este documento
+  caiId String @map("cai_id") @db.Uuid
+  cai   CAI    @relation(fields: [caiId], references: [id], onDelete: Restrict)
+
+  /// Tipo de documento fiscal
+  invoiceType InvoiceType @map("invoice_type")
+
+  /// Estado del ciclo de vida (DRAFT → PUBLISHED → PAID | CANCELLED)
+  status InvoiceStatus @default(DRAFT)
+
+  /// Número SAR completo asignado al emitir: "PPP-PPP-TT-NNNNNNNN"
+  /// NULL mientras está en DRAFT
+  invoiceNumber String? @unique @map("invoice_number")
+
+  /// Solo el correlativo numérico (para cálculos de rango)
+  sequenceNumber Int? @map("sequence_number")
+
+  /// Fecha de emisión del documento
+  issueDate DateTime @map("issue_date") @db.Date
+
+  /// Fecha de vencimiento (pago diferido)
+  dueDate DateTime? @map("due_date") @db.Date
+
+  /// Cliente / proveedor
+  contactId String  @map("contact_id") @db.Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  /// Términos de pago (opcional)
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+
+  /// Moneda y tipo de cambio
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  exchangeRate Decimal  @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  /// Totales calculados (mantenidos al crear/actualizar líneas)
+  subtotal  Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @default(0) @db.Decimal(18, 2)
+
+  /// Notas o comentarios internos
+  notes String?
+
+  /// Asiento contable generado al emitir (null mientras DRAFT)
+  journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Para notas de crédito/débito: factura original que se referencia
+  originalInvoiceId String?   @map("original_invoice_id") @db.Uuid
+  originalInvoice   Invoice?  @relation("InvoiceCorrections", fields: [originalInvoiceId], references: [id])
+  corrections       Invoice[] @relation("InvoiceCorrections")
+
+  /// S3 key del PDF generado (null hasta que el Lambda lo genere)
+  pdfS3Key       String?   @map("pdf_s3_key")
+  /// Timestamp en que el PDF fue generado y subido a S3
+  pdfGeneratedAt DateTime? @map("pdf_generated_at")
+
+  /// Trazabilidad de ciclo de vida
+  createdBy    String    @map("created_by")
+  issuedBy     String?   @map("issued_by")
+  issuedAt     DateTime? @map("issued_at")
+  cancelledBy  String?   @map("cancelled_by")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lines InvoiceLine[]
+
+  // Índices — company_id siempre primero (DAR-005)
+  @@index([companyId, status])
+  @@index([companyId, invoiceType, status])
+  @@index([companyId, contactId])
+  @@index([companyId, issueDate])
+  @@index([companyId, caiId])
+  @@map("invoices")
+}
+
+// =============================================================================
+// InvoiceLine — línea de factura
+// =============================================================================
+
+/// Línea de factura — representa un ítem/servicio con impuesto aplicado.
+/// company_id desnormalizado para RLS (mismo patrón que JournalEntryLine).
+model InvoiceLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado para RLS sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  invoiceId String  @map("invoice_id") @db.Uuid
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  /// Orden de la línea dentro de la factura
+  lineNumber Int @map("line_number")
+
+  /// Descripción del producto o servicio
+  description String
+
+  /// Cantidad facturada
+  quantity Decimal @db.Decimal(12, 4)
+
+  /// Precio unitario (antes de impuesto)
+  unitPrice Decimal @map("unit_price") @db.Decimal(18, 4)
+
+  /// Porcentaje de descuento (0.00 - 100.00)
+  discountPct Decimal @default(0) @map("discount_pct") @db.Decimal(5, 2)
+
+  /// Subtotal de la línea: quantity * unitPrice * (1 - discountPct/100)
+  subtotal Decimal @db.Decimal(18, 2)
+
+  /// Tasa de impuesto aplicada (ISV 15%, exento, etc.)
+  taxRateId String  @map("tax_rate_id") @db.Uuid
+  taxRate   TaxRate @relation(fields: [taxRateId], references: [id], onDelete: Restrict)
+
+  /// Monto de impuesto calculado
+  taxAmount Decimal @map("tax_amount") @db.Decimal(18, 2)
+
+  /// Total de la línea = subtotal + taxAmount
+  total Decimal @db.Decimal(18, 2)
+
+  /// Cuenta contable de ingreso para el asiento automático (opcional)
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([invoiceId, lineNumber])
+  @@index([companyId, invoiceId])
+  @@map("invoice_lines")
+}
+
+// =============================================================================
+// SupplierInvoice — Factura de Compra / Proveedor (F3-07)
+// =============================================================================
+
+/// Tipo de documento de compra para registro de facturas de proveedores.
+enum SupplierInvoiceType {
+  FACTURA_COMPRA // Factura de compra estándar
+  NOTA_CREDITO_COMPRA // Nota de crédito de proveedor (ajuste a favor del comprador)
+}
+
+/// Factura de compra emitida por un proveedor — registrada como gasto/costo.
+/// Al registrar (DRAFT → POSTED):
+///   1. Se genera asiento contable en el diario de Compras:
+///      Debit  Gasto/Inventario (líneas)
+///      Debit  ISV Acreditable (si aplica)
+///      Credit Cuentas por Pagar (total)
+///   2. Estado pasa a POSTED (diferente de las facturas de venta para evitar confusión con SAR)
+model SupplierInvoice {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente (DAR-005)
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Tipo de documento de compra
+  invoiceType SupplierInvoiceType @default(FACTURA_COMPRA) @map("invoice_type")
+
+  /// Estado: DRAFT → POSTED → PAID | CANCELLED
+  status InvoiceStatus @default(DRAFT)
+
+  /// Número de factura del proveedor (tal como aparece en el documento físico)
+  supplierInvoiceNumber String? @map("supplier_invoice_number")
+
+  /// Fecha de emisión del documento del proveedor
+  issueDate DateTime @map("issue_date") @db.Date
+
+  /// Fecha de vencimiento para el pago
+  dueDate DateTime? @map("due_date") @db.Date
+
+  /// Proveedor que emite la factura
+  contactId String  @map("contact_id") @db.Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  /// Términos de pago (opcional)
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+
+  /// Moneda y tipo de cambio
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  exchangeRate Decimal  @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  /// Totales calculados
+  subtotal  Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @default(0) @db.Decimal(18, 2)
+
+  /// Notas o referencia interna
+  notes String?
+
+  /// Asiento contable generado al registrar (null mientras DRAFT)
+  journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Para notas de crédito de compra: factura original del proveedor que se referencia
+  originalInvoiceId String?           @map("original_invoice_id") @db.Uuid
+  originalInvoice   SupplierInvoice?  @relation("SupplierInvoiceCorrections", fields: [originalInvoiceId], references: [id])
+  corrections       SupplierInvoice[] @relation("SupplierInvoiceCorrections")
+
+  /// Trazabilidad
+  createdBy    String    @map("created_by")
+  postedBy     String?   @map("posted_by")
+  postedAt     DateTime? @map("posted_at")
+  cancelledBy  String?   @map("cancelled_by")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lines SupplierInvoiceLine[]
+
+  @@index([companyId, status])
+  @@index([companyId, invoiceType, status])
+  @@index([companyId, contactId])
+  @@index([companyId, issueDate])
+  @@map("supplier_invoices")
+}
+
+/// Línea de factura de compra — ítem/servicio recibido del proveedor.
+model SupplierInvoiceLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado para RLS sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  invoiceId String          @map("invoice_id") @db.Uuid
+  invoice   SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  lineNumber  Int    @map("line_number")
+  description String
+
+  quantity    Decimal @db.Decimal(12, 4)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(18, 4)
+  discountPct Decimal @default(0) @map("discount_pct") @db.Decimal(5, 2)
+
+  /// subtotal = quantity * unitPrice * (1 - discountPct/100)
+  subtotal Decimal @db.Decimal(18, 2)
+
+  taxRateId String  @map("tax_rate_id") @db.Uuid
+  taxRate   TaxRate @relation(fields: [taxRateId], references: [id], onDelete: Restrict)
+
+  taxAmount Decimal @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @db.Decimal(18, 2)
+
+  /// Cuenta contable de gasto/inventario para el asiento automático
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([invoiceId, lineNumber])
+  @@index([companyId, invoiceId])
+  @@map("supplier_invoice_lines")
+}

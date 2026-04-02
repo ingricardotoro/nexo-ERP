@@ -19,7 +19,10 @@ let configError: string | null = null;
 
 // Cargar y configurar Amplify al nivel del módulo (una sola vez, sin useEffect)
 try {
-  amplifyOutputs = require('../../amplify_outputs.json');
+  // Evitar que el bundler falle si el archivo no existe.
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const runtimeRequire = eval('require') as NodeRequire;
+  amplifyOutputs = runtimeRequire('../../amplify_outputs.json') as ResourcesConfig;
   Amplify.configure(amplifyOutputs!, {
     ssr: true, // Habilitar SSR support para Next.js App Router
   });

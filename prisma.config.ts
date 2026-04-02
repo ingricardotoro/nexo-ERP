@@ -4,12 +4,23 @@
 // @see https://pris.ly/prisma-config
 
 import path from 'node:path';
+import { createRequire } from 'node:module';
 
-import { config as loadDotenv } from 'dotenv';
 import { defineConfig } from 'prisma/config';
 
-// prisma.config.ts no carga .env.local automáticamente → cargar de forma explícita
-loadDotenv({ path: '.env.local' });
+const require = createRequire(import.meta.url);
+
+// En CI/Amplify, las variables llegan por entorno y dotenv puede no estar instalado.
+const shouldLoadDotenv = !process.env.CI && !process.env.AWS_BRANCH && !process.env.AMPLIFY_APP_ID;
+
+if (shouldLoadDotenv) {
+  try {
+    const { config: loadDotenv } = require('dotenv');
+    loadDotenv({ path: '.env.local' });
+  } catch {
+    // No bloquear prisma generate si dotenv no está disponible.
+  }
+}
 
 export default defineConfig({
   schema: path.join('prisma', 'schema'),

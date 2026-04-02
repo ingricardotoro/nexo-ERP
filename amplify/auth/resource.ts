@@ -1,4 +1,5 @@
 import { defineAuth } from '@aws-amplify/backend';
+import { postConfirmation } from '../functions/post-confirmation/resource.js';
 
 /**
  * NexoERP — Configuración de Autenticación (Cognito)
@@ -61,6 +62,11 @@ export const auth = defineAuth({
   multifactor: {
     mode: 'OPTIONAL',
     totp: true,
+  },
+
+  // Trigger PostConfirmation — sincroniza Cognito → PostgreSQL (Prisma)
+  triggers: {
+    postConfirmation,
   },
 
   // Configuración de cuenta

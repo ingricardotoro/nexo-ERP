@@ -66,6 +66,18 @@ model Company {
   bankTransactions     BankTransaction[]
   bankReconciliations  BankReconciliation[]
 
+  // Inventory (Fase 4)
+  productCategories ProductCategory[]
+  unitsOfMeasure    UnitOfMeasure[]
+  products          Product[]
+  warehouses        Warehouse[]
+  locations         Location[]
+  lots              Lot[]
+  stockQuants       StockQuant[]
+  stockMoves        StockMove[]
+  stockMoveLines    StockMoveLine[]
+  reorderRules      ReorderRule[]
+
   @@map("companies")
 }
 

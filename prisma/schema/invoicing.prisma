@@ -207,6 +207,9 @@ model Invoice {
   journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
 
+  /// Orden de venta que origina esta factura (FK a sales_orders.id — Sprint S3)
+  salesOrderId String? @map("sales_order_id") @db.Uuid
+
   /// Para notas de crédito/débito: factura original que se referencia
   originalInvoiceId String?   @map("original_invoice_id") @db.Uuid
   originalInvoice   Invoice?  @relation("InvoiceCorrections", fields: [originalInvoiceId], references: [id])
@@ -358,6 +361,9 @@ model SupplierInvoice {
   /// Asiento contable generado al registrar (null mientras DRAFT)
   journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Orden de compra que origina esta factura (FK a purchase_orders.id — Sprint S2)
+  purchaseOrderId String? @map("purchase_order_id") @db.Uuid
 
   /// Para notas de crédito de compra: factura original del proveedor que se referencia
   originalInvoiceId String?           @map("original_invoice_id") @db.Uuid

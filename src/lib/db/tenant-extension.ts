@@ -59,6 +59,19 @@ const BUSINESS_MODELS = [
   'InvoiceSequence',
   'Invoice',
   'InvoiceLine',
+  'SupplierInvoice',
+  'SupplierInvoiceLine',
+  // Inventory (Fase 4)
+  'ProductCategory',
+  'UnitOfMeasure',
+  'Product',
+  'Warehouse',
+  'Location',
+  'Lot',
+  'StockQuant',
+  'StockMove',
+  'StockMoveLine',
+  'ReorderRule',
 ] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 
@@ -87,6 +100,19 @@ const FORCE_RLS_MODELS = [
   'InvoiceSequence',
   'Invoice',
   'InvoiceLine',
+  'SupplierInvoice',
+  'SupplierInvoiceLine',
+  // Inventory (Fase 4)
+  'ProductCategory',
+  'UnitOfMeasure',
+  'Product',
+  'Warehouse',
+  'Location',
+  'Lot',
+  'StockQuant',
+  'StockMove',
+  'StockMoveLine',
+  'ReorderRule',
 ] as const;
 type ForceRlsModel = (typeof FORCE_RLS_MODELS)[number];
 

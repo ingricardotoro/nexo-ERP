@@ -70,6 +70,7 @@ model Contact {
   persons          ContactPerson[]
   invoices         Invoice[] // facturas emitidas a/de este contacto (Fase 3)
   supplierInvoices SupplierInvoice[] // facturas de compra de este proveedor (F3-07)
+  lots             Lot[] // lotes recibidos de este proveedor (Fase 4)
 
   // Índices — company_id siempre primero (DAR-005)
   // UNIQUE con rtn nullable: PostgreSQL permite múltiples NULL en constraints UNIQUE (DA-CONT-02)

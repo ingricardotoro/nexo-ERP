@@ -7,6 +7,7 @@ import {
   FileText,
   Users2,
   Package,
+  Warehouse,
   ShoppingCart,
   ReceiptText,
   Settings,
@@ -86,7 +87,7 @@ const navigation: NavigationGroup[] = [
     name: 'Inventarios',
     items: [
       { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
-      { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Package },
+      { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
     ],
     badge: 'Fase 4',
   },

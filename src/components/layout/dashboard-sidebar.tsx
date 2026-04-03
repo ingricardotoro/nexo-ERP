@@ -67,6 +67,11 @@ const navigation: NavigationGroup[] = [
     name: 'Facturación',
     items: [
       { name: 'Facturas', href: '/dashboard/invoicing/invoices', icon: ReceiptText },
+      {
+        name: 'Facturas Proveedor',
+        href: '/dashboard/invoicing/supplier-invoices',
+        icon: ShoppingCart,
+      },
       { name: 'CAI', href: '/dashboard/invoicing/cais', icon: Shield },
       { name: 'Tasas de Impuesto', href: '/dashboard/invoicing/tax-rates', icon: Percent },
     ],

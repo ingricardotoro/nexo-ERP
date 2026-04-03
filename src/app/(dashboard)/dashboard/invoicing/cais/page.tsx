@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Shield, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Shield, Loader2, AlertTriangle, BellRing } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, isPast, differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,62 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { createCaiSchema, type CreateCaiInput } from '@/lib/validations/cai.schema';
+import type { CaiAlert } from '@/app/api/v1/invoicing/cais/alerts/route';
+
+const DOCUMENT_TYPE_SHORT: Record<string, string> = {
+  '01': 'Factura',
+  '03': 'N. Crédito',
+  '04': 'N. Débito',
+};
+
+function CaiAlertBanner({ alerts }: { alerts: CaiAlert[] }) {
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {alerts.map((alert) => {
+        const isExpiry = alert.alertType === 'EXPIRY';
+        const isExpired = isExpiry && (alert.daysUntilExpiry ?? 0) < 0;
+        const colorClass = isExpired
+          ? 'border-red-300 bg-red-50 text-red-800'
+          : 'border-amber-300 bg-amber-50 text-amber-800';
+
+        return (
+          <div
+            key={`${alert.caiId}-${alert.alertType}`}
+            className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${colorClass}`}
+            role="alert"
+          >
+            <BellRing className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <span className="font-semibold">
+                {isExpiry
+                  ? isExpired
+                    ? 'CAI vencido'
+                    : 'CAI próximo a vencer'
+                  : 'Rango CAI casi agotado'}
+              </span>{' '}
+              — <span className="font-mono text-xs">{alert.caiCode.slice(0, 13)}…</span> (
+              {DOCUMENT_TYPE_SHORT[alert.documentType] ?? alert.documentType})
+              {isExpiry && (
+                <span className="ml-1">
+                  {isExpired
+                    ? `· Venció hace ${Math.abs(alert.daysUntilExpiry ?? 0)} día(s). Las facturas emitidas con este CAI son inválidas ante el SAR.`
+                    : `· Vence en ${alert.daysUntilExpiry} día(s). Solicita un nuevo CAI al SAR.`}
+                </span>
+              )}
+              {!isExpiry && (
+                <span className="ml-1">
+                  · {alert.rangeUsedPercent}% del rango utilizado. Solicita un nuevo CAI al SAR.
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface CaiData {
   id: string;
@@ -115,6 +171,7 @@ export default function CaisPage() {
   const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [caiAlerts, setCaiAlerts] = useState<CaiAlert[]>([]);
 
   const form = useForm<CreateCaiInput>({
     resolver: zodResolver(createCaiSchema),
@@ -134,13 +191,18 @@ export default function CaisPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/invoicing/cais', { credentials: 'include' });
-      const payload = (await response.json()) as ApiResponse<CaiData[]>;
+      const [caisRes, alertsRes] = await Promise.all([
+        fetch('/api/v1/invoicing/cais', { credentials: 'include' }),
+        fetch('/api/v1/invoicing/cais/alerts', { credentials: 'include' }),
+      ]);
+      const payload = (await caisRes.json()) as ApiResponse<CaiData[]>;
+      const alertsPayload = (await alertsRes.json()) as ApiResponse<CaiAlert[]>;
 
-      if (!response.ok || !payload.success || !payload.data) {
+      if (!caisRes.ok || !payload.success || !payload.data) {
         throw new Error(payload.error ?? 'Error al obtener CAIs');
       }
       setCais(payload.data);
+      if (alertsPayload.success) setCaiAlerts(alertsPayload.data ?? []);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido';
       setError(message);
@@ -217,6 +279,9 @@ export default function CaisPage() {
           Registrar CAI
         </Button>
       </div>
+
+      {/* RF-INV-05: Alert banner */}
+      <CaiAlertBanner alerts={caiAlerts} />
 
       {/* Tabla de CAIs */}
       <Card>

@@ -12,6 +12,8 @@ import {
   Settings,
   Shield,
   Percent,
+  Building2,
+  GitMerge,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -52,6 +54,12 @@ const navigation: NavigationGroup[] = [
       { name: 'Asientos', href: '/dashboard/accounting/entries', icon: FileText },
       { name: 'Tipos de Cambio', href: '/dashboard/accounting/exchange-rates', icon: FileText },
       { name: 'Reportes', href: '/dashboard/accounting/reports', icon: FileText },
+      { name: 'Cuentas Bancarias', href: '/dashboard/accounting/bank-accounts', icon: Building2 },
+      {
+        name: 'Conciliación Bancaria',
+        href: '/dashboard/accounting/bank-reconciliation',
+        icon: GitMerge,
+      },
     ],
     badge: 'Fase 2',
   },
@@ -59,6 +67,11 @@ const navigation: NavigationGroup[] = [
     name: 'Facturación',
     items: [
       { name: 'Facturas', href: '/dashboard/invoicing/invoices', icon: ReceiptText },
+      {
+        name: 'Facturas Proveedor',
+        href: '/dashboard/invoicing/supplier-invoices',
+        icon: ShoppingCart,
+      },
       { name: 'CAI', href: '/dashboard/invoicing/cais', icon: Shield },
       { name: 'Tasas de Impuesto', href: '/dashboard/invoicing/tax-rates', icon: Percent },
     ],

@@ -152,10 +152,11 @@ model Product {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relaciones hijas
-  lots         Lot[]
-  stockQuants  StockQuant[]
-  stockMoves   StockMove[]
-  reorderRules ReorderRule[]
+  lots               Lot[]
+  stockQuants        StockQuant[]
+  stockMoves         StockMove[]
+  reorderRules       ReorderRule[]
+  purchaseOrderLines PurchaseOrderLine[] // Sprint S2
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
@@ -188,7 +189,8 @@ model Warehouse {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  locations Location[]
+  locations      Location[]
+  purchaseOrders PurchaseOrder[] // Sprint S2
 
   @@unique([companyId, code])
   @@index([companyId, isActive])

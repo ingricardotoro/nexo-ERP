@@ -1,0 +1,145 @@
+// prisma/schema/purchasing.prisma
+// Módulo Compras — Fase 4 Sprint S2:
+// PurchaseOrder, PurchaseOrderLine
+//
+// Flujo: DRAFT → CONFIRMED → RECEIVED (parcial/total) → INVOICED | CANCELLED
+// Al confirmar: genera referencia PO/YYYY/NNNNN
+// Al recibir: crea StockMove (SUPPLIER → Warehouse) via stock-move.service
+// Al facturar: vincula SupplierInvoice.purchaseOrderId
+
+// =============================================================================
+// Enums de Compras
+// =============================================================================
+
+/// Estado del ciclo de vida de una orden de compra
+enum PurchaseOrderStatus {
+  DRAFT // Borrador — editable
+  CONFIRMED // Confirmada — enviada al proveedor, genera referencia PO
+  RECEIVED // Recibida (total o parcial) — stock actualizado
+  INVOICED // Facturada — SupplierInvoice vinculada
+  CANCELLED // Cancelada
+}
+
+// =============================================================================
+// PurchaseOrder — Orden de Compra
+// =============================================================================
+
+/// Orden de compra emitida a un proveedor.
+/// Al confirmar (DRAFT → CONFIRMED) se asigna un número correlativo PO/YYYY/NNNNN.
+/// Al recibir (CONFIRMED → RECEIVED) se dispara la creación del StockMove.
+/// Al facturar (RECEIVED → INVOICED) se vincula con SupplierInvoice.
+model PurchaseOrder {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Número correlativo asignado al confirmar (null mientras DRAFT)
+  /// Formato: PO/2025/00001
+  orderNumber String? @unique @map("order_number")
+
+  status PurchaseOrderStatus @default(DRAFT)
+
+  /// Proveedor
+  supplierId String  @map("supplier_id") @db.Uuid
+  supplier   Contact @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  /// Términos de pago
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+
+  /// Moneda y tipo de cambio
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  exchangeRate Decimal  @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  /// Fecha esperada de entrega
+  expectedDate DateTime @map("expected_date") @db.Date
+
+  /// Almacén de destino para la recepción
+  warehouseId String?    @map("warehouse_id") @db.Uuid
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  /// Totales calculados
+  subtotal  Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @default(0) @db.Decimal(18, 2)
+
+  notes String?
+
+  /// Trazabilidad
+  createdBy    String    @map("created_by")
+  confirmedBy  String?   @map("confirmed_by")
+  confirmedAt  DateTime? @map("confirmed_at")
+  cancelledBy  String?   @map("cancelled_by")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lines            PurchaseOrderLine[]
+  supplierInvoices SupplierInvoice[]
+
+  @@index([companyId, status])
+  @@index([companyId, supplierId])
+  @@index([companyId, expectedDate])
+  @@map("purchase_orders")
+}
+
+// =============================================================================
+// PurchaseOrderLine — Línea de Orden de Compra
+// =============================================================================
+
+/// Línea de orden de compra — un producto con cantidad y precio acordado.
+model PurchaseOrderLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// company_id desnormalizado para RLS sin JOIN al padre
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  lineNumber Int @map("line_number")
+
+  /// Producto a comprar
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  description String? // Descripción override (si difiere del nombre del producto)
+
+  /// Cantidad ordenada
+  qtyOrdered Decimal @map("qty_ordered") @db.Decimal(12, 4)
+
+  /// Cantidad recibida (se actualiza al crear recepciones)
+  qtyReceived Decimal @default(0) @map("qty_received") @db.Decimal(12, 4)
+
+  /// Precio unitario negociado
+  unitPrice Decimal @map("unit_price") @db.Decimal(18, 4)
+
+  discountPct Decimal @default(0) @map("discount_pct") @db.Decimal(5, 2)
+
+  /// subtotal = qtyOrdered * unitPrice * (1 - discountPct/100)
+  subtotal Decimal @db.Decimal(18, 2)
+
+  taxRateId String  @map("tax_rate_id") @db.Uuid
+  taxRate   TaxRate @relation(fields: [taxRateId], references: [id], onDelete: Restrict)
+
+  taxAmount Decimal @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @db.Decimal(18, 2)
+
+  /// Cuenta contable de gasto/inventario
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([purchaseOrderId, lineNumber])
+  @@index([companyId, purchaseOrderId])
+  @@index([companyId, productId])
+  @@map("purchase_order_lines")
+}

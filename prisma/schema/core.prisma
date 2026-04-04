@@ -66,6 +66,10 @@ model Company {
   bankTransactions     BankTransaction[]
   bankReconciliations  BankReconciliation[]
 
+  // Purchasing (Fase 4 Sprint S2)
+  purchaseOrders     PurchaseOrder[]
+  purchaseOrderLines PurchaseOrderLine[]
+
   // Inventory (Fase 4)
   productCategories ProductCategory[]
   unitsOfMeasure    UnitOfMeasure[]

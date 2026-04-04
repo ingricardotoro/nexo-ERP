@@ -7,7 +7,11 @@ import {
   FileText,
   Users2,
   Package,
+  Warehouse,
+  PackageCheck,
+  Layers,
   ShoppingCart,
+  ClipboardList,
   ReceiptText,
   Settings,
   Shield,
@@ -86,7 +90,20 @@ const navigation: NavigationGroup[] = [
     name: 'Inventarios',
     items: [
       { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
-      { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Package },
+      { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
+      { name: 'Lotes y Series', href: '/dashboard/inventory/lots', icon: Layers },
+      { name: 'Recepciones', href: '/dashboard/inventory/receptions', icon: PackageCheck },
+    ],
+    badge: 'Fase 4',
+  },
+  {
+    name: 'Compras',
+    items: [
+      {
+        name: 'Órdenes de Compra',
+        href: '/dashboard/purchasing/purchase-orders',
+        icon: ClipboardList,
+      },
     ],
     badge: 'Fase 4',
   },

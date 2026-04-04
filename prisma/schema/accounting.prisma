@@ -47,6 +47,8 @@ model Currency {
   invoices         Invoice[] // facturas en esta moneda (Fase 3)
   supplierInvoices SupplierInvoice[] // facturas de compra en esta moneda (F3-07)
   bankAccounts     BankAccount[] // cuentas bancarias en esta moneda (F2-13)
+  purchaseOrders   PurchaseOrder[] // órdenes de compra en esta moneda (Fase 4 S2)
+  salesOrders      SalesOrder[] // pedidos de venta en esta moneda (Fase 4 S3)
 
   @@map("currencies")
 }
@@ -131,6 +133,8 @@ model Account {
   journalEntryLines    JournalEntryLine[]
   invoiceLines         InvoiceLine[] // líneas de factura que usan esta cuenta (Fase 3)
   supplierInvoiceLines SupplierInvoiceLine[] // líneas de factura de compra (F3-07)
+  purchaseOrderLines   PurchaseOrderLine[] // líneas de OC (Fase 4 S2)
+  salesOrderLines      SalesOrderLine[] // líneas de pedido de venta (Fase 4 S3)
   bankAccounts         BankAccount[] // cuentas bancarias vinculadas (F2-13)
 
   // Índices — company_id siempre primero (DAR-005)

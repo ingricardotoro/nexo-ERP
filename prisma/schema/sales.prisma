@@ -1,0 +1,128 @@
+// prisma/schema/sales.prisma
+// Módulo Ventas — Fase 4 Sprint S3:
+// SalesOrder, SalesOrderLine
+//
+// Flujo: DRAFT → CONFIRMED → DELIVERED (parcial/total) → INVOICED | CANCELLED
+// Al confirmar: genera referencia SO/YYYY/NNNNN
+// Al despachar: crea StockMove (Warehouse → CUSTOMER) via stock-move.service
+// Al facturar: vincula Invoice.salesOrderId
+
+// =============================================================================
+// Enums de Ventas
+// =============================================================================
+
+/// Estado del ciclo de vida de un pedido de venta
+enum SalesOrderStatus {
+  DRAFT // Borrador — editable
+  CONFIRMED // Confirmado — enviado al cliente, genera referencia SO
+  DELIVERED // Despachado (total o parcial) — stock actualizado
+  INVOICED // Facturado — Invoice vinculada
+  CANCELLED // Cancelado
+}
+
+// =============================================================================
+// Modelos de Ventas
+// =============================================================================
+
+/// Pedido de Venta (Sales Order)
+/// Representa la intención de vender productos a un cliente con
+/// condiciones de precio, cantidad, fecha de entrega y condiciones de pago.
+model SalesOrder {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id])
+
+  /// Referencia pública: SO/YYYY/NNNNN (asignada al confirmar)
+  orderNumber String? @unique @map("order_number")
+
+  status SalesOrderStatus @default(DRAFT)
+
+  // ── Partes ───────────────────────────────────────────────────────────────
+  /// Cliente (Contact con isCustomer = true)
+  customerId String  @map("customer_id") @db.Uuid
+  customer   Contact @relation(fields: [customerId], references: [id])
+
+  /// Condiciones de pago acordadas
+  paymentTermsId String?       @map("payment_terms_id") @db.Uuid
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+
+  // ── Moneda ───────────────────────────────────────────────────────────────
+  currencyCode String   @default("HNL") @map("currency_code")
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  exchangeRate Decimal  @default(1) @map("exchange_rate") @db.Decimal(12, 6)
+
+  // ── Logística ────────────────────────────────────────────────────────────
+  /// Fecha de entrega comprometida
+  deliveryDate DateTime   @map("delivery_date") @db.Date
+  /// Almacén desde donde se despachará el pedido
+  warehouseId  String?    @map("warehouse_id") @db.Uuid
+  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  // ── Totales ──────────────────────────────────────────────────────────────
+  subtotal  Decimal @default(0) @db.Decimal(18, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @default(0) @db.Decimal(18, 2)
+
+  // ── Metadata ─────────────────────────────────────────────────────────────
+  notes String?
+
+  // ── Trazabilidad ─────────────────────────────────────────────────────────
+  createdBy    String    @map("created_by")
+  confirmedBy  String?   @map("confirmed_by")
+  confirmedAt  DateTime? @map("confirmed_at")
+  cancelledBy  String?   @map("cancelled_by")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // ── Relaciones inversas ──────────────────────────────────────────────────
+  lines    SalesOrderLine[]
+  invoices Invoice[]
+
+  @@index([companyId, status])
+  @@index([companyId, customerId])
+  @@index([companyId, deliveryDate])
+  @@map("sales_orders")
+}
+
+/// Línea de un Pedido de Venta
+model SalesOrderLine {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId    String     @map("company_id") @db.Uuid
+  company      Company    @relation(fields: [companyId], references: [id])
+  salesOrderId String     @map("sales_order_id") @db.Uuid
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  /// Posición de la línea dentro del pedido (1-based)
+  lineNumber Int @map("line_number")
+
+  // ── Producto ─────────────────────────────────────────────────────────────
+  productId   String  @map("product_id") @db.Uuid
+  product     Product @relation(fields: [productId], references: [id])
+  description String?
+
+  // ── Cantidades ───────────────────────────────────────────────────────────
+  qtyOrdered   Decimal @map("qty_ordered") @db.Decimal(12, 4)
+  qtyDelivered Decimal @default(0) @map("qty_delivered") @db.Decimal(12, 4)
+
+  // ── Precio ───────────────────────────────────────────────────────────────
+  unitPrice   Decimal @map("unit_price") @db.Decimal(18, 4)
+  discountPct Decimal @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  subtotal    Decimal @db.Decimal(18, 2)
+
+  // ── Impuesto ─────────────────────────────────────────────────────────────
+  taxRateId String  @map("tax_rate_id") @db.Uuid
+  taxRate   TaxRate @relation(fields: [taxRateId], references: [id])
+  taxAmount Decimal @map("tax_amount") @db.Decimal(18, 2)
+  total     Decimal @db.Decimal(18, 2)
+
+  // ── Cuenta contable de ingresos ──────────────────────────────────────────
+  accountId String?  @map("account_id") @db.Uuid
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([salesOrderId, lineNumber])
+  @@map("sales_order_lines")
+}

@@ -1,0 +1,464 @@
+// prisma/schema/inventory.prisma
+// Módulo Inventarios — Fase 4 (Sprint Inventario-A):
+// ProductCategory, UnitOfMeasure, Product, Warehouse, Location,
+// Lot, StockQuant, StockMove, StockMoveLine, ReorderRule
+//
+// Características:
+//   - Tracking por lote/serial: TrackingType enum (NONE/LOT/SERIAL)
+//   - FEFO (First Expiry First Out) via expirationDate en Lot
+//   - Jerarquía de ubicaciones por almacén (Location tree)
+//   - Locaciones virtuales SUPPLIER/CUSTOMER para entradas/salidas
+//   - StockMove (cabecera) + StockMoveLine (por lote) para trazabilidad
+
+// =============================================================================
+// Enums de Inventario
+// =============================================================================
+
+/// Tipo de rastreo de producto — determina si se exige número de lote o serie
+/// en los movimientos de stock.
+///   NONE   — no se rastrean lotes ni series (la mayoría de productos genéricos)
+///   LOT    — se rastrean lotes (varios unidades comparten el mismo lote)
+///   SERIAL — se rastrea por número de serie (cada unidad tiene número único)
+enum TrackingType {
+  NONE
+  LOT
+  SERIAL
+}
+
+/// Tipo de ubicación de inventario
+enum LocationType {
+  INTERNAL // Ubicación real dentro de un almacén (zona, pasillo, bin)
+  SUPPLIER // Virtual: origen para recepciones de proveedores (una por empresa)
+  CUSTOMER // Virtual: destino para entregas a clientes (una por empresa)
+  SCRAPPING // Virtual: destino para mermas/desperdicios
+  TRANSIT // Tránsito entre almacenes
+}
+
+/// Estado de un movimiento de stock
+enum StockMoveState {
+  DRAFT // Confirmado pero no iniciado
+  CONFIRMED // Listo para ejecutar
+  DONE // Completado — quants actualizados
+  CANCELLED // Anulado sin efecto
+}
+
+// =============================================================================
+// ProductCategory — Categoría de producto (jerarquía)
+// =============================================================================
+
+/// Categoría de producto — permite clasificar productos en árbol jerárquico.
+/// Ejemplo: Alimentos > Lácteos > Quesos
+model ProductCategory {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Categoría padre (null = categoría raíz)
+  parentId String?           @map("parent_id") @db.Uuid
+  parent   ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ProductCategory[] @relation("CategoryHierarchy")
+
+  name String
+  code String? // Código corto opcional
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+  @@index([companyId, parentId])
+  @@map("product_categories")
+}
+
+// =============================================================================
+// UnitOfMeasure — Unidad de medida
+// =============================================================================
+
+/// Unidad de medida del producto — catálogo por empresa.
+/// Ejemplos: kg, lt, unidad, caja, docena.
+model UnitOfMeasure {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  name   String // "Kilogramo", "Litro", "Unidad"
+  symbol String // "kg", "lt", "un"
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@unique([companyId, symbol])
+  @@index([companyId, isActive])
+  @@map("units_of_measure")
+}
+
+// =============================================================================
+// Product — Catálogo de productos
+// =============================================================================
+
+/// Producto del catálogo — representa cualquier ítem inventariable o de servicio.
+/// El campo trackingType controla si se exigen lotes/series en movimientos.
+model Product {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Multi-tenant — siempre presente
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  categoryId String?          @map("category_id") @db.Uuid
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+
+  unitOfMeasureId String        @map("unit_of_measure_id") @db.Uuid
+  unitOfMeasure   UnitOfMeasure @relation(fields: [unitOfMeasureId], references: [id], onDelete: Restrict)
+
+  /// Código interno único por empresa (SKU)
+  code String
+
+  name        String
+  description String?
+  barcode     String? // Código de barras / EAN
+
+  /// Tipo de rastreo: NONE (sin lotes), LOT (por lote), SERIAL (por serie)
+  trackingType TrackingType @default(NONE) @map("tracking_type")
+
+  /// Precio de costo (valoración FIFO/promedio — Sprint Inventario-C)
+  costPrice Decimal @default(0) @map("cost_price") @db.Decimal(18, 4)
+
+  /// Precio de venta sugerido
+  salePrice Decimal @default(0) @map("sale_price") @db.Decimal(18, 4)
+
+  /// Cuenta contable de inventario (FK sin @relation — Sprint Inventario-B integrará con accounting)
+  /// Referencia a accounts.id
+  inventoryAccountId String? @map("inventory_account_id") @db.Uuid
+
+  /// Cuenta contable de costo de ventas (COGS)
+  /// Referencia a accounts.id
+  cogsAccountId String? @map("cogs_account_id") @db.Uuid
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  lots               Lot[]
+  stockQuants        StockQuant[]
+  stockMoves         StockMove[]
+  reorderRules       ReorderRule[]
+  purchaseOrderLines PurchaseOrderLine[] // Sprint S2
+  salesOrderLines    SalesOrderLine[] // Sprint S3
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@index([companyId, categoryId])
+  @@index([companyId, trackingType])
+  @@map("products")
+}
+
+// =============================================================================
+// Warehouse — Almacén físico
+// =============================================================================
+
+/// Almacén o bodega — representa una instalación física de almacenamiento.
+/// Cada almacén contiene un árbol de ubicaciones (Location).
+model Warehouse {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Código corto único (ej: "BGA", "SPS", "CEI")
+  code String @db.VarChar(10)
+
+  name    String
+  address String?
+  city    String?
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  locations      Location[]
+  purchaseOrders PurchaseOrder[] // Sprint S2
+  salesOrders    SalesOrder[] // Sprint S3
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@map("warehouses")
+}
+
+// =============================================================================
+// Location — Ubicación dentro de un almacén (árbol)
+// =============================================================================
+
+/// Ubicación de inventario — puede ser real (bin, zona) o virtual (SUPPLIER, CUSTOMER).
+/// Las ubicaciones virtuales SUPPLIER y CUSTOMER se crean automáticamente en el seed
+/// de empresa y sirven como origen/destino de movimientos de entrada/salida.
+model Location {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Almacén al que pertenece (null para ubicaciones virtuales como SUPPLIER/CUSTOMER)
+  warehouseId String?    @map("warehouse_id") @db.Uuid
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  /// Ubicación padre (null = ubicación raíz del almacén o raíz virtual)
+  parentId String?    @map("parent_id") @db.Uuid
+  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children Location[] @relation("LocationHierarchy")
+
+  locationType LocationType @map("location_type")
+
+  name     String
+  /// Código de ruta completo (ej: "WH/ZONA-A/BIN-01")
+  fullPath String? @map("full_path")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  stockQuants  StockQuant[]
+  movesFrom    StockMove[]   @relation("MoveFromLocation")
+  movesTo      StockMove[]   @relation("MoveToLocation")
+  reorderRules ReorderRule[]
+
+  @@index([companyId, locationType])
+  @@index([companyId, warehouseId])
+  @@index([companyId, isActive])
+  @@map("locations")
+}
+
+// =============================================================================
+// Lot — Lote / Número de serie
+// =============================================================================
+
+/// Lote o número de serie de producto — usado para trazabilidad completa.
+///
+/// FEFO (First Expiry First Out): el servicio ordena los lotes por expirationDate
+/// ASC al momento de selección para despacho, priorizando los que vencen antes.
+///
+/// Unicidad: @@unique([companyId, productId, lotNumber])
+///   - Dos productos distintos pueden tener el mismo número de lote.
+///   - Para rastreo SERIAL, lotNumber = número de serie individual.
+model Lot {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  /// Proveedor del que proviene este lote (para trazabilidad de compras)
+  supplierId String?  @map("supplier_id") @db.Uuid
+  supplier   Contact? @relation(fields: [supplierId], references: [id])
+
+  /// Número de lote (alfanumérico, tal como aparece en el empaque del proveedor)
+  /// Para SERIAL: número de serie único de la unidad
+  lotNumber String @map("lot_number")
+
+  manufacturingDate DateTime? @map("manufacturing_date") @db.Date
+  expirationDate    DateTime? @map("expiration_date") @db.Date
+
+  notes    String?
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones hijas
+  stockQuants    StockQuant[]
+  stockMoveLines StockMoveLine[]
+
+  /// Unicidad: un número de lote es único por empresa+producto
+  @@unique([companyId, productId, lotNumber])
+  @@index([companyId, productId])
+  @@index([companyId, expirationDate]) // Para alertas FEFO y FEFO sorting
+  @@map("lots")
+}
+
+// =============================================================================
+// StockQuant — Saldo de stock por ubicación/lote
+// =============================================================================
+
+/// Stock en mano — representa la cantidad de un producto (opcionalmente en un lote)
+/// disponible en una ubicación específica.
+///
+/// PostgreSQL UNIQUE con NULL: la constraint @@unique([companyId, productId, locationId, lotId])
+/// permite MÚLTIPLES filas con lotId = NULL (productos NONE) porque NULL ≠ NULL en SQL.
+/// Para garantizar unicidad en NONE tracking se usa un unique index parcial en la migración:
+///   CREATE UNIQUE INDEX uq_stock_quant_no_lot ON stock_quants (company_id, product_id, location_id) WHERE lot_id IS NULL;
+model StockQuant {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationId String   @map("location_id") @db.Uuid
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  /// null para productos con TrackingType.NONE
+  lotId String? @map("lot_id") @db.Uuid
+  lot   Lot?    @relation(fields: [lotId], references: [id])
+
+  /// Cantidad disponible (puede ser negativa en casos de ajuste pendiente)
+  quantity Decimal @default(0) @db.Decimal(12, 4)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([companyId, productId])
+  @@index([companyId, locationId])
+  @@index([companyId, lotId])
+  @@map("stock_quants")
+}
+
+// =============================================================================
+// StockMove — Movimiento de stock (cabecera)
+// =============================================================================
+
+/// Movimiento de stock — documento que registra la transferencia de un producto
+/// entre dos ubicaciones. Para productos con lotes, las cantidades por lote
+/// se detallan en StockMoveLine.
+///
+/// Flujos típicos:
+///   Recepción:  SUPPLIER → WH/Almacén
+///   Entrega:    WH/Almacén → CUSTOMER
+///   Ajuste:     WH/Almacén ↔ (ajuste manual con contrapartida virtual)
+///   Traslado:   WH1/Bin-A → WH2/Bin-B
+model StockMove {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  fromLocationId String   @map("from_location_id") @db.Uuid
+  fromLocation   Location @relation("MoveFromLocation", fields: [fromLocationId], references: [id], onDelete: Restrict)
+
+  toLocationId String   @map("to_location_id") @db.Uuid
+  toLocation   Location @relation("MoveToLocation", fields: [toLocationId], references: [id], onDelete: Restrict)
+
+  state StockMoveState @default(DRAFT)
+
+  /// Fecha programada del movimiento
+  scheduledDate DateTime @map("scheduled_date") @db.Date
+
+  /// Fecha real de ejecución (se establece al marcar DONE)
+  doneDate DateTime? @map("done_date") @db.Date
+
+  /// Cantidad solicitada
+  qtyDemand Decimal @default(0) @map("qty_demand") @db.Decimal(12, 4)
+
+  /// Cantidad realmente movida (suma de StockMoveLine.doneQty)
+  qtyDone Decimal @default(0) @map("qty_done") @db.Decimal(12, 4)
+
+  /// Referencia del documento origen (ej: "PO/2025/00001", "SO/2025/00001")
+  reference String?
+
+  notes String?
+
+  createdBy String @map("created_by") // cognito sub del usuario
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  lines StockMoveLine[]
+
+  @@index([companyId, state])
+  @@index([companyId, productId])
+  @@index([companyId, scheduledDate])
+  @@index([companyId, reference])
+  @@map("stock_moves")
+}
+
+// =============================================================================
+// StockMoveLine — Línea de movimiento por lote
+// =============================================================================
+
+/// Línea de movimiento de stock — detalla la cantidad movida por lote/serie.
+/// Para productos con TrackingType.NONE, habrá exactamente una línea sin lotId.
+/// Para LOT/SERIAL, puede haber múltiples líneas con distintos lotes.
+model StockMoveLine {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  stockMoveId String    @map("stock_move_id") @db.Uuid
+  stockMove   StockMove @relation(fields: [stockMoveId], references: [id], onDelete: Cascade)
+
+  /// null para productos con TrackingType.NONE
+  lotId String? @map("lot_id") @db.Uuid
+  lot   Lot?    @relation(fields: [lotId], references: [id])
+
+  /// Cantidad solicitada para este lote
+  quantity Decimal @db.Decimal(12, 4)
+
+  /// Cantidad realmente movida de este lote (se completa al ejecutar)
+  doneQty Decimal @default(0) @map("done_qty") @db.Decimal(12, 4)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, stockMoveId])
+  @@index([companyId, lotId])
+  @@map("stock_move_lines")
+}
+
+// =============================================================================
+// ReorderRule — Regla de reabastecimiento automático
+// =============================================================================
+
+/// Regla de reabastecimiento — define los umbrales mínimo/máximo de stock
+/// por producto y ubicación. El servicio de scheduler evalúa estas reglas
+/// y genera órdenes de compra cuando el stock cae por debajo de minQty.
+model ReorderRule {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  companyId String  @map("company_id") @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  productId String  @map("product_id") @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationId String   @map("location_id") @db.Uuid
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  /// Stock mínimo — al llegar a este nivel se genera una orden de compra
+  minQty Decimal @map("min_qty") @db.Decimal(12, 4)
+
+  /// Stock máximo — la orden de compra llena hasta este nivel
+  maxQty Decimal @map("max_qty") @db.Decimal(12, 4)
+
+  /// Múltiplo de cantidad para la orden (ej: 12 = siempre comprar en cajas de 12)
+  qtyMultiple Decimal @default(1) @map("qty_multiple") @db.Decimal(12, 4)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([companyId, productId, locationId])
+  @@index([companyId, isActive])
+  @@map("reorder_rules")
+}

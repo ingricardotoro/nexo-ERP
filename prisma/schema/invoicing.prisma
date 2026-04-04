@@ -113,6 +113,8 @@ model TaxRate {
   // Relaciones
   invoiceLines         InvoiceLine[]
   supplierInvoiceLines SupplierInvoiceLine[]
+  purchaseOrderLines   PurchaseOrderLine[] // Sprint S2
+  salesOrderLines      SalesOrderLine[] // Sprint S3
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
@@ -206,6 +208,10 @@ model Invoice {
   /// Asiento contable generado al emitir (null mientras DRAFT)
   journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Orden de venta que origina esta factura (Sprint S3)
+  salesOrderId String?     @map("sales_order_id") @db.Uuid
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
 
   /// Para notas de crédito/débito: factura original que se referencia
   originalInvoiceId String?   @map("original_invoice_id") @db.Uuid
@@ -358,6 +364,10 @@ model SupplierInvoice {
   /// Asiento contable generado al registrar (null mientras DRAFT)
   journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  /// Orden de compra que origina esta factura (Sprint S2)
+  purchaseOrderId String?        @map("purchase_order_id") @db.Uuid
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
 
   /// Para notas de crédito de compra: factura original del proveedor que se referencia
   originalInvoiceId String?           @map("original_invoice_id") @db.Uuid

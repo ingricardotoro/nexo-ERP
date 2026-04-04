@@ -8,6 +8,8 @@ import {
   Users2,
   Package,
   Warehouse,
+  PackageCheck,
+  Layers,
   ShoppingCart,
   ReceiptText,
   Settings,
@@ -88,6 +90,8 @@ const navigation: NavigationGroup[] = [
     items: [
       { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
       { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
+      { name: 'Lotes y Series', href: '/dashboard/inventory/lots', icon: Layers },
+      { name: 'Recepciones', href: '/dashboard/inventory/receptions', icon: PackageCheck },
     ],
     badge: 'Fase 4',
   },

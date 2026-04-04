@@ -157,6 +157,7 @@ model Product {
   stockMoves         StockMove[]
   reorderRules       ReorderRule[]
   purchaseOrderLines PurchaseOrderLine[] // Sprint S2
+  salesOrderLines    SalesOrderLine[] // Sprint S3
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
@@ -191,6 +192,7 @@ model Warehouse {
 
   locations      Location[]
   purchaseOrders PurchaseOrder[] // Sprint S2
+  salesOrders    SalesOrder[] // Sprint S3
 
   @@unique([companyId, code])
   @@index([companyId, isActive])

@@ -114,6 +114,7 @@ model TaxRate {
   invoiceLines         InvoiceLine[]
   supplierInvoiceLines SupplierInvoiceLine[]
   purchaseOrderLines   PurchaseOrderLine[] // Sprint S2
+  salesOrderLines      SalesOrderLine[] // Sprint S3
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
@@ -208,8 +209,9 @@ model Invoice {
   journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
 
-  /// Orden de venta que origina esta factura (FK a sales_orders.id — Sprint S3)
-  salesOrderId String? @map("sales_order_id") @db.Uuid
+  /// Orden de venta que origina esta factura (Sprint S3)
+  salesOrderId String?     @map("sales_order_id") @db.Uuid
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
 
   /// Para notas de crédito/débito: factura original que se referencia
   originalInvoiceId String?   @map("original_invoice_id") @db.Uuid

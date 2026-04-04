@@ -23,6 +23,7 @@ model PaymentTerms {
   invoices         Invoice[] // facturas con este término de pago (Fase 3)
   supplierInvoices SupplierInvoice[] // facturas de compra con este término de pago (F3-07)
   purchaseOrders   PurchaseOrder[] // órdenes de compra con este término de pago (Fase 4 S2)
+  salesOrders      SalesOrder[] // pedidos de venta con este término de pago (Fase 4 S3)
 
   @@unique([companyId, name])
   @@index([companyId, isActive])
@@ -73,6 +74,7 @@ model Contact {
   supplierInvoices SupplierInvoice[] // facturas de compra de este proveedor (F3-07)
   lots             Lot[] // lotes recibidos de este proveedor (Fase 4)
   purchaseOrders   PurchaseOrder[] // órdenes de compra a este proveedor (Fase 4 S2)
+  salesOrders      SalesOrder[] // pedidos de venta a este cliente (Fase 4 S3)
 
   // Índices — company_id siempre primero (DAR-005)
   // UNIQUE con rtn nullable: PostgreSQL permite múltiples NULL en constraints UNIQUE (DA-CONT-02)

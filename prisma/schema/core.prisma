@@ -70,6 +70,10 @@ model Company {
   purchaseOrders     PurchaseOrder[]
   purchaseOrderLines PurchaseOrderLine[]
 
+  // Sales (Fase 4 Sprint S3)
+  salesOrders     SalesOrder[]
+  salesOrderLines SalesOrderLine[]
+
   // Inventory (Fase 4)
   productCategories ProductCategory[]
   unitsOfMeasure    UnitOfMeasure[]

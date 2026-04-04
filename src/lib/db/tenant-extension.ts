@@ -64,6 +64,9 @@ const BUSINESS_MODELS = [
   // Purchasing (Fase 4 Sprint S2)
   'PurchaseOrder',
   'PurchaseOrderLine',
+  // Sales (Fase 4 Sprint S3)
+  'SalesOrder',
+  'SalesOrderLine',
   // Inventory (Fase 4)
   'ProductCategory',
   'UnitOfMeasure',
@@ -108,6 +111,9 @@ const FORCE_RLS_MODELS = [
   // Purchasing (Fase 4 Sprint S2)
   'PurchaseOrder',
   'PurchaseOrderLine',
+  // Sales (Fase 4 Sprint S3)
+  'SalesOrder',
+  'SalesOrderLine',
   // Inventory (Fase 4)
   'ProductCategory',
   'UnitOfMeasure',

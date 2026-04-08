@@ -5,6 +5,7 @@
 
 import basePrisma from '@/lib/db/prisma';
 import { createTenantPrisma } from '@/lib/db/tenant-extension';
+import { logAudit } from '@/lib/audit/log';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -325,7 +326,108 @@ export const salesOrderService = {
       include: { ...SO_INCLUDE, lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } } },
     });
 
+    void logAudit(basePrisma, {
+      companyId,
+      userId: confirmedBy,
+      action: 'UPDATE',
+      entity: 'SalesOrder',
+      entityId: id,
+      newValues: { status: 'CONFIRMED', orderNumber },
+    });
+
     return { ...mapRow(updated), lines: mapLines(updated.lines) };
+  },
+
+  /**
+   * Sprint F5-B — Integración 2: SalesOrder → StockMove (entrega).
+   *
+   * CONFIRMED → DELIVERED: crea un StockMove DONE por producto desde
+   * la ubicación INTERNAL del almacén hacia la ubicación virtual CUSTOMER.
+   * Actualiza qtyDelivered en cada línea y marca el pedido como DELIVERED.
+   */
+  async deliverOrder(
+    companyId: string,
+    id: string,
+    deliveredBy: string,
+    lines: { lineId: string; qtyDelivered: number }[],
+  ): Promise<SalesOrderRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+    const so = await db.salesOrder.findFirst({
+      where: { id, companyId },
+      include: {
+        ...SO_INCLUDE,
+        lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } },
+      },
+    });
+    if (!so) throw new Error('Pedido de venta no encontrado');
+    if (so.status !== 'CONFIRMED')
+      throw new Error('Solo se pueden entregar pedidos en estado CONFIRMED');
+    if (!so.warehouseId) throw new Error('El pedido no tiene almacén asignado para la entrega');
+
+    // Find INTERNAL location for the warehouse (first active INTERNAL)
+    const fromLocation = await db.location.findFirst({
+      where: { companyId, warehouseId: so.warehouseId, locationType: 'INTERNAL', isActive: true },
+    });
+    if (!fromLocation)
+      throw new Error('No se encontró una ubicación interna activa en el almacén asignado');
+
+    // Find CUSTOMER virtual location (company-wide, no warehouseId)
+    const toLocation = await db.location.findFirst({
+      where: { companyId, locationType: 'CUSTOMER', isActive: true },
+    });
+    if (!toLocation)
+      throw new Error('No se encontró la ubicación virtual CUSTOMER para esta empresa');
+
+    const today = new Date();
+
+    // Create one StockMove per SO line
+    await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+
+      for (const lineInput of lines) {
+        const soLine = so.lines.find((l) => l.id === lineInput.lineId);
+        if (!soLine) throw new Error(`Línea ${lineInput.lineId} no encontrada en el pedido`);
+        const qty = lineInput.qtyDelivered;
+        if (qty <= 0) continue;
+
+        await tx.stockMove.create({
+          data: {
+            companyId,
+            productId: soLine.productId,
+            fromLocationId: fromLocation.id,
+            toLocationId: toLocation.id,
+            state: 'DONE',
+            scheduledDate: today,
+            doneDate: today,
+            qtyDemand: qty,
+            qtyDone: qty,
+            reference: so.orderNumber ?? id,
+            createdBy: deliveredBy,
+            lines: {
+              create: {
+                companyId,
+                quantity: qty,
+                doneQty: qty,
+              },
+            },
+          },
+        });
+
+        // Update qtyDelivered on the SO line
+        await tx.salesOrderLine.update({
+          where: { id: lineInput.lineId },
+          data: { qtyDelivered: { increment: qty } },
+        });
+      }
+
+      // Mark SO as DELIVERED
+      await tx.salesOrder.update({
+        where: { id },
+        data: { status: 'DELIVERED' },
+      });
+    });
+
+    return salesOrderService.getOrder(companyId, id);
   },
 
   /** Cancels a DRAFT or CONFIRMED order */
@@ -344,6 +446,15 @@ export const salesOrderService = {
     await db.salesOrder.update({
       where: { id },
       data: { status: 'CANCELLED', cancelledBy, cancelledAt: new Date(), cancelReason },
+    });
+
+    void logAudit(basePrisma, {
+      companyId,
+      userId: cancelledBy,
+      action: 'UPDATE',
+      entity: 'SalesOrder',
+      entityId: id,
+      newValues: { status: 'CANCELLED', cancelReason },
     });
   },
 };

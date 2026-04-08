@@ -5,6 +5,7 @@
 
 import basePrisma from '@/lib/db/prisma';
 import { createTenantPrisma } from '@/lib/db/tenant-extension';
+import { logAudit } from '@/lib/audit/log';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -336,6 +337,15 @@ export const purchaseOrderService = {
       include: { ...PO_INCLUDE, lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } } },
     });
 
+    void logAudit(basePrisma, {
+      companyId,
+      userId: confirmedBy,
+      action: 'UPDATE',
+      entity: 'PurchaseOrder',
+      entityId: id,
+      newValues: { status: 'CONFIRMED', orderNumber },
+    });
+
     return {
       ...mapRow(updated),
       lines: updated.lines.map((l) => ({
@@ -376,5 +386,103 @@ export const purchaseOrderService = {
       where: { id },
       data: { status: 'CANCELLED', cancelledBy, cancelledAt: new Date(), cancelReason },
     });
+
+    void logAudit(basePrisma, {
+      companyId,
+      userId: cancelledBy,
+      action: 'UPDATE',
+      entity: 'PurchaseOrder',
+      entityId: id,
+      newValues: { status: 'CANCELLED', cancelReason },
+    });
+  },
+
+  /**
+   * Sprint F5-B — Integración 3: PurchaseOrder → StockMove (recepción).
+   *
+   * CONFIRMED → RECEIVED: crea un StockMove DONE por producto desde la
+   * ubicación virtual SUPPLIER hacia la ubicación INTERNAL del almacén.
+   * Actualiza qtyReceived en cada línea y marca la orden como RECEIVED.
+   */
+  async receive(
+    companyId: string,
+    id: string,
+    receivedBy: string,
+    lines: { lineId: string; qtyReceived: number }[],
+  ): Promise<PurchaseOrderRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+    const po = await db.purchaseOrder.findFirst({
+      where: { id, companyId },
+      include: {
+        ...PO_INCLUDE,
+        lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } },
+      },
+    });
+    if (!po) throw new Error('Orden de compra no encontrada');
+    if (po.status !== 'CONFIRMED')
+      throw new Error('Solo se pueden recibir órdenes en estado CONFIRMED');
+    if (!po.warehouseId) throw new Error('La orden no tiene almacén asignado para la recepción');
+
+    // Find SUPPLIER virtual location (company-wide)
+    const fromLocation = await db.location.findFirst({
+      where: { companyId, locationType: 'SUPPLIER', isActive: true },
+    });
+    if (!fromLocation)
+      throw new Error('No se encontró la ubicación virtual SUPPLIER para esta empresa');
+
+    // Find INTERNAL location for the target warehouse
+    const toLocation = await db.location.findFirst({
+      where: { companyId, warehouseId: po.warehouseId, locationType: 'INTERNAL', isActive: true },
+    });
+    if (!toLocation)
+      throw new Error('No se encontró una ubicación interna activa en el almacén asignado');
+
+    const today = new Date();
+
+    await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+
+      for (const lineInput of lines) {
+        const poLine = po.lines.find((l) => l.id === lineInput.lineId);
+        if (!poLine) throw new Error(`Línea ${lineInput.lineId} no encontrada en la orden`);
+        const qty = lineInput.qtyReceived;
+        if (qty <= 0) continue;
+
+        await tx.stockMove.create({
+          data: {
+            companyId,
+            productId: poLine.productId,
+            fromLocationId: fromLocation.id,
+            toLocationId: toLocation.id,
+            state: 'DONE',
+            scheduledDate: today,
+            doneDate: today,
+            qtyDemand: qty,
+            qtyDone: qty,
+            reference: po.orderNumber ?? id,
+            createdBy: receivedBy,
+            lines: {
+              create: {
+                companyId,
+                quantity: qty,
+                doneQty: qty,
+              },
+            },
+          },
+        });
+
+        await tx.purchaseOrderLine.update({
+          where: { id: lineInput.lineId },
+          data: { qtyReceived: { increment: qty } },
+        });
+      }
+
+      await tx.purchaseOrder.update({
+        where: { id },
+        data: { status: 'RECEIVED' },
+      });
+    });
+
+    return purchaseOrderService.getOrder(companyId, id);
   },
 };

@@ -26,6 +26,7 @@ import {
 import { getNextInvoiceNumber } from './sar-numbering.service';
 import { resolveInvoiceAccounts } from './system-accounts';
 import { logAudit } from '@/lib/audit/log';
+import { enqueueInvoicePdf } from '@/lib/aws/sqs';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -735,6 +736,9 @@ export const invoiceService = {
       entityId: id,
       newValues: { status: 'PUBLISHED', invoiceNumber },
     });
+
+    // F3-09: Trigger async PDF generation via SQS → Lambda generate-invoice-pdf
+    void enqueueInvoicePdf({ invoiceId: id, companyId, invoiceNumber });
 
     return toRow(published);
   },

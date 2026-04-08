@@ -838,13 +838,14 @@ export const supplierInvoiceService = {
         },
         include: SUPPLIER_INVOICE_INCLUDE,
       });
-      return created;
-    });
 
-    // Mark PO as INVOICED
-    await db.purchaseOrder.update({
-      where: { id: purchaseOrderId },
-      data: { status: 'INVOICED' },
+      // Mark PO as INVOICED (inside tx — RLS enforced by set_config above)
+      await tx.purchaseOrder.update({
+        where: { id: purchaseOrderId },
+        data: { status: 'INVOICED' },
+      });
+
+      return created;
     });
 
     return toRow(inv);

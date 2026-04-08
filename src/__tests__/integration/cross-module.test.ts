@@ -232,12 +232,13 @@ beforeAll(async () => {
 
   // Helper: create a SalesOrder in CONFIRMED state
   const createSO = async (id: string, companyId: string, warehouseId?: string) => {
+    const orderNumber = `SO-F5-${id.slice(-4)}`;
     await prisma.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
     await prisma.$executeRawUnsafe(`
-      INSERT INTO sales_orders (id, company_id, customer_id, status, delivery_date, warehouse_id,
+      INSERT INTO sales_orders (id, company_id, customer_id, order_number, status, delivery_date, warehouse_id,
         currency_code, exchange_rate, subtotal, tax_amount, total, created_by, created_at, updated_at)
       VALUES (
-        '${id}', '${companyId}', '${IDS.customer}', 'CONFIRMED', '2026-06-01',
+        '${id}', '${companyId}', '${IDS.customer}', '${orderNumber}', 'CONFIRMED', '2026-06-01',
         ${warehouseId ? `'${warehouseId}'` : 'NULL'},
         'HNL', 1.0, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
       )
@@ -254,12 +255,13 @@ beforeAll(async () => {
 
   // Helper: create a PurchaseOrder in CONFIRMED state
   const createPO = async (id: string, warehouseId?: string) => {
+    const orderNumber = `PO-F5-${id.slice(-4)}`;
     await prisma.$executeRaw`SELECT set_config('app.current_company_id', ${IDS.companyA}, true)`;
     await prisma.$executeRawUnsafe(`
-      INSERT INTO purchase_orders (id, company_id, supplier_id, status, expected_date, warehouse_id,
+      INSERT INTO purchase_orders (id, company_id, supplier_id, order_number, status, expected_date, warehouse_id,
         currency_code, exchange_rate, subtotal, tax_amount, total, created_by, created_at, updated_at)
       VALUES (
-        '${id}', '${IDS.companyA}', '${IDS.supplier}', 'CONFIRMED', '2026-06-01',
+        '${id}', '${IDS.companyA}', '${IDS.supplier}', '${orderNumber}', 'CONFIRMED', '2026-06-01',
         ${warehouseId ? `'${warehouseId}'` : 'NULL'},
         'HNL', 1.0, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
       )

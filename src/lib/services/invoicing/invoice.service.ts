@@ -933,10 +933,10 @@ export const invoiceService = {
       accountId: l.accountId ?? null,
     }));
 
-    // 4. Create DRAFT invoice
+    // 4. Create DRAFT invoice and mark SO as INVOICED in one transaction
     const inv = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
-      return tx.invoice.create({
+      const created = await tx.invoice.create({
         data: {
           companyId,
           caiId: activeCai.id,
@@ -956,12 +956,14 @@ export const invoiceService = {
         },
         include: INVOICE_INCLUDE,
       });
-    });
 
-    // 5. Mark SO as INVOICED
-    await db.salesOrder.update({
-      where: { id: salesOrderId },
-      data: { status: 'INVOICED' },
+      // 5. Mark SO as INVOICED (inside tx — RLS enforced by set_config above)
+      await tx.salesOrder.update({
+        where: { id: salesOrderId },
+        data: { status: 'INVOICED' },
+      });
+
+      return created;
     });
 
     return toRow(inv);

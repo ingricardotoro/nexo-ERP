@@ -244,10 +244,10 @@ beforeAll(async () => {
     `);
     await prisma.$executeRawUnsafe(`
       INSERT INTO sales_order_lines (id, company_id, sales_order_id, line_number, product_id,
-        qty_ordered, qty_delivered, unit_price, discount_pct, subtotal, tax_rate_id, tax_amount, total, created_at, updated_at)
+        qty_ordered, qty_delivered, unit_price, discount_pct, subtotal, tax_rate_id, tax_amount, total)
       VALUES (
         gen_random_uuid(), '${companyId}', '${id}', 1, '${IDS.product}',
-        10, 0, 100.00, 0, 1000.00, '${IDS.taxRate}', 150.00, 1150.00, NOW(), NOW()
+        10, 0, 100.00, 0, 1000.00, '${IDS.taxRate}', 150.00, 1150.00
       )
     `);
   };
@@ -266,10 +266,10 @@ beforeAll(async () => {
     `);
     await prisma.$executeRawUnsafe(`
       INSERT INTO purchase_order_lines (id, company_id, purchase_order_id, line_number, product_id,
-        qty_ordered, qty_received, unit_price, discount_pct, subtotal, tax_rate_id, tax_amount, total, created_at, updated_at)
+        qty_ordered, qty_received, unit_price, discount_pct, subtotal, tax_rate_id, tax_amount, total)
       VALUES (
         gen_random_uuid(), '${IDS.companyA}', '${id}', 1, '${IDS.product}',
-        10, 0, 100.00, 0, 1000.00, '${IDS.taxRate}', 150.00, 1150.00, NOW(), NOW()
+        10, 0, 100.00, 0, 1000.00, '${IDS.taxRate}', 150.00, 1150.00
       )
     `);
   };

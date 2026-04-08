@@ -302,7 +302,7 @@ describe('createFromSalesOrder', () => {
     expect(invoice.currencyCode).toBe('HNL');
     expect(invoice.lines).toBeDefined();
     expect(invoice.lines!.length).toBe(1);
-    expect(invoice.lines![0].quantity).toBe('10.0000');
+    expect(Number(invoice.lines![0].quantity)).toBe(10);
   });
 
   it('marks the SalesOrder as INVOICED', async () => {

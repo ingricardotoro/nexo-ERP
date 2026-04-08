@@ -405,7 +405,227 @@ async function main() {
     },
   ];
 
-  const allPermissions = [...corePermissions, ...contactsPermissions, ...accountingPermissions];
+  const invoicingPermissions = [
+    {
+      id: 'invoicing.cai.create',
+      moduleId: 'invoicing',
+      resource: 'cai',
+      action: 'create',
+      description: 'Crear CAI (autorización SAR)',
+    },
+    {
+      id: 'invoicing.cai.read',
+      moduleId: 'invoicing',
+      resource: 'cai',
+      action: 'read',
+      description: 'Ver CAIs registrados',
+    },
+    {
+      id: 'invoicing.cai.update',
+      moduleId: 'invoicing',
+      resource: 'cai',
+      action: 'update',
+      description: 'Editar CAIs',
+    },
+    {
+      id: 'invoicing.tax_rate.create',
+      moduleId: 'invoicing',
+      resource: 'tax_rate',
+      action: 'create',
+      description: 'Crear tasas de impuesto',
+    },
+    {
+      id: 'invoicing.tax_rate.read',
+      moduleId: 'invoicing',
+      resource: 'tax_rate',
+      action: 'read',
+      description: 'Ver tasas de impuesto',
+    },
+    {
+      id: 'invoicing.tax_rate.update',
+      moduleId: 'invoicing',
+      resource: 'tax_rate',
+      action: 'update',
+      description: 'Editar tasas de impuesto',
+    },
+    {
+      id: 'invoicing.invoice.create',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'create',
+      description: 'Crear facturas en borrador',
+    },
+    {
+      id: 'invoicing.invoice.read',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'read',
+      description: 'Ver facturas',
+    },
+    {
+      id: 'invoicing.invoice.update',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'update',
+      description: 'Editar facturas en borrador',
+    },
+    {
+      id: 'invoicing.invoice.publish',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'publish',
+      description: 'Publicar factura con número SAR',
+    },
+    {
+      id: 'invoicing.invoice.cancel',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'cancel',
+      description: 'Anular facturas publicadas',
+    },
+    {
+      id: 'invoicing.invoice.delete',
+      moduleId: 'invoicing',
+      resource: 'invoice',
+      action: 'delete',
+      description: 'Eliminar facturas en borrador',
+    },
+  ];
+
+  const purchasingPermissions = [
+    {
+      id: 'purchasing.purchase_order.create',
+      moduleId: 'purchasing',
+      resource: 'purchase_order',
+      action: 'create',
+      description: 'Crear órdenes de compra',
+    },
+    {
+      id: 'purchasing.purchase_order.read',
+      moduleId: 'purchasing',
+      resource: 'purchase_order',
+      action: 'read',
+      description: 'Ver órdenes de compra',
+    },
+    {
+      id: 'purchasing.purchase_order.update',
+      moduleId: 'purchasing',
+      resource: 'purchase_order',
+      action: 'update',
+      description: 'Confirmar/cancelar órdenes de compra',
+    },
+  ];
+
+  const salesPermissions = [
+    {
+      id: 'sales.order.create',
+      moduleId: 'sales',
+      resource: 'order',
+      action: 'create',
+      description: 'Crear pedidos de venta',
+    },
+    {
+      id: 'sales.order.read',
+      moduleId: 'sales',
+      resource: 'order',
+      action: 'read',
+      description: 'Ver pedidos de venta',
+    },
+    {
+      id: 'sales.order.update',
+      moduleId: 'sales',
+      resource: 'order',
+      action: 'update',
+      description: 'Confirmar/cancelar pedidos de venta',
+    },
+  ];
+
+  const inventoryPermissions = [
+    {
+      id: 'inventory.product.create',
+      moduleId: 'inventory',
+      resource: 'product',
+      action: 'create',
+      description: 'Crear productos',
+    },
+    {
+      id: 'inventory.product.read',
+      moduleId: 'inventory',
+      resource: 'product',
+      action: 'read',
+      description: 'Ver productos y catálogo',
+    },
+    {
+      id: 'inventory.product.update',
+      moduleId: 'inventory',
+      resource: 'product',
+      action: 'update',
+      description: 'Editar productos',
+    },
+    {
+      id: 'inventory.warehouse.create',
+      moduleId: 'inventory',
+      resource: 'warehouse',
+      action: 'create',
+      description: 'Crear almacenes',
+    },
+    {
+      id: 'inventory.warehouse.read',
+      moduleId: 'inventory',
+      resource: 'warehouse',
+      action: 'read',
+      description: 'Ver almacenes y ubicaciones',
+    },
+    {
+      id: 'inventory.warehouse.update',
+      moduleId: 'inventory',
+      resource: 'warehouse',
+      action: 'update',
+      description: 'Editar almacenes',
+    },
+    {
+      id: 'inventory.stock.read',
+      moduleId: 'inventory',
+      resource: 'stock',
+      action: 'read',
+      description: 'Ver stock disponible, lotes y movimientos',
+    },
+  ];
+
+  const coreExtraPermissions = [
+    {
+      id: 'core.dashboard.read',
+      moduleId: 'core',
+      resource: 'dashboard',
+      action: 'read',
+      description: 'Ver dashboard y KPIs',
+    },
+    {
+      id: 'accounting.bank.create',
+      moduleId: 'accounting',
+      resource: 'bank',
+      action: 'create',
+      description: 'Crear cuentas bancarias y estados de cuenta',
+    },
+    {
+      id: 'accounting.bank.read',
+      moduleId: 'accounting',
+      resource: 'bank',
+      action: 'read',
+      description: 'Ver cuentas bancarias y conciliaciones',
+    },
+  ];
+
+  const allPermissions = [
+    ...corePermissions,
+    ...coreExtraPermissions,
+    ...contactsPermissions,
+    ...accountingPermissions,
+    ...invoicingPermissions,
+    ...purchasingPermissions,
+    ...salesPermissions,
+    ...inventoryPermissions,
+  ];
 
   for (const perm of allPermissions) {
     await prisma.permission.upsert({
@@ -414,9 +634,15 @@ async function main() {
       create: perm,
     });
   }
-  console.log(`✅ Permisos base core: ${corePermissions.length} creados`);
+  console.log(
+    `✅ Permisos base core: ${corePermissions.length + coreExtraPermissions.length} creados`,
+  );
   console.log(`✅ Permisos contacts: ${contactsPermissions.length} creados`);
   console.log(`✅ Permisos accounting: ${accountingPermissions.length} creados`);
+  console.log(`✅ Permisos invoicing: ${invoicingPermissions.length} creados`);
+  console.log(`✅ Permisos purchasing: ${purchasingPermissions.length} creados`);
+  console.log(`✅ Permisos sales: ${salesPermissions.length} creados`);
+  console.log(`✅ Permisos inventory: ${inventoryPermissions.length} creados`);
 
   // === RolePermission — Matriz de permisos por rol ===
   // ADMIN: acceso total
@@ -456,6 +682,38 @@ async function main() {
     { role: SystemRole.ADMIN, permissionId: 'accounting.exchange_rate.read' },
     { role: SystemRole.ADMIN, permissionId: 'accounting.exchange_rate.write' },
     { role: SystemRole.ADMIN, permissionId: 'accounting.report.read' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.bank.create' },
+    { role: SystemRole.ADMIN, permissionId: 'accounting.bank.read' },
+    { role: SystemRole.ADMIN, permissionId: 'core.dashboard.read' },
+    // Invoicing
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.cai.create' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.cai.read' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.cai.update' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.tax_rate.create' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.tax_rate.read' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.tax_rate.update' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.create' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.read' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.update' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.publish' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.cancel' },
+    { role: SystemRole.ADMIN, permissionId: 'invoicing.invoice.delete' },
+    // Purchasing
+    { role: SystemRole.ADMIN, permissionId: 'purchasing.purchase_order.create' },
+    { role: SystemRole.ADMIN, permissionId: 'purchasing.purchase_order.read' },
+    { role: SystemRole.ADMIN, permissionId: 'purchasing.purchase_order.update' },
+    // Sales
+    { role: SystemRole.ADMIN, permissionId: 'sales.order.create' },
+    { role: SystemRole.ADMIN, permissionId: 'sales.order.read' },
+    { role: SystemRole.ADMIN, permissionId: 'sales.order.update' },
+    // Inventory
+    { role: SystemRole.ADMIN, permissionId: 'inventory.product.create' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.product.read' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.product.update' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.warehouse.create' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.warehouse.read' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.warehouse.update' },
+    { role: SystemRole.ADMIN, permissionId: 'inventory.stock.read' },
 
     // ── MANAGER — lectura total + escritura operativa ─────────────────────────
     { role: SystemRole.MANAGER, permissionId: 'core.user.read' },
@@ -471,6 +729,32 @@ async function main() {
     { role: SystemRole.MANAGER, permissionId: 'accounting.journal_entry.read' },
     { role: SystemRole.MANAGER, permissionId: 'accounting.exchange_rate.read' },
     { role: SystemRole.MANAGER, permissionId: 'accounting.report.read' },
+    { role: SystemRole.MANAGER, permissionId: 'accounting.bank.read' },
+    { role: SystemRole.MANAGER, permissionId: 'core.dashboard.read' },
+    // Invoicing
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.cai.read' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.tax_rate.read' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.invoice.create' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.invoice.read' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.invoice.update' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.invoice.publish' },
+    { role: SystemRole.MANAGER, permissionId: 'invoicing.invoice.cancel' },
+    // Purchasing
+    { role: SystemRole.MANAGER, permissionId: 'purchasing.purchase_order.create' },
+    { role: SystemRole.MANAGER, permissionId: 'purchasing.purchase_order.read' },
+    { role: SystemRole.MANAGER, permissionId: 'purchasing.purchase_order.update' },
+    // Sales
+    { role: SystemRole.MANAGER, permissionId: 'sales.order.create' },
+    { role: SystemRole.MANAGER, permissionId: 'sales.order.read' },
+    { role: SystemRole.MANAGER, permissionId: 'sales.order.update' },
+    // Inventory
+    { role: SystemRole.MANAGER, permissionId: 'inventory.product.create' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.product.read' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.product.update' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.warehouse.create' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.warehouse.read' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.warehouse.update' },
+    { role: SystemRole.MANAGER, permissionId: 'inventory.stock.read' },
 
     // ── ACCOUNTANT — acceso contable completo ─────────────────────────────────
     { role: SystemRole.ACCOUNTANT, permissionId: 'core.tenant.read' },
@@ -493,6 +777,30 @@ async function main() {
     { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.exchange_rate.read' },
     { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.exchange_rate.write' },
     { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.report.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.bank.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'accounting.bank.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'core.dashboard.read' },
+    // Invoicing — contador tiene acceso completo
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.cai.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.cai.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.cai.update' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.tax_rate.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.tax_rate.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.tax_rate.update' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.create' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.update' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.publish' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.cancel' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'invoicing.invoice.delete' },
+    // Purchasing — acceso de lectura para cruzar con contabilidad
+    { role: SystemRole.ACCOUNTANT, permissionId: 'purchasing.purchase_order.read' },
+    // Sales — acceso de lectura para cruzar con facturación
+    { role: SystemRole.ACCOUNTANT, permissionId: 'sales.order.read' },
+    // Inventory — lectura para reportes de valorización
+    { role: SystemRole.ACCOUNTANT, permissionId: 'inventory.product.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'inventory.warehouse.read' },
+    { role: SystemRole.ACCOUNTANT, permissionId: 'inventory.stock.read' },
 
     // ── SALESPERSON — solo contactos ──────────────────────────────────────────
     { role: SystemRole.SALESPERSON, permissionId: 'core.tenant.read' },
@@ -500,6 +808,20 @@ async function main() {
     { role: SystemRole.SALESPERSON, permissionId: 'contacts.contact.read' },
     { role: SystemRole.SALESPERSON, permissionId: 'contacts.contact.update' },
     { role: SystemRole.SALESPERSON, permissionId: 'contacts.payment_terms.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'core.dashboard.read' },
+    // Invoicing — vendedor puede crear y publicar facturas
+    { role: SystemRole.SALESPERSON, permissionId: 'invoicing.tax_rate.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'invoicing.invoice.create' },
+    { role: SystemRole.SALESPERSON, permissionId: 'invoicing.invoice.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'invoicing.invoice.update' },
+    { role: SystemRole.SALESPERSON, permissionId: 'invoicing.invoice.publish' },
+    // Sales — acceso completo a pedidos de venta
+    { role: SystemRole.SALESPERSON, permissionId: 'sales.order.create' },
+    { role: SystemRole.SALESPERSON, permissionId: 'sales.order.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'sales.order.update' },
+    // Inventory — solo lectura de catálogo y stock
+    { role: SystemRole.SALESPERSON, permissionId: 'inventory.product.read' },
+    { role: SystemRole.SALESPERSON, permissionId: 'inventory.stock.read' },
 
     // ── AUDITOR — solo lectura ────────────────────────────────────────────────
     { role: SystemRole.AUDITOR, permissionId: 'core.tenant.read' },
@@ -512,6 +834,20 @@ async function main() {
     { role: SystemRole.AUDITOR, permissionId: 'accounting.journal_entry.read' },
     { role: SystemRole.AUDITOR, permissionId: 'accounting.exchange_rate.read' },
     { role: SystemRole.AUDITOR, permissionId: 'accounting.report.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'accounting.bank.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'core.dashboard.read' },
+    // Invoicing — auditor solo lectura
+    { role: SystemRole.AUDITOR, permissionId: 'invoicing.cai.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'invoicing.tax_rate.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'invoicing.invoice.read' },
+    // Purchasing — solo lectura
+    { role: SystemRole.AUDITOR, permissionId: 'purchasing.purchase_order.read' },
+    // Sales — solo lectura
+    { role: SystemRole.AUDITOR, permissionId: 'sales.order.read' },
+    // Inventory — solo lectura
+    { role: SystemRole.AUDITOR, permissionId: 'inventory.product.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'inventory.warehouse.read' },
+    { role: SystemRole.AUDITOR, permissionId: 'inventory.stock.read' },
   ];
 
   for (const rp of rolePermissions) {
@@ -570,7 +906,7 @@ async function main() {
   console.log(`   PaymentTerms: ${defaultPaymentTerms.length} por empresa`);
   console.log(`   Monedas: ${currencies.length}`);
   console.log(
-    `   Permisos: ${allPermissions.length} (${corePermissions.length} core + ${contactsPermissions.length} contacts)`,
+    `   Permisos: ${allPermissions.length} (core + contacts + accounting + invoicing + purchasing + sales + inventory)`,
   );
   console.log(`   Tasas ISV: ${taxRates.length} (ISV15, ISV18, EXENTO)`);
   console.log(`   Plan de cuentas NIIF: seeded para ${demoCompany.tradeName}`);

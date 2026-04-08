@@ -25,6 +25,8 @@ import {
 } from '@/lib/validations/invoice.schema';
 import { getNextInvoiceNumber } from './sar-numbering.service';
 import { resolveInvoiceAccounts } from './system-accounts';
+import { logAudit } from '@/lib/audit/log';
+import { enqueueInvoicePdf } from '@/lib/aws/sqs';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -726,6 +728,18 @@ export const invoiceService = {
       });
     });
 
+    void logAudit(basePrisma, {
+      companyId,
+      userId,
+      action: 'UPDATE',
+      entity: 'Invoice',
+      entityId: id,
+      newValues: { status: 'PUBLISHED', invoiceNumber },
+    });
+
+    // F3-09: Trigger async PDF generation via SQS → Lambda generate-invoice-pdf
+    void enqueueInvoicePdf({ invoiceId: id, companyId, invoiceNumber });
+
     return toRow(published);
   },
 
@@ -845,6 +859,113 @@ export const invoiceService = {
       });
     });
 
+    void logAudit(basePrisma, {
+      companyId,
+      userId,
+      action: 'UPDATE',
+      entity: 'Invoice',
+      entityId: id,
+      newValues: { status: 'CANCELLED', cancelReason },
+    });
+
     return toRow(cancelled);
+  },
+
+  /**
+   * Sprint F5-B — Integración 1: SalesOrder → Invoice (DRAFT).
+   *
+   * Copies SO lines into a new DRAFT Invoice so the user can review and
+   * publish it. The SO is NOT marked INVOICED here — that happens when the
+   * invoice is published (extend publishInvoice or handle separately).
+   *
+   * Steps:
+   *  1. Load the SalesOrder with lines + tax rates.
+   *  2. Validate it is CONFIRMED or DELIVERED (not DRAFT/CANCELLED/INVOICED).
+   *  3. Resolve the active CAI for FACTURA.
+   *  4. Build invoice lines from SO lines (quantity = qtyOrdered, inherit accountId).
+   *  5. Insert DRAFT invoice inside a set_config transaction.
+   */
+  async createFromSalesOrder(
+    companyId: string,
+    salesOrderId: string,
+    userId: string,
+  ): Promise<InvoiceRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    // 1. Load SO with lines and tax rates
+    const so = await db.salesOrder.findFirst({
+      where: { id: salesOrderId, companyId },
+      include: {
+        lines: {
+          include: { taxRate: { select: { id: true, rate: true } } },
+          orderBy: { lineNumber: 'asc' },
+        },
+        paymentTerms: { select: { id: true } },
+      },
+    });
+    if (!so) throw new Error('Pedido de venta no encontrado');
+    if (!['CONFIRMED', 'DELIVERED'].includes(so.status)) {
+      throw new Error('Solo se pueden facturar pedidos en estado CONFIRMED o DELIVERED');
+    }
+
+    // 2. Resolve active CAI for FACTURA
+    const activeCai = await db.cAI.findFirst({
+      where: { companyId, documentType: '01', isActive: true },
+    });
+    if (!activeCai) {
+      throw new Error(
+        'No hay un CAI activo para Facturas (tipo 01). Registre un CAI antes de crear facturas.',
+      );
+    }
+
+    // 3. Build lines from SO lines — reuse amounts already calculated on the SO
+    const linesData = so.lines.map((l) => ({
+      companyId,
+      lineNumber: l.lineNumber,
+      description: l.description ?? l.productId, // product name not joined here; service caller can update
+      quantity: l.qtyOrdered,
+      unitPrice: l.unitPrice,
+      discountPct: l.discountPct,
+      subtotal: l.subtotal,
+      taxRateId: l.taxRateId,
+      taxAmount: l.taxAmount,
+      total: l.total,
+      accountId: l.accountId ?? null,
+    }));
+
+    // 4. Create DRAFT invoice and mark SO as INVOICED in one transaction
+    const inv = await (basePrisma as typeof basePrisma).$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      const created = await tx.invoice.create({
+        data: {
+          companyId,
+          caiId: activeCai.id,
+          invoiceType: 'FACTURA',
+          status: 'DRAFT',
+          issueDate: new Date(),
+          contactId: so.customerId,
+          paymentTermsId: so.paymentTermsId ?? null,
+          currencyCode: so.currencyCode,
+          exchangeRate: so.exchangeRate,
+          subtotal: so.subtotal,
+          taxAmount: so.taxAmount,
+          total: so.total,
+          salesOrderId: so.id,
+          createdBy: userId,
+          lines: { create: linesData },
+        },
+        include: INVOICE_INCLUDE,
+      });
+
+      // 5. Mark SO as INVOICED (inside tx — RLS enforced by set_config above)
+      await tx.salesOrder.update({
+        where: { id: salesOrderId },
+        data: { status: 'INVOICED' },
+      });
+
+      return created;
+    });
+
+    return toRow(inv);
   },
 };

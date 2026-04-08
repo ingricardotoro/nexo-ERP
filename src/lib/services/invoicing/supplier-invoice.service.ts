@@ -773,4 +773,81 @@ export const supplierInvoiceService = {
 
     return toRow(cancelled);
   },
+
+  /**
+   * Sprint F5-B — Integración 4: PurchaseOrder → SupplierInvoice (DRAFT).
+   *
+   * Creates a DRAFT SupplierInvoice from a RECEIVED PurchaseOrder.
+   * Copies lines from PO → SupplierInvoiceLines and links purchaseOrderId.
+   * The PO is marked INVOICED after creation.
+   */
+  async createFromPurchaseOrder(
+    companyId: string,
+    purchaseOrderId: string,
+    userId: string,
+  ): Promise<SupplierInvoiceRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const po = await db.purchaseOrder.findFirst({
+      where: { id: purchaseOrderId, companyId },
+      include: {
+        lines: {
+          include: { taxRate: { select: { id: true } } },
+          orderBy: { lineNumber: 'asc' },
+        },
+        paymentTerms: { select: { id: true } },
+      },
+    });
+    if (!po) throw new Error('Orden de compra no encontrada');
+    if (po.status !== 'RECEIVED') {
+      throw new Error('Solo se pueden facturar órdenes en estado RECEIVED');
+    }
+
+    const linesData = po.lines.map((l) => ({
+      companyId,
+      lineNumber: l.lineNumber,
+      description: l.description ?? l.productId,
+      quantity: l.qtyOrdered,
+      unitPrice: l.unitPrice,
+      discountPct: l.discountPct,
+      subtotal: l.subtotal,
+      taxRateId: l.taxRateId,
+      taxAmount: l.taxAmount,
+      total: l.total,
+      accountId: l.accountId ?? null,
+    }));
+
+    const inv = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      const created = await tx.supplierInvoice.create({
+        data: {
+          companyId,
+          invoiceType: 'FACTURA_COMPRA',
+          status: 'DRAFT',
+          issueDate: new Date(),
+          contactId: po.supplierId,
+          paymentTermsId: po.paymentTermsId ?? null,
+          currencyCode: po.currencyCode,
+          exchangeRate: po.exchangeRate,
+          subtotal: po.subtotal,
+          taxAmount: po.taxAmount,
+          total: po.total,
+          purchaseOrderId: po.id,
+          createdBy: userId,
+          lines: { create: linesData },
+        },
+        include: SUPPLIER_INVOICE_INCLUDE,
+      });
+
+      // Mark PO as INVOICED (inside tx — RLS enforced by set_config above)
+      await tx.purchaseOrder.update({
+        where: { id: purchaseOrderId },
+        data: { status: 'INVOICED' },
+      });
+
+      return created;
+    });
+
+    return toRow(inv);
+  },
 };

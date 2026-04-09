@@ -18,6 +18,7 @@ import {
   Percent,
   Building2,
   GitMerge,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -90,6 +91,9 @@ const navigation: NavigationGroup[] = [
     name: 'Inventarios',
     items: [
       { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
+      { name: 'Stock On-Hand', href: '/dashboard/inventory/stock', icon: BarChart3 },
+      { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: SlidersHorizontal },
+      { name: 'Valorización', href: '/dashboard/inventory/reports', icon: ReceiptText },
       { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
       { name: 'Lotes y Series', href: '/dashboard/inventory/lots', icon: Layers },
       { name: 'Recepciones', href: '/dashboard/inventory/receptions', icon: PackageCheck },

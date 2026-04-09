@@ -41,3 +41,6 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+
+# Lambda function dependencies (installed locally for Amplify sandbox bundling)
+amplify/functions/*/node_modules/

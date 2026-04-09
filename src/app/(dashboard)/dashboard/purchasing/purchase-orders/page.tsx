@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Plus, ShoppingCart, CheckCircle2, XCircle, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -406,9 +407,12 @@ function PORow({
   return (
     <tr className="hover:bg-muted/30 border-b transition-colors last:border-0">
       <td className="px-4 py-3">
-        <p className="font-mono text-sm font-medium">
+        <Link
+          href={`/dashboard/purchasing/purchase-orders/${order.id}`}
+          className="hover:text-primary font-mono text-sm font-medium hover:underline"
+        >
           {order.orderNumber ?? <span className="text-muted-foreground italic">Borrador</span>}
-        </p>
+        </Link>
         <p className="text-muted-foreground text-xs">{fmtDate(order.createdAt)}</p>
       </td>
       <td className="px-4 py-3 text-sm">{order.supplierName}</td>

@@ -97,6 +97,7 @@ const navigation: NavigationGroup[] = [
       { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
       { name: 'Lotes y Series', href: '/dashboard/inventory/lots', icon: Layers },
       { name: 'Recepciones', href: '/dashboard/inventory/receptions', icon: PackageCheck },
+      { name: 'Movimientos', href: '/dashboard/inventory/moves', icon: GitMerge },
     ],
     badge: 'Fase 4',
   },

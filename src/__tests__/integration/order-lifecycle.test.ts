@@ -37,9 +37,12 @@ const IDS = {
   companyA: '00000000-0000-0000-0007-000000000001',
   companyB: '00000000-0000-0000-0007-000000000002',
   customer: '00000000-0000-0000-0007-000000000010',
+  customerB: '00000000-0000-0000-0007-000000000012',
   supplier: '00000000-0000-0000-0007-000000000011',
   taxRate: '00000000-0000-0000-0007-000000000020',
-  currency: 'HNL',
+  productCategory: '00000000-0000-0000-0007-000000000030',
+  unitOfMeasure: '00000000-0000-0000-0007-000000000031',
+  product: '00000000-0000-0000-0007-000000000032',
   // SalesOrders
   soDraftForConfirm: '00000000-0000-0000-0007-000000000050',
   soDraftForCancel: '00000000-0000-0000-0007-000000000051',
@@ -66,41 +69,108 @@ beforeAll(async () => {
   await del(`DELETE FROM sales_order_lines WHERE company_id IN (${ids})`);
   await del(`DELETE FROM sales_orders WHERE company_id IN (${ids})`);
   await del(`DELETE FROM tax_rates WHERE company_id IN (${ids})`);
+  await del(`DELETE FROM products WHERE company_id IN (${ids})`);
+  await del(`DELETE FROM units_of_measure WHERE company_id IN (${ids})`);
+  await del(`DELETE FROM product_categories WHERE company_id IN (${ids})`);
   await del(`DELETE FROM contacts WHERE company_id IN (${ids})`);
   await del(`DELETE FROM companies WHERE id IN (${ids})`);
 
+  // Moneda base (upsert — puede existir del seed)
+  await prisma.currency.upsert({
+    where: { code: 'HNL' },
+    update: {},
+    create: { code: 'HNL', name: 'Lempira hondureño', symbol: 'L', isActive: true, isBase: true },
+  });
+
   // Companies
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO companies (id, legal_name, trade_name, rtn, email, base_currency, created_at, updated_at)
-    VALUES
-      ('${IDS.companyA}', 'Test Company A F6', 'Company A F6', '08019999000001', 'a@f6test.com', 'HNL', NOW(), NOW()),
-      ('${IDS.companyB}', 'Test Company B F6', 'Company B F6', '08019999000002', 'b@f6test.com', 'HNL', NOW(), NOW())
-  `);
+  await prisma.company.create({
+    data: {
+      id: IDS.companyA,
+      legalName: 'Test Company A LC',
+      rtn: '08019999000001',
+      baseCurrency: 'HNL',
+    },
+  });
+  await prisma.company.create({
+    data: {
+      id: IDS.companyB,
+      legalName: 'Test Company B LC',
+      rtn: '08019999000002',
+      baseCurrency: 'HNL',
+    },
+  });
 
   // Contacts
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO contacts (id, company_id, type, role, legal_name, rtn, email, is_active, created_at, updated_at)
-    VALUES
-      ('${IDS.customer}', '${IDS.companyA}', 'INDIVIDUAL', 'CUSTOMER', 'Cliente F6', '08019999000003', 'cust@f6.com', true, NOW(), NOW()),
-      ('${IDS.supplier}', '${IDS.companyA}', 'COMPANY', 'SUPPLIER', 'Proveedor F6', '08019999000004', 'supp@f6.com', true, NOW(), NOW())
-  `);
+  await prisma.contact.create({
+    data: {
+      id: IDS.customer,
+      companyId: IDS.companyA,
+      legalName: 'Cliente F6',
+      isCustomer: true,
+      rtn: '08019999000003',
+    },
+  });
+  await prisma.contact.create({
+    data: {
+      id: IDS.customerB,
+      companyId: IDS.companyB,
+      legalName: 'Cliente B F6',
+      isCustomer: true,
+      rtn: '08019999000012',
+    },
+  });
+  await prisma.contact.create({
+    data: {
+      id: IDS.supplier,
+      companyId: IDS.companyA,
+      legalName: 'Proveedor F6',
+      isSupplier: true,
+      rtn: '08019999000004',
+    },
+  });
 
   // Tax rate
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO tax_rates (id, company_id, name, rate, is_active, created_at, updated_at)
-    VALUES ('${IDS.taxRate}', '${IDS.companyA}', 'ISV 15%', 15.00, true, NOW(), NOW())
-  `);
+  await prisma.taxRate.create({
+    data: {
+      id: IDS.taxRate,
+      companyId: IDS.companyA,
+      code: 'ISV15-LC',
+      name: 'ISV 15%',
+      rate: 0.15,
+      isActive: true,
+    },
+  });
+
+  // Inventario: categoría, UoM, producto
+  await prisma.productCategory.create({
+    data: { id: IDS.productCategory, companyId: IDS.companyA, name: 'General LC' },
+  });
+  await prisma.unitOfMeasure.create({
+    data: { id: IDS.unitOfMeasure, companyId: IDS.companyA, name: 'Unidad', symbol: 'UN' },
+  });
+  await prisma.product.create({
+    data: {
+      id: IDS.product,
+      companyId: IDS.companyA,
+      code: 'PROD-LC-001',
+      name: 'Producto Test LC',
+      categoryId: IDS.productCategory,
+      unitOfMeasureId: IDS.unitOfMeasure,
+      costPrice: 100,
+    },
+  });
 
   // Helper para crear SO en DRAFT
   const createSO = async (id: string, companyId: string) => {
     const orderNum = `SO-LC-${id.slice(-4)}`;
+    const customerId = companyId === IDS.companyA ? IDS.customer : IDS.customerB;
     await prisma.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
     await prisma.$executeRawUnsafe(`
       INSERT INTO sales_orders (id, company_id, customer_id, order_number, status,
-        currency_code, exchange_rate, subtotal, tax_amount, total, created_by, created_at, updated_at)
+        currency_code, exchange_rate, delivery_date, subtotal, tax_amount, total, created_by, created_at, updated_at)
       VALUES (
-        '${id}', '${companyId}', '${IDS.customer}', '${orderNum}', 'DRAFT',
-        'HNL', 1.0, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
+        '${id}', '${companyId}', '${customerId}', '${orderNum}', 'DRAFT',
+        'HNL', 1.0, NOW()::date + 30, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
       )
     `);
     await prisma.$executeRawUnsafe(`
@@ -109,7 +179,7 @@ beforeAll(async () => {
         subtotal, tax_rate_id, tax_amount, total)
       VALUES (
         gen_random_uuid(), '${companyId}', '${id}', 1,
-        gen_random_uuid(), 10, 0, 100.00, 0,
+        '${IDS.product}', 10, 0, 100.00, 0,
         1000.00, '${IDS.taxRate}', 150.00, 1150.00
       )
     `);
@@ -121,10 +191,10 @@ beforeAll(async () => {
     await prisma.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
     await prisma.$executeRawUnsafe(`
       INSERT INTO purchase_orders (id, company_id, supplier_id, order_number, status,
-        currency_code, exchange_rate, subtotal, tax_amount, total, created_by, created_at, updated_at)
+        currency_code, exchange_rate, expected_date, subtotal, tax_amount, total, created_by, created_at, updated_at)
       VALUES (
         '${id}', '${companyId}', '${IDS.supplier}', '${orderNum}', 'DRAFT',
-        'HNL', 1.0, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
+        'HNL', 1.0, NOW()::date + 30, 1000.00, 150.00, 1150.00, '${USER}', NOW(), NOW()
       )
     `);
     await prisma.$executeRawUnsafe(`
@@ -133,7 +203,7 @@ beforeAll(async () => {
         subtotal, tax_rate_id, tax_amount, total)
       VALUES (
         gen_random_uuid(), '${companyId}', '${id}', 1,
-        gen_random_uuid(), 10, 0, 100.00, 0,
+        '${IDS.product}', 10, 0, 100.00, 0,
         1000.00, '${IDS.taxRate}', 150.00, 1150.00
       )
     `);

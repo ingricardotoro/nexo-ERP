@@ -144,6 +144,45 @@ function mapRow(po: {
   };
 }
 
+function mapLines(
+  lines: Array<{
+    id: string;
+    lineNumber: number;
+    productId: string;
+    product: { code: string; name: string };
+    description: string | null;
+    qtyOrdered: { toString(): string };
+    qtyReceived: { toString(): string };
+    unitPrice: { toString(): string };
+    discountPct: { toString(): string };
+    subtotal: { toString(): string };
+    taxRateId: string;
+    taxRate: { name: string };
+    taxAmount: { toString(): string };
+    total: { toString(): string };
+    accountId: string | null;
+  }>,
+): PurchaseOrderLine[] {
+  return lines.map((l) => ({
+    id: l.id,
+    lineNumber: l.lineNumber,
+    productId: l.productId,
+    productCode: l.product.code,
+    productName: l.product.name,
+    description: l.description,
+    qtyOrdered: l.qtyOrdered.toString(),
+    qtyReceived: l.qtyReceived.toString(),
+    unitPrice: l.unitPrice.toString(),
+    discountPct: l.discountPct.toString(),
+    subtotal: l.subtotal.toString(),
+    taxRateId: l.taxRateId,
+    taxRateName: l.taxRate.name,
+    taxAmount: l.taxAmount.toString(),
+    total: l.total.toString(),
+    accountId: l.accountId,
+  }));
+}
+
 const PO_INCLUDE = {
   supplier: { select: { legalName: true } },
   warehouse: { select: { name: true } },
@@ -311,6 +350,92 @@ export const purchaseOrderService = {
         accountId: l.accountId,
       })),
     };
+  },
+
+  /** Actualiza una orden de compra en estado DRAFT (encabezado + líneas) */
+  async updateOrder(
+    companyId: string,
+    id: string,
+    input: Omit<CreatePurchaseOrderInput, 'createdBy'> & { updatedBy: string },
+  ): Promise<PurchaseOrderRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const po = await db.purchaseOrder.findFirst({ where: { id, companyId } });
+    if (!po) throw new Error('Orden de compra no encontrada');
+    if (po.status !== 'DRAFT') throw new Error('Solo se pueden editar órdenes en estado DRAFT');
+
+    const supplier = await db.contact.findFirst({
+      where: { id: input.supplierId, companyId, isSupplier: true },
+    });
+    if (!supplier) throw new Error('Proveedor no encontrado');
+
+    const taxRateIds = [...new Set(input.lines.map((l) => l.taxRateId))];
+    const taxRates = await db.taxRate.findMany({ where: { id: { in: taxRateIds }, companyId } });
+    const taxRateMap = new Map(taxRates.map((t) => [t.id, parseFloat(t.rate.toString())]));
+
+    let orderSubtotal = 0;
+    let orderTax = 0;
+    const lineData = input.lines.map((l, idx) => {
+      const rate = taxRateMap.get(l.taxRateId);
+      if (rate === undefined) throw new Error(`Tasa de impuesto no encontrada: ${l.taxRateId}`);
+      const calc = calcLine(l.qtyOrdered, l.unitPrice, l.discountPct ?? 0, rate);
+      orderSubtotal += calc.subtotal;
+      orderTax += calc.taxAmount;
+      return { ...l, lineNumber: idx + 1, ...calc, discountPct: l.discountPct ?? 0 };
+    });
+
+    const updated = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+
+      await tx.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: id } });
+
+      return tx.purchaseOrder.update({
+        where: { id },
+        data: {
+          supplierId: input.supplierId,
+          expectedDate: input.expectedDate,
+          warehouseId: input.warehouseId ?? null,
+          currencyCode: input.currencyCode ?? 'HNL',
+          exchangeRate: input.exchangeRate ?? 1,
+          paymentTermsId: input.paymentTermsId ?? null,
+          notes: input.notes ?? null,
+          subtotal: parseFloat(orderSubtotal.toFixed(2)),
+          taxAmount: parseFloat(orderTax.toFixed(2)),
+          total: parseFloat((orderSubtotal + orderTax).toFixed(2)),
+          lines: {
+            create: lineData.map((l) => ({
+              companyId,
+              lineNumber: l.lineNumber,
+              productId: l.productId,
+              description: l.description,
+              qtyOrdered: l.qtyOrdered,
+              unitPrice: l.unitPrice,
+              discountPct: l.discountPct,
+              subtotal: l.subtotal,
+              taxRateId: l.taxRateId,
+              taxAmount: l.taxAmount,
+              total: l.total,
+              accountId: l.accountId,
+            })),
+          },
+        },
+        include: {
+          ...PO_INCLUDE,
+          lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } },
+        },
+      });
+    });
+
+    void logAudit(basePrisma, {
+      companyId,
+      userId: input.updatedBy,
+      action: 'UPDATE',
+      entity: 'PurchaseOrder',
+      entityId: id,
+      newValues: { supplierId: input.supplierId, total: updated.total.toString() },
+    });
+
+    return { ...mapRow(updated), lines: mapLines(updated.lines) };
   },
 
   /** DRAFT → CONFIRMED: asigna número PO/YYYY/NNNNN */

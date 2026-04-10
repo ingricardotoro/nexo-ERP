@@ -1,93 +1,372 @@
 @import 'tailwindcss';
 
-/* === NexoERP Design Tokens === */
+/* === NexoERP Design System — Finance Professional === */
 
+/* ── Paleta de colores de marca ──────────────────────────────────── */
 @theme {
-  /* Colores primarios (indigo) */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4e;
+  /* Primario: azul marino financiero profundo */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
 
-  /* Colores semánticos */
+  /* Acento dorado — highlights financieros */
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+  --color-gold-700: #b45309;
+
+  /* Semánticos financieros */
   --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
   --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
   --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
   --color-info: #2563eb;
+  --color-info-bg: #eff6ff;
 
-  /* Colores de estado de facturas */
+  /* Estados de documentos fiscales */
   --color-draft: #6b7280;
   --color-published: #2563eb;
   --color-paid: #16a34a;
   --color-overdue: #dc2626;
   --color-cancelled: #9ca3af;
-
-  /* Tipografía */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-
-  /* Espaciado base */
-  --spacing-base: 4px;
-
-  /* Border radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --color-pending: #d97706;
 }
 
-/* === Base styles === */
+/* ── Mapeo de CSS vars shadcn/ui → utilidades Tailwind v4 ─────────
+   Esto crea: bg-background, text-foreground, border-border, etc.  */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  /* Radii */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* === Variables CSS para shadcn/ui (modo claro/oscuro) === */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Fondo general: slate-100 suave */
+    --background: 214 32% 95%;
+    --foreground: 222 47% 11%;
+
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 238.7 83.5% 66.7%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: azul marino profundo (#1e3a8a) */
+    --primary: 224 76% 33%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 214 32% 93%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent: dorado financiero (#d97706) */
+    --accent: 38 92% 44%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 238.7 83.5% 66.7%;
+
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 224 76% 33%;
     --radius: 0.5rem;
+
+    /* Chart colors */
+    --chart-1: 224 76% 33%;
+    --chart-2: 38 92% 44%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 215 16% 60%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 7%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+
+    --card: 222 47% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+
+    --popover: 222 47% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 238.7 83.5% 66.7%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 238.7 83.5% 66.7%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 217 91% 60%;
+
+    --chart-1: 217 91% 60%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 0 63% 50%;
+    --chart-5: 215 20% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar personalizado */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(214 32% 78%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(215 16% 58%);
+  }
+
+  /* Tipografía numérica tabulada para datos financieros */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .fiscal-number {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+  }
+
+  .amount-hnl,
+  .amount-usd {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}
+
+/* === Componentes utilitarios ERP === */
+
+@layer components {
+  /* ── KPI card con accent-top border ──────────────────────────────── */
+  .kpi-card {
+    @apply bg-card relative overflow-hidden rounded-xl border;
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.06),
+      0 1px 2px -1px rgb(0 0 0 / 0.04);
+    transition:
+      box-shadow 200ms ease,
+      transform 200ms ease;
+  }
+
+  .kpi-card:hover {
+    box-shadow:
+      0 8px 24px 0 rgb(0 0 0 / 0.08),
+      0 4px 8px -2px rgb(0 0 0 / 0.06);
+    transform: translateY(-1px);
+  }
+
+  .kpi-card-blue::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1e40af, #3b82f6);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card-emerald::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #065f46, #10b981);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card-amber::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #b45309, #f59e0b);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card-red::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #991b1b, #ef4444);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card-violet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #5b21b6, #8b5cf6);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kpi-card-slate::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #334155, #64748b);
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* ── Page header ─────────────────────────────────────────────────── */
+  .page-header {
+    @apply mb-6 rounded-xl px-6 py-5;
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border: 1px solid hsl(214 32% 88%);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  }
+
+  /* ── Section label ───────────────────────────────────────────────── */
+  .section-label {
+    @apply mb-3 text-xs font-semibold text-slate-400 uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Badges de estado fiscal ─────────────────────────────────────── */
+  .badge-draft {
+    @apply border-gray-200 bg-gray-100 text-gray-600;
+  }
+  .badge-published {
+    @apply border-blue-200 bg-blue-50 text-blue-700;
+  }
+  .badge-paid {
+    @apply border-green-200 bg-green-50 text-green-700;
+  }
+  .badge-overdue {
+    @apply border-red-200 bg-red-50 text-red-700;
+  }
+  .badge-cancelled {
+    @apply border-gray-200 bg-gray-100 text-gray-500;
+  }
+  .badge-pending {
+    @apply border-amber-200 bg-amber-50 text-amber-700;
+  }
+
+  /* ── Table row hover ─────────────────────────────────────────────── */
+  .table-row-hover {
+    transition: background-color 100ms ease;
+  }
+  .table-row-hover:hover {
+    @apply bg-muted/40;
+  }
+
+  /* ── Icon badge con gradiente ────────────────────────────────────── */
+  .icon-badge {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg;
+  }
+  .icon-badge-blue {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  }
+  .icon-badge-emerald {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  }
+  .icon-badge-amber {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+  }
+  .icon-badge-red {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+  }
+  .icon-badge-violet {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  }
+  .icon-badge-slate {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  }
+}
+
+/* === Respeta preferencia de movimiento reducido === */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

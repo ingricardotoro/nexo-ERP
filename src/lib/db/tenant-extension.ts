@@ -160,6 +160,7 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
 
           // Inyectar companyId en WHERE clause o data según la operación
           const isWriteOperation = ['create', 'createMany', 'upsert'].includes(operation);
+
           // findMany/findFirst/count/aggregate/groupBy admiten AND en where
           const isReadOperationWithAnd = [
             'findMany',
@@ -169,11 +170,14 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
             'aggregate',
             'groupBy',
           ].includes(operation);
-          // findUnique/findUniqueOrThrow NO admiten AND — solo acepta campos únicos exactos.
-          // No se inyecta companyId: seguridad por FORCE RLS transaction + UUID global únicos.
-          const isUpdateOperation = ['update', 'updateMany', 'delete', 'deleteMany'].includes(
-            operation,
-          );
+
+          // updateMany/deleteMany admiten AND en where (operan sobre conjuntos)
+          const isManyMutation = ['updateMany', 'deleteMany'].includes(operation);
+
+          // update/delete requieren clave única en where — NO admiten AND.
+          // Seguridad garantizada exclusivamente por FORCE RLS + set_config (igual que findUnique).
+          // El UUID es globalmente único; RLS rechaza el acceso a registros de otro tenant.
+          const isSingleMutation = ['update', 'delete'].includes(operation);
 
           // DEBUG: Solo en desarrollo con DEBUG_TENANT_EXTENSION=true
           const DEBUG = process.env.DEBUG_TENANT_EXTENSION === 'true';
@@ -182,12 +186,13 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
             console.log('[Extension DEBUG] Model:', model);
             console.log('[Extension DEBUG] Args BEFORE injection:', JSON.stringify(args, null, 2));
             console.log('[Extension DEBUG] isReadOperationWithAnd:', isReadOperationWithAnd);
-            console.log('[Extension DEBUG] isUpdateOperation:', isUpdateOperation);
+            console.log('[Extension DEBUG] isManyMutation:', isManyMutation);
+            console.log('[Extension DEBUG] isSingleMutation:', isSingleMutation);
             console.log('[Extension DEBUG] "where" in args:', 'where' in args);
           }
 
-          if (isReadOperationWithAnd || isUpdateOperation) {
-            // SELECT/UPDATE/DELETE con AND: inyectar companyId en WHERE usando AND
+          if (isReadOperationWithAnd || isManyMutation) {
+            // SELECT o mutations masivas: inyectar companyId en WHERE usando AND
             // Type assertion necesaria para Next.js 16 + TypeScript 5.x (strict union types)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const currentWhere = (args as any).where;
@@ -197,7 +202,6 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
               : { companyId };
 
             // DEBUG
-            const DEBUG = process.env.DEBUG_TENANT_EXTENSION === 'true';
             if (DEBUG && model === 'User') {
               console.log(
                 '[Extension DEBUG] Args AFTER injection WHERE:',
@@ -205,6 +209,11 @@ export function createTenantPrisma(prisma: PrismaClient, companyId: string) {
               );
             }
           }
+
+          // update/delete de registro único: no se modifica where.
+          // La variable de sesión app.current_company_id (establecida abajo via FORCE RLS)
+          // garantiza que RLS rechace cualquier intento de mutar un registro de otro tenant.
+          // isSingleMutation se usa en el bloque DEBUG arriba; aquí solo documentamos la decisión.
 
           if (isWriteOperation) {
             // INSERT/UPSERT: inyectar companyId en data

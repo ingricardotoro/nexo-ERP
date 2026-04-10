@@ -1,7 +1,6 @@
 {
+  "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.800.0",
-    "@prisma/client": "^6.19.2",
     "pdfkit": "^0.15.2"
   }
 }

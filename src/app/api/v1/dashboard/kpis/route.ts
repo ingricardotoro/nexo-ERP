@@ -29,14 +29,19 @@ export async function GET(request: NextRequest) {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     // Run all KPI queries in parallel
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const [
       monthlySalesResult,
       pendingInvoicesResult,
+      overdueInvoicesResult,
       confirmedSalesOrders,
+      draftSalesOrders,
       confirmedPurchaseOrders,
       expiringLots,
+      expiringCais,
     ] = await Promise.all([
-      // Monthly sales: sum of PUBLISHED invoices this month
+      // Ventas del mes: facturas PUBLISHED emitidas este mes
       db.invoice.aggregate({
         where: {
           companyId: auth.companyId,
@@ -47,39 +52,72 @@ export async function GET(request: NextRequest) {
         _count: true,
       }),
 
-      // Pending invoices: PUBLISHED invoices (not yet PAID)
+      // CxC pendiente: facturas PUBLISHED (por cobrar)
+      db.invoice.aggregate({
+        where: { companyId: auth.companyId, status: 'PUBLISHED' },
+        _sum: { total: true },
+        _count: true,
+      }),
+
+      // CxC vencida: facturas PUBLISHED con dueDate < hoy
       db.invoice.aggregate({
         where: {
           companyId: auth.companyId,
           status: 'PUBLISHED',
+          dueDate: { lt: now },
         },
         _sum: { total: true },
         _count: true,
       }),
 
-      // Active sales orders
+      // Pedidos de venta activos (CONFIRMED)
       db.salesOrder.count({
         where: { companyId: auth.companyId, status: 'CONFIRMED' },
       }),
 
-      // Active purchase orders
+      // Pedidos de venta en borrador
+      db.salesOrder.count({
+        where: { companyId: auth.companyId, status: 'DRAFT' },
+      }),
+
+      // Órdenes de compra activas (CONFIRMED — pendientes de recibir)
       db.purchaseOrder.count({
         where: { companyId: auth.companyId, status: 'CONFIRMED' },
       }),
 
-      // Lots expiring in ≤30 days with stock > 0
+      // Lotes venciendo en ≤30 días con stock > 0
       db.lot.count({
         where: {
           companyId: auth.companyId,
           expirationDate: {
             not: null as unknown as Date,
-            lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+            lte: thirtyDaysFromNow,
             gte: now,
           },
           stockQuants: { some: { quantity: { gt: 0 } } },
         },
       }),
+
+      // CAIs venciendo en ≤30 días
+      db.cAI.findMany({
+        where: {
+          companyId: auth.companyId,
+          isActive: true,
+          expiresAt: { lte: thirtyDaysFromNow, gte: now },
+        },
+        select: { caiCode: true, documentType: true, expiresAt: true },
+        orderBy: { expiresAt: 'asc' },
+        take: 3,
+      }),
     ]);
+
+    // Días hasta el CAI más próximo a vencer
+    const nearestCai = expiringCais[0];
+    const caiDaysLeft = nearestCai
+      ? Math.ceil(
+          (new Date(nearestCai.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        )
+      : null;
 
     return NextResponse.json({
       success: true,
@@ -93,9 +131,21 @@ export async function GET(request: NextRequest) {
           amount: pendingInvoicesResult._sum?.total?.toString() ?? '0',
           count: pendingInvoicesResult._count ?? 0,
         },
+        overdueReceivables: {
+          amount: overdueInvoicesResult._sum?.total?.toString() ?? '0',
+          count: overdueInvoicesResult._count ?? 0,
+        },
         activeSalesOrders: confirmedSalesOrders,
+        draftSalesOrders,
         activePurchaseOrders: confirmedPurchaseOrders,
         expiringLotsCount: expiringLots,
+        caiAlert: nearestCai
+          ? {
+              daysLeft: caiDaysLeft,
+              documentType: nearestCai.documentType,
+              count: expiringCais.length,
+            }
+          : null,
       },
     });
   } catch (error) {

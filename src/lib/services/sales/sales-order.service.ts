@@ -311,6 +311,93 @@ export const salesOrderService = {
     return { ...mapRow(so), lines: mapLines(so.lines) };
   },
 
+  /** Actualiza un pedido en estado DRAFT (encabezado + líneas) */
+  async updateOrder(
+    companyId: string,
+    id: string,
+    input: Omit<CreateSalesOrderInput, 'createdBy'> & { updatedBy: string },
+  ): Promise<SalesOrderRow> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const so = await db.salesOrder.findFirst({ where: { id, companyId } });
+    if (!so) throw new Error('Pedido de venta no encontrado');
+    if (so.status !== 'DRAFT') throw new Error('Solo se pueden editar pedidos en estado DRAFT');
+
+    const customer = await db.contact.findFirst({
+      where: { id: input.customerId, companyId, isCustomer: true },
+    });
+    if (!customer) throw new Error('Cliente no encontrado');
+
+    const taxRateIds = [...new Set(input.lines.map((l) => l.taxRateId))];
+    const taxRates = await db.taxRate.findMany({ where: { id: { in: taxRateIds }, companyId } });
+    const taxRateMap = new Map(taxRates.map((t) => [t.id, parseFloat(t.rate.toString())]));
+
+    let orderSubtotal = 0;
+    let orderTax = 0;
+    const lineData = input.lines.map((l, idx) => {
+      const rate = taxRateMap.get(l.taxRateId);
+      if (rate === undefined) throw new Error(`Tasa de impuesto no encontrada: ${l.taxRateId}`);
+      const calc = calcLine(l.qtyOrdered, l.unitPrice, l.discountPct ?? 0, rate);
+      orderSubtotal += calc.subtotal;
+      orderTax += calc.taxAmount;
+      return { ...l, lineNumber: idx + 1, ...calc, discountPct: l.discountPct ?? 0 };
+    });
+
+    const updated = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+
+      // Replace lines: delete existing, create new
+      await tx.salesOrderLine.deleteMany({ where: { salesOrderId: id } });
+
+      return tx.salesOrder.update({
+        where: { id },
+        data: {
+          customerId: input.customerId,
+          deliveryDate: input.deliveryDate,
+          warehouseId: input.warehouseId ?? null,
+          currencyCode: input.currencyCode ?? 'HNL',
+          exchangeRate: input.exchangeRate ?? 1,
+          paymentTermsId: input.paymentTermsId ?? null,
+          notes: input.notes ?? null,
+          subtotal: parseFloat(orderSubtotal.toFixed(2)),
+          taxAmount: parseFloat(orderTax.toFixed(2)),
+          total: parseFloat((orderSubtotal + orderTax).toFixed(2)),
+          lines: {
+            create: lineData.map((l) => ({
+              companyId,
+              lineNumber: l.lineNumber,
+              productId: l.productId,
+              description: l.description,
+              qtyOrdered: l.qtyOrdered,
+              unitPrice: l.unitPrice,
+              discountPct: l.discountPct,
+              subtotal: l.subtotal,
+              taxRateId: l.taxRateId,
+              taxAmount: l.taxAmount,
+              total: l.total,
+              accountId: l.accountId,
+            })),
+          },
+        },
+        include: {
+          ...SO_INCLUDE,
+          lines: { include: LINE_INCLUDE, orderBy: { lineNumber: 'asc' } },
+        },
+      });
+    });
+
+    void logAudit(basePrisma, {
+      companyId,
+      userId: input.updatedBy,
+      action: 'UPDATE',
+      entity: 'SalesOrder',
+      entityId: id,
+      newValues: { customerId: input.customerId, total: updated.total.toString() },
+    });
+
+    return { ...mapRow(updated), lines: mapLines(updated.lines) };
+  },
+
   /** DRAFT → CONFIRMED: asigna número SO/YYYY/NNNNN */
   async confirmOrder(companyId: string, id: string, confirmedBy: string): Promise<SalesOrderRow> {
     const db = createTenantPrisma(basePrisma, companyId);

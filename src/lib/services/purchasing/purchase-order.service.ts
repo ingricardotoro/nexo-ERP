@@ -144,6 +144,45 @@ function mapRow(po: {
   };
 }
 
+function mapLines(
+  lines: Array<{
+    id: string;
+    lineNumber: number;
+    productId: string;
+    product: { code: string; name: string };
+    description: string | null;
+    qtyOrdered: { toString(): string };
+    qtyReceived: { toString(): string };
+    unitPrice: { toString(): string };
+    discountPct: { toString(): string };
+    subtotal: { toString(): string };
+    taxRateId: string;
+    taxRate: { name: string };
+    taxAmount: { toString(): string };
+    total: { toString(): string };
+    accountId: string | null;
+  }>,
+): PurchaseOrderLine[] {
+  return lines.map((l) => ({
+    id: l.id,
+    lineNumber: l.lineNumber,
+    productId: l.productId,
+    productCode: l.product.code,
+    productName: l.product.name,
+    description: l.description,
+    qtyOrdered: l.qtyOrdered.toString(),
+    qtyReceived: l.qtyReceived.toString(),
+    unitPrice: l.unitPrice.toString(),
+    discountPct: l.discountPct.toString(),
+    subtotal: l.subtotal.toString(),
+    taxRateId: l.taxRateId,
+    taxRateName: l.taxRate.name,
+    taxAmount: l.taxAmount.toString(),
+    total: l.total.toString(),
+    accountId: l.accountId,
+  }));
+}
+
 const PO_INCLUDE = {
   supplier: { select: { legalName: true } },
   warehouse: { select: { name: true } },

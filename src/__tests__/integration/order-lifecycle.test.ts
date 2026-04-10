@@ -71,10 +71,10 @@ beforeAll(async () => {
 
   // Companies
   await prisma.$executeRawUnsafe(`
-    INSERT INTO companies (id, legal_name, trade_name, rtn, email, country_code, default_currency_code, created_at, updated_at)
+    INSERT INTO companies (id, legal_name, trade_name, rtn, email, base_currency, created_at, updated_at)
     VALUES
-      ('${IDS.companyA}', 'Test Company A F6', 'Company A F6', '08019999000001', 'a@f6test.com', 'HN', 'HNL', NOW(), NOW()),
-      ('${IDS.companyB}', 'Test Company B F6', 'Company B F6', '08019999000002', 'b@f6test.com', 'HN', 'HNL', NOW(), NOW())
+      ('${IDS.companyA}', 'Test Company A F6', 'Company A F6', '08019999000001', 'a@f6test.com', 'HNL', NOW(), NOW()),
+      ('${IDS.companyB}', 'Test Company B F6', 'Company B F6', '08019999000002', 'b@f6test.com', 'HNL', NOW(), NOW())
   `);
 
   // Contacts

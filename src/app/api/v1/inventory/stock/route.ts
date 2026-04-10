@@ -48,12 +48,12 @@ export async function GET(request: NextRequest) {
         id: true,
         code: true,
         name: true,
-        uom: { select: { name: true, symbol: true } },
+        unitOfMeasure: { select: { name: true, symbol: true } },
         category: { select: { name: true } },
         costPrice: true,
         stockQuants: {
           where: { companyId: auth.companyId },
-          select: { quantity: true, reservedQty: true },
+          select: { quantity: true },
         },
       },
       orderBy: { name: 'asc' },
@@ -61,20 +61,16 @@ export async function GET(request: NextRequest) {
 
     const overview = products.map((p) => {
       const totalQty = p.stockQuants.reduce((sum, q) => sum + parseFloat(q.quantity.toString()), 0);
-      const reservedQty = p.stockQuants.reduce(
-        (sum, q) => sum + parseFloat(q.reservedQty.toString()),
-        0,
-      );
       return {
         productId: p.id,
         productCode: p.code,
         productName: p.name,
         categoryName: p.category?.name ?? null,
-        uomSymbol: p.uom?.symbol ?? '',
-        uomName: p.uom?.name ?? '',
+        uomSymbol: p.unitOfMeasure?.symbol ?? '',
+        uomName: p.unitOfMeasure?.name ?? '',
         qtyOnHand: totalQty.toFixed(4),
-        qtyReserved: reservedQty.toFixed(4),
-        qtyAvailable: (totalQty - reservedQty).toFixed(4),
+        qtyReserved: '0.0000',
+        qtyAvailable: totalQty.toFixed(4),
         costPrice: p.costPrice?.toString() ?? '0',
         stockValue: (totalQty * parseFloat(p.costPrice?.toString() ?? '0')).toFixed(2),
       };

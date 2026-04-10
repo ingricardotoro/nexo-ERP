@@ -512,8 +512,9 @@ describe('tenant-extension.ts — Operaciones UPDATE/DELETE', () => {
     } as unknown as PrismaClient;
   });
 
-  it('update debería inyectar companyId en WHERE', async () => {
-    // Arrange
+  it('update NO inyecta companyId en WHERE (seguridad por FORCE RLS)', async () => {
+    // update requiere clave única en where — AND no es válido para operaciones únicas.
+    // La seguridad está garantizada exclusivamente por FORCE RLS + set_config.
     const tenantPrisma = createTenantPrisma(mockPrisma, companyId);
     const handler = (tenantPrisma as any).__extensionHandler;
 
@@ -531,11 +532,9 @@ describe('tenant-extension.ts — Operaciones UPDATE/DELETE', () => {
     // Act
     await handler(queryContext);
 
-    // Assert
+    // Assert: WHERE no es modificado; RLS filtra por tenant en la DB
     expect(mockQuery).toHaveBeenCalledWith({
-      where: {
-        AND: [{ id: userId }, { companyId }],
-      },
+      where: { id: userId },
       data: { name: 'Updated Name' },
     });
   });
@@ -567,8 +566,9 @@ describe('tenant-extension.ts — Operaciones UPDATE/DELETE', () => {
     });
   });
 
-  it('delete debería inyectar companyId en WHERE', async () => {
-    // Arrange
+  it('delete NO inyecta companyId en WHERE (seguridad por FORCE RLS)', async () => {
+    // delete requiere clave única en where — AND no es válido para operaciones únicas.
+    // La seguridad está garantizada exclusivamente por FORCE RLS + set_config.
     const tenantPrisma = createTenantPrisma(mockPrisma, companyId);
     const handler = (tenantPrisma as any).__extensionHandler;
 
@@ -583,11 +583,9 @@ describe('tenant-extension.ts — Operaciones UPDATE/DELETE', () => {
     // Act
     await handler(queryContext);
 
-    // Assert
+    // Assert: WHERE no es modificado; RLS filtra por tenant en la DB
     expect(mockQuery).toHaveBeenCalledWith({
-      where: {
-        AND: [{ id: userId }, { companyId }],
-      },
+      where: { id: userId },
     });
   });
 

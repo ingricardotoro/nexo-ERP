@@ -3,22 +3,95 @@
 // src/app/(dashboard)/dashboard/page.tsx
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { Route } from 'next';
 import {
-  TrendingUp,
-  FileText,
-  DollarSign,
-  ShoppingCart,
+  BookOpen,
+  ReceiptText,
+  Users2,
+  Package,
   ClipboardList,
-  AlertTriangle,
-  RefreshCw,
+  TrendingUp,
+  LayoutDashboard,
+  DollarSign,
+  FileText,
   AlertCircle,
+  RefreshCw,
+  type LucideIcon,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Módulos del sistema ─────────────────────────────────────────────────────
+
+interface AppModule {
+  name: string;
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  gradient: string;
+  glow: string;
+}
+
+const appModules: AppModule[] = [
+  {
+    name: 'Contabilidad',
+    description: 'Cuentas, asientos y reportes',
+    href: '/dashboard/accounting/accounts',
+    icon: BookOpen,
+    gradient: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
+    glow: 'rgb(5 150 105 / 0.25)',
+  },
+  {
+    name: 'Facturación',
+    description: 'Facturas, CAI y tributación',
+    href: '/dashboard/invoicing/invoices',
+    icon: ReceiptText,
+    gradient: 'linear-gradient(135deg, #92400e 0%, #d97706 100%)',
+    glow: 'rgb(217 119 6 / 0.25)',
+  },
+  {
+    name: 'Contactos',
+    description: 'Clientes y proveedores',
+    href: '/dashboard/contacts',
+    icon: Users2,
+    gradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
+    glow: 'rgb(124 58 237 / 0.25)',
+  },
+  {
+    name: 'Inventarios',
+    description: 'Productos, stock y almacenes',
+    href: '/dashboard/inventory/products',
+    icon: Package,
+    gradient: 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)',
+    glow: 'rgb(8 145 178 / 0.25)',
+  },
+  {
+    name: 'Compras',
+    description: 'Órdenes de compra',
+    href: '/dashboard/purchasing/purchase-orders',
+    icon: ClipboardList,
+    gradient: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
+    glow: 'rgb(234 88 12 / 0.25)',
+  },
+  {
+    name: 'Ventas',
+    description: 'Pedidos y oportunidades',
+    href: '/dashboard/sales/orders',
+    icon: TrendingUp,
+    gradient: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)',
+    glow: 'rgb(79 70 229 / 0.25)',
+  },
+  {
+    name: 'Administración',
+    description: 'Usuarios y configuración',
+    href: '/dashboard/users',
+    icon: LayoutDashboard,
+    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+    glow: 'rgb(37 99 235 / 0.25)',
+  },
+];
+
+// ─── KPI rápidos ──────────────────────────────────────────────────────────────
 
 interface KpiData {
   monthlySales: { amount: string; count: number; month: string };
@@ -31,8 +104,6 @@ interface KpiData {
   caiAlert: { daysLeft: number | null; documentType: string; count: number } | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const fmtL = (v: string | number) =>
   'L ' +
   parseFloat(String(v)).toLocaleString('es-HN', {
@@ -40,48 +111,119 @@ const fmtL = (v: string | number) =>
     maximumFractionDigits: 2,
   });
 
-// ─── KPI Card ──────────────────────────────────────────────────────────────────
+// ─── App Launcher Card ────────────────────────────────────────────────────────
 
-function KpiCard({
-  title,
-  value,
-  sub,
-  icon: Icon,
-  accent,
-  href,
-  loading,
-}: {
-  title: string;
-  value: string;
-  sub?: string;
-  icon: React.ElementType;
-  accent?: string;
-  href?: string;
-  loading?: boolean;
-}) {
-  const content = (
-    <Card className={href ? 'transition-shadow hover:shadow-md' : ''}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="text-muted-foreground h-4 w-4" aria-hidden="true" />
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <>
-            <Skeleton className="mb-1 h-8 w-24" />
-            <Skeleton className="h-3 w-40" />
-          </>
-        ) : (
-          <>
-            <div className={`text-2xl font-bold ${accent ?? ''}`}>{value}</div>
-            {sub && <p className="text-muted-foreground mt-1 text-xs">{sub}</p>}
-          </>
-        )}
-      </CardContent>
-    </Card>
+function ModuleCard({ module }: { module: AppModule }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link
+      href={module.href as unknown as Route}
+      className="group flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6"
+      style={{
+        boxShadow: hovered
+          ? `0 12px 32px 0 ${module.glow}, 0 4px 12px 0 rgb(0 0 0 / 0.08)`
+          : '0 1px 3px 0 rgb(0 0 0 / 0.06)',
+        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
+        transition: 'box-shadow 220ms ease, transform 220ms ease',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Ícono con gradiente */}
+      <div
+        className="flex items-center justify-center rounded-2xl"
+        style={{
+          width: '4rem',
+          height: '4rem',
+          background: module.gradient,
+          boxShadow: hovered ? `0 6px 20px 0 ${module.glow}` : 'none',
+          transition: 'box-shadow 220ms ease',
+        }}
+        aria-hidden="true"
+      >
+        <module.icon className="h-7 w-7 text-white" />
+      </div>
+
+      {/* Nombre y descripción */}
+      <div className="text-center">
+        <p className="text-sm leading-tight font-semibold text-slate-800">{module.name}</p>
+        <p className="mt-1 text-xs leading-snug text-slate-400">{module.description}</p>
+      </div>
+    </Link>
   );
+}
 
-  return href ? <Link href={href}>{content}</Link> : content;
+// ─── KPI Strip ────────────────────────────────────────────────────────────────
+
+interface KpiStripProps {
+  kpis: KpiData | null;
+  loading: boolean;
+}
+
+function KpiStrip({ kpis, loading }: KpiStripProps) {
+  const hasOverdue = (kpis?.overdueReceivables.count ?? 0) > 0;
+
+  const items = [
+    {
+      label: 'Ventas del mes',
+      value: fmtL(kpis?.monthlySales.amount ?? '0'),
+      sub: `${kpis?.monthlySales.count ?? 0} facturas`,
+      icon: DollarSign,
+      color: '#10b981',
+      bg: '#f0fdf4',
+    },
+    {
+      label: 'CxC pendiente',
+      value: fmtL(kpis?.pendingInvoices.amount ?? '0'),
+      sub: `${kpis?.pendingInvoices.count ?? 0} facturas`,
+      icon: FileText,
+      color: '#f59e0b',
+      bg: '#fffbeb',
+    },
+    {
+      label: 'CxC vencida',
+      value: fmtL(kpis?.overdueReceivables.amount ?? '0'),
+      sub: `${kpis?.overdueReceivables.count ?? 0} vencidas`,
+      icon: AlertCircle,
+      color: hasOverdue ? '#ef4444' : '#10b981',
+      bg: hasOverdue ? '#fef2f2' : '#f0fdf4',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+          style={{ boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.04)' }}
+        >
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: item.bg }}
+          >
+            <item.icon className="h-4 w-4" style={{ color: item.color }} aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            {loading ? (
+              <>
+                <Skeleton className="mb-1 h-5 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </>
+            ) : (
+              <>
+                <p className="text-base leading-tight font-bold text-slate-900 tabular-nums">
+                  {item.value}
+                </p>
+                <p className="mt-0.5 text-xs leading-tight text-slate-400">{item.label}</p>
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
@@ -96,7 +238,7 @@ export default function DashboardPage() {
     setError(null);
     try {
       const res = await fetch('/api/v1/dashboard/kpis', { credentials: 'include' });
-      if (!res.ok) throw new Error('Error al cargar KPIs');
+      if (!res.ok) throw new Error('Error al cargar los indicadores');
       const data = (await res.json()) as { success: boolean; data: KpiData };
       if (data.success) setKpis(data.data);
     } catch (e) {
@@ -111,207 +253,48 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Bienvenido a NexoERP — Vista general de tu empresa
-          </p>
+    <div className="mx-auto max-w-5xl space-y-8">
+      {/* ── KPI compacto ─────────────────────────────────────────── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="section-label">Resumen financiero</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void fetchKpis()}
+            disabled={loading}
+            className="h-7 cursor-pointer text-xs text-slate-400 hover:text-slate-700"
+          >
+            <RefreshCw className={`mr-1 h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchKpis()} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
+
+        {error ? (
+          <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+            <button
+              onClick={() => void fetchKpis()}
+              className="ml-auto cursor-pointer text-xs underline"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : (
+          <KpiStrip kpis={kpis} loading={loading} />
+        )}
       </div>
 
-      {error && (
-        <div className="text-destructive bg-destructive/10 border-destructive/30 rounded-md border px-4 py-3 text-sm">
-          {error}
+      {/* ── App Launcher (estilo Odoo) ────────────────────────────── */}
+      <div>
+        <p className="section-label">Módulos</p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {appModules.map((module) => (
+            <ModuleCard key={module.name} module={module} />
+          ))}
         </div>
-      )}
-
-      {/* KPI Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <KpiCard
-          title="Ventas del Mes"
-          value={fmtL(kpis?.monthlySales.amount ?? '0')}
-          sub={`${kpis?.monthlySales.count ?? 0} facturas — ${kpis?.monthlySales.month ?? ''}`}
-          icon={DollarSign}
-          accent="text-green-600"
-          href="/dashboard/invoicing/invoices"
-          loading={loading}
-        />
-        <KpiCard
-          title="CxC Pendiente"
-          value={String(kpis?.pendingInvoices.count ?? 0)}
-          sub={`${fmtL(kpis?.pendingInvoices.amount ?? '0')} por cobrar`}
-          icon={FileText}
-          accent={(kpis?.pendingInvoices.count ?? 0) > 0 ? 'text-amber-600' : undefined}
-          href="/dashboard/invoicing/invoices"
-          loading={loading}
-        />
-        <KpiCard
-          title="CxC Vencida"
-          value={String(kpis?.overdueReceivables.count ?? 0)}
-          sub={
-            (kpis?.overdueReceivables.count ?? 0) > 0
-              ? `${fmtL(kpis?.overdueReceivables.amount ?? '0')} vencidos`
-              : 'Sin facturas vencidas'
-          }
-          icon={AlertCircle}
-          accent={(kpis?.overdueReceivables.count ?? 0) > 0 ? 'text-red-600' : undefined}
-          href="/dashboard/invoicing/invoices"
-          loading={loading}
-        />
-        <KpiCard
-          title="Pedidos de Venta Activos"
-          value={String(kpis?.activeSalesOrders ?? 0)}
-          sub="Confirmados — pendientes de despacho"
-          icon={TrendingUp}
-          href="/dashboard/sales/orders"
-          loading={loading}
-        />
-        <KpiCard
-          title="Pedidos de Venta (Borrador)"
-          value={String(kpis?.draftSalesOrders ?? 0)}
-          sub="Requieren confirmación"
-          icon={ShoppingCart}
-          accent={(kpis?.draftSalesOrders ?? 0) > 0 ? 'text-amber-600' : undefined}
-          href="/dashboard/sales/orders"
-          loading={loading}
-        />
-        <KpiCard
-          title="Órdenes de Compra Activas"
-          value={String(kpis?.activePurchaseOrders ?? 0)}
-          sub="Confirmadas — pendientes de recepción"
-          icon={ClipboardList}
-          href="/dashboard/purchasing/purchase-orders"
-          loading={loading}
-        />
-        {/* CAI Alert */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alerta CAI</CardTitle>
-            <AlertTriangle
-              className={`h-4 w-4 ${
-                !kpis?.caiAlert
-                  ? 'text-muted-foreground'
-                  : (kpis.caiAlert.daysLeft ?? 999) <= 7
-                    ? 'text-red-500'
-                    : 'text-amber-500'
-              }`}
-              aria-hidden="true"
-            />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <>
-                <Skeleton className="mb-1 h-8 w-24" />
-                <Skeleton className="h-3 w-40" />
-              </>
-            ) : kpis?.caiAlert ? (
-              <>
-                <div
-                  className={`text-2xl font-bold ${
-                    (kpis.caiAlert.daysLeft ?? 999) <= 7 ? 'text-red-600' : 'text-amber-600'
-                  }`}
-                >
-                  {kpis.caiAlert.daysLeft ?? '—'} días
-                </div>
-                <Badge
-                  variant="outline"
-                  className={`mt-1 text-xs ${
-                    (kpis.caiAlert.daysLeft ?? 999) <= 7
-                      ? 'border-red-300 text-red-600'
-                      : 'border-amber-300 text-amber-600'
-                  }`}
-                >
-                  {kpis.caiAlert.count} CAI{kpis.caiAlert.count > 1 ? 's' : ''} vencen pronto
-                </Badge>
-              </>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-green-600">OK</div>
-                <p className="text-muted-foreground mt-1 text-xs">Todos los CAI vigentes</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        {/* Lotes */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lotes por Vencer</CardTitle>
-            <AlertTriangle
-              className={`h-4 w-4 ${(kpis?.expiringLotsCount ?? 0) > 0 ? 'text-amber-500' : 'text-muted-foreground'}`}
-              aria-hidden="true"
-            />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <>
-                <Skeleton className="mb-1 h-8 w-16" />
-                <Skeleton className="h-3 w-32" />
-              </>
-            ) : (
-              <>
-                <div
-                  className={`text-2xl font-bold ${(kpis?.expiringLotsCount ?? 0) > 0 ? 'text-amber-600' : ''}`}
-                >
-                  {kpis?.expiringLotsCount ?? 0}
-                </div>
-                {(kpis?.expiringLotsCount ?? 0) > 0 ? (
-                  <Badge variant="outline" className="mt-1 border-amber-300 text-xs text-amber-600">
-                    Vencen en ≤30 días
-                  </Badge>
-                ) : (
-                  <p className="text-muted-foreground mt-1 text-xs">Sin alertas de vencimiento</p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
-
-      {/* Getting started card — shown only when no data */}
-      {!loading && !error && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Primeros Pasos</CardTitle>
-            <CardDescription>Comienza configurando tu empresa y creando usuarios</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[
-              {
-                n: 1,
-                title: 'Configura tu empresa',
-                desc: 'Ingresa los datos fiscales, RTN, logo y moneda base',
-              },
-              {
-                n: 2,
-                title: 'Crea usuarios para tu equipo',
-                desc: 'Asigna roles y permisos a tus colaboradores',
-              },
-              {
-                n: 3,
-                title: 'Activa los módulos necesarios',
-                desc: 'Contabilidad, Facturación, Inventarios, Ventas, etc.',
-              },
-            ].map(({ n, title, desc }) => (
-              <div key={n} className="flex items-start gap-3">
-                <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-semibold">
-                  {n}
-                </div>
-                <div>
-                  <h3 className="font-medium">{title}</h3>
-                  <p className="text-muted-foreground text-sm">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

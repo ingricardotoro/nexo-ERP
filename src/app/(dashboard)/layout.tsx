@@ -60,9 +60,9 @@ export default async function DashboardLayout({
     <TenantProvider initialData={initialData}>
       <div className="bg-background min-h-screen">
         <DashboardSidebar />
-        <div className="pl-64">
+        <div className="pl-14">
           <DashboardHeader />
-          <main className="p-6">{children}</main>
+          <main className="min-h-[calc(100vh-3.5rem)] p-6">{children}</main>
         </div>
       </div>
     </TenantProvider>

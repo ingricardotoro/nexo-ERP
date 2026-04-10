@@ -1,4 +1,4 @@
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 
 import AmplifyConfigProvider from '@/lib/amplify/config';
 
@@ -6,14 +6,16 @@ import './globals.css';
 
 import type { Metadata } from 'next';
 
-const inter = Inter({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
+  weight: ['400', '600'],
   variable: '--font-mono',
   display: 'swap',
 });
@@ -33,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
         <AmplifyConfigProvider>{children}</AmplifyConfigProvider>
       </body>
     </html>

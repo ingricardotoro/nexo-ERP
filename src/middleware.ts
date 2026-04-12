@@ -70,5 +70,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/v1/:path*', '/dashboard/:path*'],
+  matcher: [
+    // Proteger todas las rutas API v1 excepto el health check (endpoint público)
+    '/api/v1/((?!health$).*)',
+    '/dashboard/:path*',
+  ],
 };

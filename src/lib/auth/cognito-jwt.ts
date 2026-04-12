@@ -1,14 +1,22 @@
 import type { NextRequest } from 'next/server';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
-import { env } from '@/lib/env';
 import type { AuthContext, UserRole } from '@/types/auth';
 import { AuthError } from '@/types/auth';
 
+// Leer directamente de process.env para compatibilidad con Edge runtime.
+// No importar env.ts aquí: su validación Zod en module-load falla en Edge
+// si DATABASE_URL u otras vars del servidor no están disponibles en ese contexto.
 const cognitoConfig = {
-  region: env.AWS_REGION,
-  userPoolId: env.COGNITO_USER_POOL_ID,
-  clientId: env.COGNITO_USER_POOL_CLIENT_ID,
+  region: process.env.AWS_REGION ?? 'us-east-1',
+  userPoolId:
+    process.env.COGNITO_USER_POOL_ID ??
+    process.env.NEXT_PUBLIC_USER_POOL_ID ??
+    'us-east-1_adYn3n5fz',
+  clientId:
+    process.env.COGNITO_USER_POOL_CLIENT_ID ??
+    process.env.NEXT_PUBLIC_USER_POOL_CLIENT_ID ??
+    '5biqgmo64jb7i1ob9pl53hkfcq',
 };
 
 const issuer = `https://cognito-idp.${cognitoConfig.region}.amazonaws.com/${cognitoConfig.userPoolId}`;

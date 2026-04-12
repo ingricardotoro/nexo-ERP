@@ -11,9 +11,9 @@ backend:
         - echo "🔧 Desplegando backend CDK (Cognito, Lambda, Storage)..."
         - npm ci --include=dev
         - echo "🔧 Instalando dependencias de Lambda functions..."
-        - cd amplify/functions/generate-invoice-pdf && npm ci && cd ../../..
-        - cd amplify/functions/post-confirmation && npm ci && cd ../../..
-        - cd amplify/functions/check-cai-alerts && npm ci && cd ../../..
+        - cd amplify/functions/generate-invoice-pdf && npm install && cd ../../..
+        - cd amplify/functions/post-confirmation && npm install && cd ../../..
+        - cd amplify/functions/check-cai-alerts && npm install && cd ../../..
         - echo "✅ Lambda dependencies instaladas"
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
         - echo "✅ Backend CDK desplegado"

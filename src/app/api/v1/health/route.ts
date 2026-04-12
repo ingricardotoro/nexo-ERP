@@ -58,10 +58,9 @@ export async function GET() {
         // Temporal para debugging en staging — remover antes de ir a producción real
         debug: message,
         dbUrlHint,
-        // Listar qué env vars relacionadas con DB/URL existen (solo keys, no valores)
-        envKeysPresent: Object.keys(process.env).filter((k) =>
-          /DATABASE|DIRECT_URL|POSTGRES|PG_/.test(k),
-        ),
+        // Diagnóstico: cuántas env vars hay y muestra de sus keys (sin valores)
+        envCount: Object.keys(process.env).length,
+        envSample: Object.keys(process.env).slice(0, 25),
       },
       { status: 503 },
     );

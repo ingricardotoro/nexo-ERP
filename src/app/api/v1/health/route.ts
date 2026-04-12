@@ -47,6 +47,8 @@ export async function GET() {
         db: 'disconnected',
         durationMs,
         timestamp: new Date().toISOString(),
+        // Temporal para debugging en staging — remover antes de producción
+        debug: process.env.NEXT_PUBLIC_APP_ENV === 'staging' ? message : undefined,
       },
       { status: 503 },
     );

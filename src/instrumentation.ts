@@ -12,32 +12,52 @@
  * @see amplify.yml (sección build — escritura de env.lambda)
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  // Saltar en Edge runtime (no tiene acceso al filesystem)
+  if (process.env.NEXT_RUNTIME === 'edge') return;
 
-  const { readFileSync } = await import('fs');
+  const { readFileSync, existsSync } = await import('fs');
   const { join } = await import('path');
 
-  const taskRoot = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
-  const envFile = join(taskRoot, 'env.lambda');
+  const taskRoot = process.env.LAMBDA_TASK_ROOT ?? '';
+  const cwd = process.cwd();
 
-  try {
-    const lines = readFileSync(envFile, 'utf-8').split('\n');
+  // Buscar en múltiples rutas posibles según cómo Amplify empaqueta el Lambda
+  const candidates = [
+    join(taskRoot, 'env.lambda'),
+    join(cwd, 'env.lambda'),
+    join(taskRoot, '.next', 'env.lambda'),
+    join(cwd, '.next', 'env.lambda'),
+  ].filter(Boolean);
 
-    for (const line of lines) {
-      const eqIdx = line.indexOf('=');
-      if (eqIdx <= 0) continue;
+  console.log('[instrumentation] register() called. taskRoot:', taskRoot, 'cwd:', cwd);
+  console.log('[instrumentation] Searching env.lambda in:', candidates);
 
-      const key = line.slice(0, eqIdx).trim();
-      const value = line.slice(eqIdx + 1).trim();
-
-      // Solo setear si la variable no está ya definida (no pisar vars del sistema)
-      if (key && value && !process.env[key]) {
-        process.env[key] = value;
-      }
+  for (const envFile of candidates) {
+    if (!existsSync(envFile)) {
+      console.log('[instrumentation] Not found:', envFile);
+      continue;
     }
 
-    console.log('[instrumentation] Runtime env loaded from env.lambda');
-  } catch {
-    // Archivo no existe en desarrollo — comportamiento esperado
+    try {
+      const lines = readFileSync(envFile, 'utf-8').split('\n');
+      let count = 0;
+      for (const line of lines) {
+        const eqIdx = line.indexOf('=');
+        if (eqIdx <= 0) continue;
+        const key = line.slice(0, eqIdx).trim();
+        const value = line.slice(eqIdx + 1).trim();
+        // Solo setear si la variable no está ya definida (no pisar vars del sistema)
+        if (key && value && !process.env[key]) {
+          process.env[key] = value;
+          count++;
+        }
+      }
+      console.log(`[instrumentation] ✅ Loaded ${count} env vars from: ${envFile}`);
+      return;
+    } catch (err) {
+      console.error('[instrumentation] Error reading', envFile, err);
+    }
   }
+
+  console.error('[instrumentation] ❌ env.lambda not found in any candidate path');
 }

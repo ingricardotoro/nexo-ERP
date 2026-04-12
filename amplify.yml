@@ -61,6 +61,7 @@ frontend:
             echo "SES_FROM_EMAIL=$SES_FROM_EMAIL"
           } > .next/env.lambda
         - echo "✅ Runtime env escrita en .next/env.lambda"
+        - echo "📋 Verificando contenido (keys sin valores):" && grep -o '^[^=]*' .next/env.lambda || echo "❌ Archivo no encontrado"
 
   # ===== Artifacts: Archivos a desplegar =====
   artifacts:

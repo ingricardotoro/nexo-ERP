@@ -24,4 +24,7 @@ export const generateInvoicePdf = defineFunction({
     S3_BUCKET_DOCUMENTS: process.env.S3_BUCKET_DOCUMENTS ?? '',
     AWS_REGION_TARGET: process.env.AWS_REGION ?? 'us-east-1',
   },
+  bundling: {
+    externalModules: ['pdfkit'],
+  },
 });

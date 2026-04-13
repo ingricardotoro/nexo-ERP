@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -64,7 +64,7 @@ function getAuthErrorMessage(error: unknown): string {
 
 type Step = 'credentials' | 'totp';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('from') ?? '/dashboard';
@@ -314,5 +314,14 @@ export default function LoginPage() {
         ¿Problemas para acceder? Contacta al administrador del sistema.
       </p>
     </div>
+  );
+}
+
+// useSearchParams() requiere Suspense boundary en Next.js App Router
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

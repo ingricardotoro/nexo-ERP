@@ -39,15 +39,7 @@ export async function GET() {
     const durationMs = Date.now() - start;
     const message = error instanceof Error ? error.message : 'Unknown error';
 
-    // Mask DATABASE_URL for safe logging: show only host portion
-    const rawUrl = process.env.DATABASE_URL ?? process.env.DATABASE_URL_APP ?? '';
-    const dbUrlHint = rawUrl ? rawUrl.replace(/:\/\/[^@]+@/, '://***@').slice(0, 80) : '(not set)';
-
-    console.error('[health] DB connectivity check failed', {
-      durationMs,
-      error: message,
-      dbUrlHint,
-    });
+    console.error('[health] DB connectivity check failed', { durationMs, error: message });
 
     return NextResponse.json(
       {
@@ -55,12 +47,6 @@ export async function GET() {
         db: 'disconnected',
         durationMs,
         timestamp: new Date().toISOString(),
-        // Temporal para debugging en staging — remover antes de ir a producción real
-        debug: message,
-        dbUrlHint,
-        // Diagnóstico: cuántas env vars hay y muestra de sus keys (sin valores)
-        envCount: Object.keys(process.env).length,
-        envSample: Object.keys(process.env).slice(0, 25),
       },
       { status: 503 },
     );

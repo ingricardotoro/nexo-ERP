@@ -12,11 +12,11 @@ const cognitoConfig = {
   userPoolId:
     process.env.COGNITO_USER_POOL_ID ??
     process.env.NEXT_PUBLIC_USER_POOL_ID ??
-    'us-east-1_adYn3n5fz',
+    'us-east-1_KQacyXXAQ',
   clientId:
     process.env.COGNITO_USER_POOL_CLIENT_ID ??
     process.env.NEXT_PUBLIC_USER_POOL_CLIENT_ID ??
-    '5biqgmo64jb7i1ob9pl53hkfcq',
+    '1im63gh94r2h52gah31da3tv5',
 };
 
 const issuer = `https://cognito-idp.${cognitoConfig.region}.amazonaws.com/${cognitoConfig.userPoolId}`;

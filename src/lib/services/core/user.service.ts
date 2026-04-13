@@ -158,6 +158,7 @@ export class UserService {
       data: {
         id: `temp-${Date.now()}`,
         cognitoSub: `temp-cognito-${Date.now()}`,
+        companyId, // la extensión lo sobreescribe, pero Prisma types lo requieren
         fullName: validatedData.fullName,
         email: validatedData.email,
         role: validatedData.role,

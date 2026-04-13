@@ -1,5 +1,6 @@
 import type { SystemRole } from '@prisma/client';
 import prisma from '@/lib/db/prisma';
+import { createTenantPrisma } from '@/lib/db/tenant-extension';
 import {
   createUserSchema,
   updateUserSchema,
@@ -31,19 +32,19 @@ interface UserListResult {
 
 export class UserService {
   async listUsers(companyId: string, filters?: UserFilters): Promise<UserListResult> {
+    const db = createTenantPrisma(prisma, companyId);
     const page = filters?.page ?? 1;
     const limit = filters?.limit ?? 10;
     const skip = (page - 1) * limit;
 
     const where: {
-      companyId: string;
       isActive?: boolean;
       role?: SystemRole;
       OR?: Array<
         | { fullName: { contains: string; mode: 'insensitive' } }
         | { email: { contains: string; mode: 'insensitive' } }
       >;
-    } = { companyId };
+    } = {};
 
     if (typeof filters?.isActive === 'boolean') {
       where.isActive = filters.isActive;
@@ -64,7 +65,7 @@ export class UserService {
     const orderDir = filters?.orderDir ?? 'desc';
 
     const [users, totalCount] = await Promise.all([
-      prisma.user.findMany({
+      db.user.findMany({
         where,
         skip,
         take: limit,
@@ -81,7 +82,7 @@ export class UserService {
           updatedAt: true,
         },
       }),
-      prisma.user.count({ where }),
+      db.user.count({ where }),
     ]);
 
     return {
@@ -96,8 +97,9 @@ export class UserService {
   }
 
   async getUserById(id: string, companyId: string) {
-    const user = await prisma.user.findFirst({
-      where: { id, companyId, isActive: true },
+    const db = createTenantPrisma(prisma, companyId);
+    const user = await db.user.findFirst({
+      where: { id, isActive: true },
       select: {
         id: true,
         fullName: true,
@@ -119,6 +121,7 @@ export class UserService {
   }
 
   async createUser(companyId: string, data: CreateUserInput) {
+    const db = createTenantPrisma(prisma, companyId);
     const validatedData = createUserSchema.parse(data);
 
     const company = await prisma.company.findUnique({
@@ -130,8 +133,8 @@ export class UserService {
       throw new Error('Empresa no encontrada');
     }
 
-    const activeUsersCount = await prisma.user.count({
-      where: { companyId, isActive: true },
+    const activeUsersCount = await db.user.count({
+      where: { isActive: true },
     });
 
     if (!canCreateUser(activeUsersCount, company.maxUsers)) {
@@ -140,9 +143,8 @@ export class UserService {
       );
     }
 
-    const existingUser = await prisma.user.findFirst({
+    const existingUser = await db.user.findFirst({
       where: {
-        companyId,
         email: validatedData.email,
         isActive: true,
       },
@@ -152,11 +154,10 @@ export class UserService {
       throw new Error('Este email ya esta en uso por otro usuario en esta empresa');
     }
 
-    return prisma.user.create({
+    return db.user.create({
       data: {
         id: `temp-${Date.now()}`,
         cognitoSub: `temp-cognito-${Date.now()}`,
-        companyId,
         fullName: validatedData.fullName,
         email: validatedData.email,
         role: validatedData.role,
@@ -174,14 +175,14 @@ export class UserService {
   }
 
   async updateUser(id: string, companyId: string, data: UpdateUserInput) {
+    const db = createTenantPrisma(prisma, companyId);
     const validatedData = updateUserSchema.parse({ ...data, id });
 
     const existingUser = await this.getUserById(id, companyId);
 
     if (validatedData.email && validatedData.email !== existingUser.email) {
-      const emailInUse = await prisma.user.findFirst({
+      const emailInUse = await db.user.findFirst({
         where: {
-          companyId,
           email: validatedData.email,
           isActive: true,
           id: { not: id },
@@ -193,7 +194,7 @@ export class UserService {
       }
     }
 
-    return prisma.user.update({
+    return db.user.update({
       where: { id },
       data: {
         ...(validatedData.fullName && { fullName: validatedData.fullName }),
@@ -213,9 +214,10 @@ export class UserService {
   }
 
   async deleteUser(id: string, companyId: string) {
+    const db = createTenantPrisma(prisma, companyId);
     await this.getUserById(id, companyId);
 
-    await prisma.user.update({
+    await db.user.update({
       where: { id },
       data: { isActive: false },
     });

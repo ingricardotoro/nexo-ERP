@@ -40,6 +40,29 @@ frontend:
         - npm run build
         - echo "✅ Build completado"
 
+        # ===== Runtime env para SSR Lambda =====
+        # Amplify Gen 2 no inyecta las env vars del Console al SSR Lambda.
+        # Las escribimos en .next/env.lambda para que instrumentation.ts
+        # las cargue al arrancar el servidor (antes de cualquier request).
+        - echo "📝 Escribiendo runtime env para Lambda SSR..."
+        - |
+          {
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "DIRECT_URL=${DIRECT_URL:-$DATABASE_URL}"
+            echo "COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID"
+            echo "COGNITO_USER_POOL_CLIENT_ID=$COGNITO_USER_POOL_CLIENT_ID"
+            echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL"
+            echo "NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV"
+            echo "NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME"
+            echo "S3_BUCKET_DOCUMENTS=$S3_BUCKET_DOCUMENTS"
+            echo "SQS_QUEUE_URL_INVOICE_PDF=$SQS_QUEUE_URL_INVOICE_PDF"
+            echo "SMTP_HOST=$SMTP_HOST"
+            echo "SMTP_PORT=$SMTP_PORT"
+            echo "SES_FROM_EMAIL=$SES_FROM_EMAIL"
+          } > .next/env.lambda
+        - echo "✅ Runtime env escrita en .next/env.lambda"
+        - echo "📋 Verificando contenido (keys sin valores):" && grep -o '^[^=]*' .next/env.lambda || echo "❌ Archivo no encontrado"
+
   # ===== Artifacts: Archivos a desplegar =====
   artifacts:
     baseDirectory: .next

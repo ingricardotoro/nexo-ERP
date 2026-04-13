@@ -3,6 +3,11 @@ import type { NextConfig } from 'next';
 const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
+  // Prisma requiere no ser bundleado por webpack en Next.js 15 App Router.
+  // Sin esto, el Prisma Client se bundlea y no puede acceder correctamente
+  // a process.env en el SSR Lambda de Amplify.
+  serverExternalPackages: ['@prisma/client', 'prisma'],
+
   // Headers de seguridad (F6-01 — hardening pre-producción)
   async headers() {
     return [

@@ -14,10 +14,20 @@ function buildUnauthorizedResponse(message: string, code: string) {
   );
 }
 
+function buildLoginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('from', request.nextUrl.pathname);
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function middleware(request: NextRequest) {
   if (request.method === 'OPTIONS') {
     return NextResponse.next();
   }
+
+  // Las rutas /dashboard/** redirigen al login cuando no hay token
+  // Las rutas /api/v1/** devuelven 401 JSON (son llamadas desde código, no navegación del browser)
+  const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard');
 
   // Bypass de autenticación solo en desarrollo para pruebas de UI (nunca en producción)
   if (process.env.BYPASS_AUTH_DEV === 'true' && process.env.NODE_ENV === 'development') {
@@ -33,6 +43,7 @@ export async function middleware(request: NextRequest) {
   const token = extractTokenFromRequest(request);
 
   if (!token) {
+    if (isDashboardRoute) return buildLoginRedirect(request);
     return buildUnauthorizedResponse('Token JWT no proporcionado', 'MISSING_TOKEN');
   }
 
@@ -54,6 +65,8 @@ export async function middleware(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (isDashboardRoute) return buildLoginRedirect(request);
+
     if (error instanceof AuthError) {
       return NextResponse.json(
         {

@@ -12,7 +12,7 @@ vi.mock('@/lib/auth/cognito-jwt', () => ({
   verifyCognitoJwt: verifyCognitoJwtMock,
 }));
 
-import { middleware } from '@/middleware';
+import { proxy as middleware } from '@/proxy';
 
 function buildRequest(path = '/api/v1/core/users', method = 'GET') {
   return new NextRequest(`http://localhost:3000${path}`, { method });

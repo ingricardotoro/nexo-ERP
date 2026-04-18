@@ -11,6 +11,7 @@ const NOT_FOUND_MESSAGES = [
   'Usuario no encontrado',
   'Empresa no encontrada',
   // Accounting
+  'Cuenta no encontrada',
   'Año fiscal no encontrado',
   'Período fiscal no encontrado',
   'Diario no encontrado',

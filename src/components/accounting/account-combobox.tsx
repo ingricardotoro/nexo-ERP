@@ -89,7 +89,7 @@ export function AccountCombobox({
                   key={a.id}
                   value={a.id}
                   onSelect={() => {
-                    onChange(a.id);
+                    onChange(value === a.id ? '' : a.id);
                     setSearch('');
                     setOpen(false);
                   }}

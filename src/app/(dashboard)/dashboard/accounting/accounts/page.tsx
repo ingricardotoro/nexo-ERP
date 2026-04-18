@@ -1,9 +1,10 @@
 'use client';
 
 // src/app/(dashboard)/dashboard/accounting/accounts/page.tsx
-import { useCallback, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import {
   BookOpen,
   Search,
@@ -33,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { AccountsTree } from '@/components/accounting/accounts-tree';
+import { AccountCombobox, type AccountOption } from '@/components/accounting/account-combobox';
 import { useTenant } from '@/lib/context/tenant-context';
 import { createAccountSchema } from '@/lib/validations/account.schema';
 import type {
@@ -82,8 +84,24 @@ export default function AccountsPage() {
   const [deletingAccount, setDeletingAccount] = useState<AccountNode | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const flatAllAccounts = useMemo<AccountOption[]>(() => {
+    const result: AccountOption[] = [];
+    const stack = [...accounts];
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      result.push({ id: node.id, code: node.code, name: node.name });
+      if (node.children?.length) stack.push(...node.children);
+    }
+    return result.sort((a, b) => a.code.localeCompare(b.code));
+  }, [accounts]);
+
+  const parentOptions = useMemo<AccountOption[]>(() => {
+    if (!editingAccount) return flatAllAccounts;
+    return flatAllAccounts.filter((a) => a.id !== editingAccount.id);
+  }, [flatAllAccounts, editingAccount]);
+
   const form = useForm<CreateAccountInput>({
-    resolver: zodResolver(createAccountSchema),
+    resolver: zodResolver(createAccountSchema) as Resolver<CreateAccountInput>,
     defaultValues: {
       code: '',
       name: '',
@@ -168,10 +186,11 @@ export default function AccountsPage() {
       });
       const body = (await res.json()) as { success: boolean; error?: string };
       if (!res.ok || !body.success) {
-        alert(body.error ?? 'Error al guardar la cuenta');
+        toast.error(body.error ?? 'Error al guardar la cuenta');
         return;
       }
       setDialogOpen(false);
+      toast.success(editingAccount ? 'Cuenta actualizada' : 'Cuenta creada correctamente');
       void fetchAccounts();
     } finally {
       setSubmitting(false);
@@ -188,7 +207,11 @@ export default function AccountsPage() {
     setDeleteDialogOpen(false);
     setDeletingAccount(null);
     void fetchAccounts();
-    alert(body.message);
+    if (body.deleted) {
+      toast.success(body.message);
+    } else {
+      toast.warning(body.message);
+    }
   };
 
   const handleToggleReport = async (id: string, value: boolean) => {
@@ -446,6 +469,21 @@ export default function AccountsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Cuenta padre</Label>
+              <AccountCombobox
+                accounts={parentOptions}
+                value={form.watch('parentId') ?? ''}
+                onChange={(v) =>
+                  form.setValue('parentId', v || undefined, { shouldValidate: true })
+                }
+                placeholder="Sin cuenta padre (raíz)"
+              />
+              {form.formState.errors.parentId && (
+                <p className="text-xs text-red-500">{form.formState.errors.parentId.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --no-turbo --port 3001",
+    "dev": "next dev",
     "dev:setup": "node scripts/dev-setup.mjs",
     "dev:verify": "powershell -ExecutionPolicy Bypass -File scripts/verify-env.ps1",
     "build": "next build",

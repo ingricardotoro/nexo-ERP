@@ -105,14 +105,17 @@ function generateMonthlyPeriods(
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const fiscalYearService = {
-  /** Lista todos los años fiscales de la empresa con conteos de períodos. */
-  async listFiscalYears(companyId: string): Promise<FiscalYearSummary[]> {
+  /** Lista todos los años fiscales de la empresa con conteos y períodos. */
+  async listFiscalYears(companyId: string): Promise<FiscalYearDetail[]> {
     const db = createTenantPrisma(basePrisma, companyId);
     const years = await db.fiscalYear.findMany({
       where: { companyId },
       include: {
         _count: { select: { fiscalPeriods: true } },
-        fiscalPeriods: { select: { status: true } },
+        fiscalPeriods: {
+          select: { id: true, periodNumber: true, name: true, startDate: true, endDate: true, status: true },
+          orderBy: { periodNumber: 'asc' },
+        },
       },
       orderBy: { year: 'desc' },
     });
@@ -129,6 +132,15 @@ export const fiscalYearService = {
       periodsOpen: y.fiscalPeriods.filter((p) => p.status === 'OPEN').length,
       periodsClosed: y.fiscalPeriods.filter((p) => p.status === 'CLOSED').length,
       periodsLocked: y.fiscalPeriods.filter((p) => p.status === 'LOCKED').length,
+      periods: y.fiscalPeriods.map((p) => ({
+        id: p.id,
+        periodNumber: p.periodNumber,
+        name: p.name,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        status: p.status,
+        journalEntriesCount: 0,
+      })),
     }));
   },
 

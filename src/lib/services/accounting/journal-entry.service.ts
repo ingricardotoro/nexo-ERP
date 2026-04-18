@@ -269,6 +269,7 @@ export const journalEntryService = {
     const totalCredit = data.lines.reduce((s, l) => s + l.credit, 0);
 
     const entry = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
       const entryNumber = await getNextEntryNumber(companyId, data.journalId, tx);
 
       const created = await tx.journalEntry.create({

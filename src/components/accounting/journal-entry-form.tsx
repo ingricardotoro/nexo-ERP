@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AccountCombobox } from '@/components/accounting/account-combobox';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,22 @@ interface AccountOption {
   allowDirectEntry: boolean;
 }
 
+interface AccountNode extends AccountOption {
+  children?: AccountNode[];
+}
+
+function flattenAccounts(nodes: AccountNode[]): AccountOption[] {
+
+  const result: AccountOption[] = [];
+  const stack = [...nodes];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    result.push({ id: node.id, code: node.code, name: node.name, allowDirectEntry: node.allowDirectEntry });
+    if (node.children?.length) stack.push(...node.children);
+  }
+  return result;
+}
+
 interface JournalEntryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -67,7 +84,6 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
   const [currencies, setCurrencies] = useState<{ code: string; name: string; isBase: boolean }[]>(
     [],
   );
-  const [accountSearch, setAccountSearch] = useState<Record<number, string>>({});
 
   const today = new Date().toISOString().split('T')[0]!;
 
@@ -149,7 +165,7 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
               periods?: PeriodOption[];
             }>;
           }>,
-          accountsRes.json() as Promise<{ success: boolean; data: AccountOption[] }>,
+          accountsRes.json() as Promise<{ success: boolean; data: AccountNode[] }>,
           currenciesRes.json() as Promise<{
             success: boolean;
             data: { code: string; name: string; isBase: boolean }[];
@@ -169,8 +185,8 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
         }
         setPeriods(allPeriods);
 
-        // Solo cuentas que admiten asientos directos
-        setAccounts((accountsData.data ?? []).filter((a) => a.allowDirectEntry));
+        // Aplanar árbol jerárquico y filtrar solo cuentas con entrada directa
+        setAccounts(flattenAccounts(accountsData.data ?? []).filter((a) => a.allowDirectEntry));
 
         setCurrencies(currenciesData.data ?? []);
       } catch {
@@ -180,15 +196,6 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
 
     void fetchData();
   }, [open]);
-
-  const getFilteredAccounts = (lineIndex: number) => {
-    const search = accountSearch[lineIndex] ?? '';
-    if (!search) return accounts.slice(0, 50);
-    const lower = search.toLowerCase();
-    return accounts
-      .filter((a) => a.code.includes(search) || a.name.toLowerCase().includes(lower))
-      .slice(0, 30);
-  };
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -397,25 +404,12 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-[2fr_1fr_1fr_auto] items-start gap-2">
                 <div className="space-y-1">
-                  <Input
-                    placeholder="Buscar cuenta (código o nombre)..."
-                    value={accountSearch[index] ?? ''}
-                    onChange={(e) =>
-                      setAccountSearch((prev) => ({ ...prev, [index]: e.target.value }))
-                    }
-                    className="text-xs"
+                  <AccountCombobox
+                    accounts={accounts}
+                    value={lines[index]?.accountId ?? ''}
+                    onChange={(v) => setValue(`lines.${index}.accountId`, v, { shouldValidate: true })}
+                    hasError={!!errors.lines?.[index]?.accountId}
                   />
-                  <select
-                    className="border-input bg-background w-full rounded-md border px-2 py-1 text-xs"
-                    {...register(`lines.${index}.accountId`)}
-                  >
-                    <option value="">Seleccionar cuenta...</option>
-                    {getFilteredAccounts(index).map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.code} — {a.name}
-                      </option>
-                    ))}
-                  </select>
                   {errors.lines?.[index]?.accountId && (
                     <p className="text-destructive text-xs">
                       {errors.lines[index]?.accountId?.message}

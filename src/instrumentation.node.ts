@@ -7,7 +7,13 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 export function loadRuntimeEnv(): void {
-  const taskRoot = process.env.LAMBDA_TASK_ROOT ?? '';
+  const taskRoot = process.env.LAMBDA_TASK_ROOT;
+
+  // Locally LAMBDA_TASK_ROOT is never set — env vars come from .env.local via Next.js.
+  if (!taskRoot) {
+    return;
+  }
+
   const cwd = process.cwd();
 
   const candidates = [
@@ -15,16 +21,10 @@ export function loadRuntimeEnv(): void {
     join(cwd, 'env.lambda'),
     join(taskRoot, '.next', 'env.lambda'),
     join(cwd, '.next', 'env.lambda'),
-  ].filter(Boolean);
-
-  console.log('[instrumentation] register() called. taskRoot:', taskRoot, 'cwd:', cwd);
-  console.log('[instrumentation] Searching env.lambda in:', candidates);
+  ];
 
   for (const envFile of candidates) {
-    if (!existsSync(envFile)) {
-      console.log('[instrumentation] Not found:', envFile);
-      continue;
-    }
+    if (!existsSync(envFile)) continue;
 
     try {
       const lines = readFileSync(envFile, 'utf-8').split('\n');

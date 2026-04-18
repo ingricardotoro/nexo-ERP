@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AccountCombobox } from '@/components/accounting/account-combobox';
 import type { BankAccountRow } from '@/lib/services/accounting/bank-account.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,6 +41,15 @@ interface LedgerAccountOption {
   id: string;
   code: string;
   name: string;
+}
+
+interface AccountTreeNode {
+  id: string;
+  code: string;
+  name: string;
+  accountType: string;
+  allowDirectEntry: boolean;
+  children?: AccountTreeNode[];
 }
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -213,21 +223,12 @@ function BankAccountFormDialog({
               <>
                 <div className="col-span-2 space-y-1">
                   <Label>Cuenta contable (ASSET) *</Label>
-                  <Select
+                  <AccountCombobox
+                    accounts={ledgerAccounts}
                     value={form.ledgerAccountId}
-                    onValueChange={(v) => set('ledgerAccountId', v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona cuenta..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ledgerAccounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.code} — {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => set('ledgerAccountId', v)}
+                    placeholder="Buscar cuenta ASSET..."
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label>Moneda</Label>
@@ -291,14 +292,20 @@ export default function BankAccountsPage() {
 
   const fetchLedgerAccounts = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/accounting/accounts?accountType=ASSET&limit=200', {
-        credentials: 'include',
-      });
-      const payload = (await res.json()) as {
-        success: boolean;
-        data?: { accounts: LedgerAccountOption[] };
-      };
-      if (payload.success) setLedgerAccounts(payload.data?.accounts ?? []);
+      const res = await fetch('/api/v1/accounting/accounts', { credentials: 'include' });
+      const payload = (await res.json()) as { success: boolean; data?: AccountTreeNode[] };
+      if (!payload.success) return;
+      // Flatten tree, keep only ASSET leaf accounts (allowDirectEntry)
+      const result: LedgerAccountOption[] = [];
+      const stack = [...(payload.data ?? [])];
+      while (stack.length > 0) {
+        const node = stack.pop()!;
+        if (node.accountType === 'ASSET' && node.allowDirectEntry) {
+          result.push({ id: node.id, code: node.code, name: node.name });
+        }
+        if (node.children?.length) stack.push(...node.children);
+      }
+      setLedgerAccounts(result.sort((a, b) => a.code.localeCompare(b.code)));
     } catch {
       // non-critical
     }

@@ -206,13 +206,13 @@ function JournalTableRow({ journal, onRefresh }: { journal: JournalRow; onRefres
       </td>
       <td className="px-4 py-3 text-center">
         {journal.isActive ? (
-          <Badge className="bg-green-100 text-xs text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300">
+          <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
             Activo
-          </Badge>
+          </span>
         ) : (
-          <Badge variant="outline" className="text-muted-foreground text-xs">
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-500">
             Inactivo
-          </Badge>
+          </span>
         )}
       </td>
       <td className="px-4 py-3">

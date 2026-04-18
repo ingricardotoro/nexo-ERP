@@ -96,25 +96,27 @@ export const exchangeRateService = {
 
     const dateObj = new Date(date);
 
-    const row = await basePrisma.exchangeRate.upsert({
-      where: {
-        // unique: (currencyCode, date, companyId)
-        currencyCode_date_companyId: { currencyCode, date: dateObj, companyId },
-      },
-      create: {
-        currencyCode,
-        date: dateObj,
-        rate,
-        source: source ?? 'manual',
-        companyId,
-      },
-      update: {
-        rate,
-        source: source ?? 'manual',
-      },
-      include: {
-        currency: { select: { name: true, symbol: true } },
-      },
+    const row = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      return tx.exchangeRate.upsert({
+        where: {
+          currencyCode_date_companyId: { currencyCode, date: dateObj, companyId },
+        },
+        create: {
+          currencyCode,
+          date: dateObj,
+          rate,
+          source: source ?? 'manual',
+          companyId,
+        },
+        update: {
+          rate,
+          source: source ?? 'manual',
+        },
+        include: {
+          currency: { select: { name: true, symbol: true } },
+        },
+      });
     });
 
     return {
@@ -138,7 +140,10 @@ export const exchangeRateService = {
     if (existing.companyId !== companyId) {
       throw new Error('No se puede eliminar una tasa global de plataforma');
     }
-    await basePrisma.exchangeRate.delete({ where: { id } });
+    await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      await tx.exchangeRate.delete({ where: { id } });
+    });
   },
 
   /**

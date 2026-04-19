@@ -1,7 +1,10 @@
 // src/components/layout/dashboard-header.tsx
 'use client';
 
-import { Bell, Search, ChevronDown, LogOut, User, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'aws-amplify/auth';
+import { Bell, Search, ChevronDown, LogOut, User, Settings, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +54,21 @@ function getUserInitials(
 }
 
 export function DashboardHeader() {
-  const { tenant, session, isLoading, isSessionExpired, error } = useTenant();
+  const { tenant, session, isLoading, isSessionExpired, error, setTenant } = useTenant();
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } catch {
+      // Si falla, igual limpiamos estado local y redirigimos
+    } finally {
+      setTenant(null);
+      router.replace('/login');
+    }
+  };
   const tenantName = tenant?.tradeName || tenant?.legalName;
   const userDisplayName = session?.fullName || session?.email || 'Usuario';
   const roleLabel = session?.role ? (roleLabels[session.role] ?? session.role) : null;
@@ -220,9 +237,20 @@ export function DashboardHeader() {
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer gap-2">
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              Cerrar sesión
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive cursor-pointer gap-2"
+              disabled={signingOut}
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleSignOut();
+              }}
+            >
+              {signingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+              )}
+              {signingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

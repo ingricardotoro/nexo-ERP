@@ -40,28 +40,25 @@ export const exchangeRateService = {
 
     const where = {
       AND: [
-        // Solo tasas de la empresa O tasas globales (companyId IS NULL)
-        {
-          OR: [{ companyId }, { companyId: null }],
-        },
+        { OR: [{ companyId }, { companyId: null }] },
         currencyCode ? { currencyCode } : {},
         dateFrom ? { date: { gte: new Date(dateFrom) } } : {},
         dateTo ? { date: { lte: new Date(dateTo) } } : {},
       ],
     };
 
-    const [rows, total] = await Promise.all([
-      basePrisma.exchangeRate.findMany({
+    const [rows, total] = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      const r = await tx.exchangeRate.findMany({
         where,
-        include: {
-          currency: { select: { name: true, symbol: true } },
-        },
+        include: { currency: { select: { name: true, symbol: true } } },
         orderBy: [{ date: 'desc' }, { currencyCode: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
-      }),
-      basePrisma.exchangeRate.count({ where }),
-    ]);
+      });
+      const c = await tx.exchangeRate.count({ where });
+      return [r, c] as const;
+    });
 
     return {
       data: rows.map((r) => ({
@@ -96,25 +93,27 @@ export const exchangeRateService = {
 
     const dateObj = new Date(date);
 
-    const row = await basePrisma.exchangeRate.upsert({
-      where: {
-        // unique: (currencyCode, date, companyId)
-        currencyCode_date_companyId: { currencyCode, date: dateObj, companyId },
-      },
-      create: {
-        currencyCode,
-        date: dateObj,
-        rate,
-        source: source ?? 'manual',
-        companyId,
-      },
-      update: {
-        rate,
-        source: source ?? 'manual',
-      },
-      include: {
-        currency: { select: { name: true, symbol: true } },
-      },
+    const row = await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      return tx.exchangeRate.upsert({
+        where: {
+          currencyCode_date_companyId: { currencyCode, date: dateObj, companyId },
+        },
+        create: {
+          currencyCode,
+          date: dateObj,
+          rate,
+          source: source ?? 'manual',
+          companyId,
+        },
+        update: {
+          rate,
+          source: source ?? 'manual',
+        },
+        include: {
+          currency: { select: { name: true, symbol: true } },
+        },
+      });
     });
 
     return {
@@ -138,7 +137,10 @@ export const exchangeRateService = {
     if (existing.companyId !== companyId) {
       throw new Error('No se puede eliminar una tasa global de plataforma');
     }
-    await basePrisma.exchangeRate.delete({ where: { id } });
+    await basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
+      await tx.exchangeRate.delete({ where: { id } });
+    });
   },
 
   /**
@@ -153,33 +155,27 @@ export const exchangeRateService = {
   ): Promise<{ rate: string; source: string | null; isGlobal: boolean } | null> {
     const dateObj = new Date(date);
 
-    // 1. Tasa específica de la empresa (más reciente ≤ date)
-    const companyRate = await basePrisma.exchangeRate.findFirst({
-      where: { currencyCode, companyId, date: { lte: dateObj } },
-      orderBy: { date: 'desc' },
-    });
-    if (companyRate) {
-      return {
-        rate: companyRate.rate.toString(),
-        source: companyRate.source,
-        isGlobal: false,
-      };
-    }
+    return basePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.current_company_id', ${companyId}, true)`;
 
-    // 2. Tasa global (companyId IS NULL), más reciente ≤ date
-    const globalRate = await basePrisma.exchangeRate.findFirst({
-      where: { currencyCode, companyId: null, date: { lte: dateObj } },
-      orderBy: { date: 'desc' },
-    });
-    if (globalRate) {
-      return {
-        rate: globalRate.rate.toString(),
-        source: globalRate.source,
-        isGlobal: true,
-      };
-    }
+      const companyRate = await tx.exchangeRate.findFirst({
+        where: { currencyCode, companyId, date: { lte: dateObj } },
+        orderBy: { date: 'desc' },
+      });
+      if (companyRate) {
+        return { rate: companyRate.rate.toString(), source: companyRate.source, isGlobal: false };
+      }
 
-    return null;
+      const globalRate = await tx.exchangeRate.findFirst({
+        where: { currencyCode, companyId: null, date: { lte: dateObj } },
+        orderBy: { date: 'desc' },
+      });
+      if (globalRate) {
+        return { rate: globalRate.rate.toString(), source: globalRate.source, isGlobal: true };
+      }
+
+      return null;
+    });
   },
 
   /** Lista todas las monedas activas (para selectores en formularios). */

@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import {
-  BookOpen,
-  ReceiptText,
-  Users2,
-  Package,
-  ClipboardList,
-  TrendingUp,
-  LayoutDashboard,
+  Calculator,
+  ScrollText,
+  ContactRound,
+  Boxes,
+  ShoppingCart,
+  Store,
+  Settings2,
   DollarSign,
   FileText,
   AlertCircle,
@@ -29,7 +29,6 @@ interface AppModule {
   href: string;
   icon: LucideIcon;
   gradient: string;
-  glow: string;
 }
 
 const appModules: AppModule[] = [
@@ -37,57 +36,50 @@ const appModules: AppModule[] = [
     name: 'Contabilidad',
     description: 'Cuentas, asientos y reportes',
     href: '/dashboard/accounting/accounts',
-    icon: BookOpen,
+    icon: Calculator,
     gradient: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
-    glow: 'rgb(5 150 105 / 0.25)',
   },
   {
     name: 'Facturación',
     description: 'Facturas, CAI y tributación',
     href: '/dashboard/invoicing/invoices',
-    icon: ReceiptText,
+    icon: ScrollText,
     gradient: 'linear-gradient(135deg, #92400e 0%, #d97706 100%)',
-    glow: 'rgb(217 119 6 / 0.25)',
   },
   {
     name: 'Contactos',
     description: 'Clientes y proveedores',
     href: '/dashboard/contacts',
-    icon: Users2,
+    icon: ContactRound,
     gradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
-    glow: 'rgb(124 58 237 / 0.25)',
   },
   {
     name: 'Inventarios',
     description: 'Productos, stock y almacenes',
     href: '/dashboard/inventory/products',
-    icon: Package,
+    icon: Boxes,
     gradient: 'linear-gradient(135deg, #155e75 0%, #0891b2 100%)',
-    glow: 'rgb(8 145 178 / 0.25)',
   },
   {
     name: 'Compras',
     description: 'Órdenes de compra',
     href: '/dashboard/purchasing/purchase-orders',
-    icon: ClipboardList,
+    icon: ShoppingCart,
     gradient: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
-    glow: 'rgb(234 88 12 / 0.25)',
   },
   {
     name: 'Ventas',
     description: 'Pedidos y oportunidades',
     href: '/dashboard/sales/orders',
-    icon: TrendingUp,
+    icon: Store,
     gradient: 'linear-gradient(135deg, #312e81 0%, #4f46e5 100%)',
-    glow: 'rgb(79 70 229 / 0.25)',
   },
   {
     name: 'Administración',
     description: 'Usuarios y configuración',
     href: '/dashboard/users',
-    icon: LayoutDashboard,
+    icon: Settings2,
     gradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-    glow: 'rgb(37 99 235 / 0.25)',
   },
 ];
 
@@ -114,38 +106,19 @@ const fmtL = (v: string | number) =>
 // ─── App Launcher Card ────────────────────────────────────────────────────────
 
 function ModuleCard({ module }: { module: AppModule }) {
-  const [hovered, setHovered] = useState(false);
-
   return (
     <Link
       href={module.href as unknown as Route}
-      className="group flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6"
-      style={{
-        boxShadow: hovered
-          ? `0 12px 32px 0 ${module.glow}, 0 4px 12px 0 rgb(0 0 0 / 0.08)`
-          : '0 1px 3px 0 rgb(0 0 0 / 0.06)',
-        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-        transition: 'box-shadow 220ms ease, transform 220ms ease',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-150 hover:border-slate-300 hover:bg-slate-50"
     >
-      {/* Ícono con gradiente */}
       <div
         className="flex items-center justify-center rounded-2xl"
-        style={{
-          width: '4rem',
-          height: '4rem',
-          background: module.gradient,
-          boxShadow: hovered ? `0 6px 20px 0 ${module.glow}` : 'none',
-          transition: 'box-shadow 220ms ease',
-        }}
+        style={{ width: '4rem', height: '4rem', background: module.gradient }}
         aria-hidden="true"
       >
         <module.icon className="h-7 w-7 text-white" />
       </div>
 
-      {/* Nombre y descripción */}
       <div className="text-center">
         <p className="text-sm leading-tight font-semibold text-slate-800">{module.name}</p>
         <p className="mt-1 text-xs leading-snug text-slate-400">{module.description}</p>

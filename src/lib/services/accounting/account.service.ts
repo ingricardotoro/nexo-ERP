@@ -14,6 +14,7 @@ export interface AccountNode {
   isParent: boolean;
   allowDirectEntry: boolean;
   isActive: boolean;
+  showInReports: boolean;
   description: string | null;
   level: number;
   parentId: string | null;
@@ -26,6 +27,12 @@ export interface AccountStats {
   leafAccounts: number; // allowDirectEntry=true
   byType: Record<AccountType, number>;
 }
+
+import type { z } from 'zod';
+import type { createAccountSchema, updateAccountSchema } from '@/lib/validations/account.schema';
+
+export type CreateAccountInput = z.infer<typeof createAccountSchema>;
+export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +54,7 @@ export const accountService = {
         isParent: true,
         allowDirectEntry: true,
         isActive: true,
+        showInReports: true,
         description: true,
         parentId: true,
       },
@@ -108,5 +116,125 @@ export const accountService = {
     }
 
     return { total, active, leafAccounts: leafCount, byType };
+  },
+
+  async createAccount(companyId: string, input: CreateAccountInput): Promise<AccountNode> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const existing = await db.account.findFirst({ where: { companyId, code: input.code } });
+    if (existing) throw new Error('Ya existe una cuenta con ese código en esta empresa');
+
+    if (input.parentId) {
+      const parent = await db.account.findFirst({ where: { id: input.parentId, companyId } });
+      if (!parent) throw new Error('Cuenta padre no encontrada');
+      if (!parent.isParent) {
+        await db.account.update({
+          where: { id: input.parentId },
+          data: { isParent: true, allowDirectEntry: false },
+        });
+      }
+    }
+
+    const account = await db.account.create({
+      data: {
+        companyId,
+        code: input.code,
+        name: input.name,
+        accountType: input.accountType,
+        accountNature: input.accountNature,
+        parentId: input.parentId ?? null,
+        allowDirectEntry: input.allowDirectEntry ?? true,
+        isActive: input.isActive ?? true,
+        showInReports: input.showInReports ?? true,
+        description: input.description ?? null,
+        isParent: false,
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        accountType: true,
+        accountNature: true,
+        isParent: true,
+        allowDirectEntry: true,
+        isActive: true,
+        showInReports: true,
+        description: true,
+        parentId: true,
+      },
+    });
+    return { ...account, level: 0, children: [] };
+  },
+
+  async updateAccount(
+    companyId: string,
+    id: string,
+    input: UpdateAccountInput,
+  ): Promise<AccountNode> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const existing = await db.account.findFirst({ where: { id, companyId } });
+    if (!existing) throw new Error('Cuenta no encontrada');
+
+    if (input.code && input.code !== existing.code) {
+      const dup = await db.account.findFirst({ where: { companyId, code: input.code } });
+      if (dup) throw new Error('Ya existe una cuenta con ese código en esta empresa');
+    }
+
+    const account = await db.account.update({
+      where: { id },
+      data: { ...input },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        accountType: true,
+        accountNature: true,
+        isParent: true,
+        allowDirectEntry: true,
+        isActive: true,
+        showInReports: true,
+        description: true,
+        parentId: true,
+      },
+    });
+    return { ...account, level: 0, children: [] };
+  },
+
+  async deleteAccount(companyId: string, id: string): Promise<{ deleted: boolean }> {
+    const db = createTenantPrisma(basePrisma, companyId);
+
+    const account = await db.account.findFirst({
+      where: { id, companyId },
+      include: {
+        _count: {
+          select: {
+            journalEntryLines: true,
+            invoiceLines: true,
+            bankAccounts: true,
+            children: true,
+          },
+        },
+      },
+    });
+
+    if (!account) throw new Error('Cuenta no encontrada');
+
+    if (account._count.children > 0) {
+      throw new Error('No se puede eliminar una cuenta con subcuentas');
+    }
+
+    const hasMovements =
+      account._count.journalEntryLines > 0 ||
+      account._count.invoiceLines > 0 ||
+      account._count.bankAccounts > 0;
+
+    if (hasMovements) {
+      await db.account.update({ where: { id }, data: { isActive: false } });
+      return { deleted: false };
+    }
+
+    await db.account.delete({ where: { id } });
+    return { deleted: true };
   },
 };

@@ -2,6 +2,7 @@
 import { headers } from 'next/headers';
 import { DashboardSidebar } from '@/components/layout/dashboard-sidebar';
 import { DashboardHeader } from '@/components/layout/dashboard-header';
+import { ModuleSubnav } from '@/components/layout/module-subnav';
 import { TenantProvider } from '@/lib/context/tenant-context';
 import prisma from '@/lib/db/prisma';
 
@@ -62,6 +63,7 @@ export default async function DashboardLayout({
         <DashboardSidebar />
         <div className="pl-14">
           <DashboardHeader />
+          <ModuleSubnav />
           <main className="min-h-[calc(100vh-3.5rem)] p-6">{children}</main>
         </div>
       </div>

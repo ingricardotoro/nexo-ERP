@@ -78,6 +78,11 @@ const BUSINESS_MODELS = [
   'StockMove',
   'StockMoveLine',
   'ReorderRule',
+  // Banking / Reconciliation (Fase 5)
+  'BankAccount',
+  'BankStatement',
+  'BankTransaction',
+  'BankReconciliation',
 ] as const;
 type BusinessModel = (typeof BUSINESS_MODELS)[number];
 
@@ -125,6 +130,11 @@ const FORCE_RLS_MODELS = [
   'StockMove',
   'StockMoveLine',
   'ReorderRule',
+  // Banking / Reconciliation (Fase 5)
+  'BankAccount',
+  'BankStatement',
+  'BankTransaction',
+  'BankReconciliation',
 ] as const;
 type ForceRlsModel = (typeof FORCE_RLS_MODELS)[number];
 

@@ -2,20 +2,22 @@
 
 // src/components/accounting/accounts-tree.tsx
 import { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Minus } from 'lucide-react';
+import { ChevronRight, ChevronDown, Minus, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { AccountNode } from '@/lib/services/accounting/account.service';
 import type { AccountType } from '@prisma/client';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AccountsTreeProps {
   roots: AccountNode[];
   searchQuery: string;
   typeFilter: string;
+  reportFilter: 'all' | 'in_reports' | 'not_in_reports';
+  companyId: string;
+  canWrite: boolean;
+  onEdit: (node: AccountNode) => void;
+  onDelete: (node: AccountNode) => void;
+  onToggleReport: (id: string, value: boolean) => Promise<void>;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_LABELS: Record<AccountType, string> = {
   ASSET: 'Activo',
@@ -28,55 +30,71 @@ const TYPE_LABELS: Record<AccountType, string> = {
 };
 
 const TYPE_COLORS: Record<AccountType, string> = {
-  ASSET: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  LIABILITY: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  EQUITY: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  INCOME: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  COST: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  EXPENSE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  CONTRA: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  ASSET: 'bg-blue-100 text-blue-800',
+  LIABILITY: 'bg-red-100 text-red-800',
+  EQUITY: 'bg-purple-100 text-purple-800',
+  INCOME: 'bg-green-100 text-green-800',
+  COST: 'bg-orange-100 text-orange-800',
+  EXPENSE: 'bg-yellow-100 text-yellow-800',
+  CONTRA: 'bg-gray-100 text-gray-700',
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 interface FlatRow {
   node: AccountNode;
-  depth: number; // 0-based depth for indentation
+  depth: number;
 }
 
-/** Returns true if node or any descendant matches the query */
 function nodeMatchesQuery(node: AccountNode, query: string, type: string): boolean {
   const q = query.toLowerCase();
   const selfMatch =
     (!q || node.code.toLowerCase().includes(q) || node.name.toLowerCase().includes(q)) &&
     (!type || node.accountType === type);
-
   if (selfMatch) return true;
   return node.children.some((child) => nodeMatchesQuery(child, query, type));
 }
 
-/** Filter tree keeping only branches that contain matches */
 function filterTree(nodes: AccountNode[], query: string, type: string): AccountNode[] {
   if (!query && !type) return nodes;
   return nodes
     .filter((node) => nodeMatchesQuery(node, query, type))
-    .map((node) => ({
-      ...node,
-      children: filterTree(node.children, query, type),
-    }));
+    .map((node) => ({ ...node, children: filterTree(node.children, query, type) }));
 }
 
-// ─── Row Component ────────────────────────────────────────────────────────────
+function filterByReport(
+  nodes: AccountNode[],
+  filter: 'all' | 'in_reports' | 'not_in_reports',
+): AccountNode[] {
+  if (filter === 'all') return nodes;
+  return nodes
+    .map((n) => ({ ...n, children: filterByReport(n.children, filter) }))
+    .filter((n) => {
+      const selfMatch = filter === 'in_reports' ? n.showInReports : !n.showInReports;
+      return selfMatch || n.children.length > 0;
+    });
+}
 
 interface RowProps {
   node: AccountNode;
   depth: number;
   isExpanded: boolean;
+  canWrite: boolean;
   onToggle: (id: string) => void;
+  onEdit: (node: AccountNode) => void;
+  onDelete: (node: AccountNode) => void;
+  onToggleReport: (id: string, value: boolean) => Promise<void>;
 }
 
-function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
-  const indent = depth * 20; // 20px per level
+function AccountRow({
+  node,
+  depth,
+  isExpanded,
+  canWrite,
+  onToggle,
+  onEdit,
+  onDelete,
+  onToggleReport,
+}: RowProps) {
+  const indent = depth * 20;
   const hasChildren = node.children.length > 0;
 
   return (
@@ -96,7 +114,7 @@ function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
           {hasChildren ? (
             <button
               onClick={() => onToggle(node.id)}
-              className="text-muted-foreground hover:text-foreground flex h-5 w-5 flex-shrink-0 items-center justify-center rounded transition-colors"
+              className="text-muted-foreground hover:text-foreground flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors"
               aria-label={isExpanded ? 'Colapsar' : 'Expandir'}
             >
               {isExpanded ? (
@@ -106,7 +124,7 @@ function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
               )}
             </button>
           ) : (
-            <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
               <Minus className="text-muted-foreground/40 h-3 w-3" />
             </span>
           )}
@@ -154,8 +172,8 @@ function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
           className={[
             'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
             node.accountNature === 'DEBIT'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+              ? 'bg-blue-100 text-blue-700'
+              : 'bg-emerald-100 text-emerald-700',
           ].join(' ')}
           title={node.accountNature === 'DEBIT' ? 'Naturaleza Deudora' : 'Naturaleza Acreedora'}
         >
@@ -163,13 +181,10 @@ function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
         </span>
       </td>
 
-      {/* Entry */}
+      {/* Entry level */}
       <td className="hidden px-4 py-2 text-center lg:table-cell">
         {node.allowDirectEntry ? (
-          <Badge
-            variant="outline"
-            className="border-green-300 text-xs text-green-700 dark:text-green-400"
-          >
+          <Badge variant="outline" className="border-green-300 text-xs text-green-700">
             Hoja
           </Badge>
         ) : (
@@ -189,39 +204,87 @@ function AccountRow({ node, depth, isExpanded, onToggle }: RowProps) {
           title={node.isActive ? 'Activa' : 'Inactiva'}
         />
       </td>
+
+      {/* Reportes toggle */}
+      <td className="hidden px-4 py-2 text-center md:table-cell">
+        <button
+          onClick={canWrite ? () => void onToggleReport(node.id, !node.showInReports) : undefined}
+          disabled={!canWrite}
+          className={[
+            'inline-flex h-5 w-9 items-center rounded-full transition-colors',
+            node.showInReports ? 'bg-emerald-500' : 'bg-slate-200',
+            canWrite ? 'cursor-pointer' : 'cursor-default opacity-70',
+          ].join(' ')}
+          title={
+            node.showInReports
+              ? 'Visible en reportes — clic para ocultar'
+              : 'Oculto en reportes — clic para incluir'
+          }
+        >
+          <span
+            className={[
+              'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
+              node.showInReports ? 'translate-x-4' : 'translate-x-0.5',
+            ].join(' ')}
+          />
+        </button>
+      </td>
+
+      {/* Actions */}
+      {canWrite && (
+        <td className="px-4 py-2 text-right">
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => onEdit(node)}
+              className="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
+              title="Editar cuenta"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onDelete(node)}
+              className="text-muted-foreground rounded p-1 transition-colors hover:text-red-500"
+              title="Eliminar / Desactivar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </td>
+      )}
     </tr>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+export function AccountsTree({
+  roots,
+  searchQuery,
+  typeFilter,
+  reportFilter,
+  companyId,
+  canWrite,
+  onEdit,
+  onDelete,
+  onToggleReport,
+}: AccountsTreeProps) {
+  const STORAGE_KEY = `nexoerp:accounts:expanded:${companyId}`;
 
-export function AccountsTree({ roots, searchQuery, typeFilter }: AccountsTreeProps) {
-  const filtered = useMemo(
-    () => filterTree(roots, searchQuery, typeFilter),
-    [roots, searchQuery, typeFilter],
-  );
-
-  // Auto-expand L1 and L2 by default; L3+ collapsed
-  const defaultExpanded = useMemo(() => {
-    const ids = new Set<string>();
-    function collect(nodes: AccountNode[], depth: number) {
-      for (const node of nodes) {
-        if (depth < 2 && node.children.length > 0) {
-          ids.add(node.id);
-          collect(node.children, depth + 1);
-        }
-      }
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set<string>();
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved ? new Set<string>(JSON.parse(saved) as string[]) : new Set<string>();
+    } catch {
+      return new Set<string>();
     }
-    collect(roots, 0);
-    return ids;
-  }, [roots]);
+  });
 
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(defaultExpanded);
+  const filtered = useMemo(() => {
+    const bySearch = filterTree(roots, searchQuery, typeFilter);
+    return filterByReport(bySearch, reportFilter);
+  }, [roots, searchQuery, typeFilter, reportFilter]);
 
-  // When search/filter is active, auto-expand everything that matches
   const effectiveExpanded = useMemo(() => {
-    if (!searchQuery && !typeFilter) return expandedIds;
-    // Expand all parent nodes in filtered tree
+    if (!searchQuery && !typeFilter && reportFilter === 'all') return expandedIds;
     const ids = new Set<string>();
     function expandAll(nodes: AccountNode[]) {
       for (const node of nodes) {
@@ -233,21 +296,20 @@ export function AccountsTree({ roots, searchQuery, typeFilter }: AccountsTreePro
     }
     expandAll(filtered);
     return ids;
-  }, [searchQuery, typeFilter, filtered, expandedIds]);
+  }, [searchQuery, typeFilter, reportFilter, filtered, expandedIds]);
 
   const handleToggle = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
+      } catch {}
       return next;
     });
   };
 
-  // Build visible flat rows respecting expand state
   function buildVisibleRows(nodes: AccountNode[], depth: number): FlatRow[] {
     const rows: FlatRow[] = [];
     for (const node of nodes) {
@@ -265,7 +327,7 @@ export function AccountsTree({ roots, searchQuery, typeFilter }: AccountsTreePro
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <p className="text-muted-foreground text-sm">
-          {searchQuery || typeFilter
+          {searchQuery || typeFilter || reportFilter !== 'all'
             ? 'No se encontraron cuentas con los filtros aplicados.'
             : 'No hay cuentas en el plan contable de esta empresa.'}
         </p>
@@ -296,6 +358,14 @@ export function AccountsTree({ roots, searchQuery, typeFilter }: AccountsTreePro
             <th className="text-muted-foreground hidden px-4 py-3 text-center text-xs font-medium tracking-wide uppercase md:table-cell">
               Estado
             </th>
+            <th className="text-muted-foreground hidden px-4 py-3 text-center text-xs font-medium tracking-wide uppercase md:table-cell">
+              Reportes
+            </th>
+            {canWrite && (
+              <th className="text-muted-foreground px-4 py-3 text-right text-xs font-medium tracking-wide uppercase">
+                Acciones
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -305,14 +375,18 @@ export function AccountsTree({ roots, searchQuery, typeFilter }: AccountsTreePro
               node={node}
               depth={depth}
               isExpanded={effectiveExpanded.has(node.id)}
+              canWrite={canWrite}
               onToggle={handleToggle}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onToggleReport={onToggleReport}
             />
           ))}
         </tbody>
       </table>
       <p className="text-muted-foreground px-4 py-3 text-xs">
         Mostrando {visibleRows.length} cuentas
-        {searchQuery || typeFilter ? ' (filtradas)' : ''}
+        {searchQuery || typeFilter || reportFilter !== 'all' ? ' (filtradas)' : ''}
       </p>
     </div>
   );

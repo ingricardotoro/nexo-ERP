@@ -2,156 +2,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import {
-  Users,
-  BarChart3,
-  FileText,
-  Users2,
-  Package,
-  Warehouse,
-  PackageCheck,
-  Layers,
-  ShoppingCart,
-  ClipboardList,
-  ReceiptText,
-  Settings,
-  Shield,
-  Percent,
-  Building2,
-  GitMerge,
-  SlidersHorizontal,
-  BookOpen,
-  CalendarDays,
-  BookMarked,
-  ArrowLeftRight,
-  PieChart,
-  Banknote,
-  TrendingUp,
-  ChevronDown,
-  LayoutDashboard,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useTenant } from '@/lib/context/tenant-context';
-
-interface NavigationItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-}
-
-interface NavigationGroup {
-  name: string;
-  groupIcon: LucideIcon; // ícono representativo de la categoría (visible al colapsar)
-  defaultHref: string; // enlace cuando se hace click en ícono colapsado
-  items: NavigationItem[];
-}
-
-const navigation: NavigationGroup[] = [
-  {
-    name: 'Core',
-    groupIcon: LayoutDashboard,
-    defaultHref: '/dashboard',
-    items: [
-      { name: 'Dashboard', href: '/dashboard', icon: PieChart },
-      { name: 'Usuarios', href: '/dashboard/users', icon: Users },
-      { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
-    ],
-  },
-  {
-    name: 'Contabilidad',
-    groupIcon: BookOpen,
-    defaultHref: '/dashboard/accounting/accounts',
-    items: [
-      { name: 'Plan de Cuentas', href: '/dashboard/accounting/accounts', icon: BookOpen },
-      { name: 'Años Fiscales', href: '/dashboard/accounting/fiscal-years', icon: CalendarDays },
-      { name: 'Diarios', href: '/dashboard/accounting/journals', icon: BookMarked },
-      { name: 'Asientos', href: '/dashboard/accounting/entries', icon: FileText },
-      {
-        name: 'Tipos de Cambio',
-        href: '/dashboard/accounting/exchange-rates',
-        icon: ArrowLeftRight,
-      },
-      { name: 'Reportes', href: '/dashboard/accounting/reports', icon: BarChart3 },
-      { name: 'Cuentas Bancarias', href: '/dashboard/accounting/bank-accounts', icon: Building2 },
-      {
-        name: 'Conciliación Bancaria',
-        href: '/dashboard/accounting/bank-reconciliation',
-        icon: GitMerge,
-      },
-    ],
-  },
-  {
-    name: 'Facturación',
-    groupIcon: ReceiptText,
-    defaultHref: '/dashboard/invoicing/invoices',
-    items: [
-      { name: 'Facturas', href: '/dashboard/invoicing/invoices', icon: ReceiptText },
-      {
-        name: 'Facturas Proveedor',
-        href: '/dashboard/invoicing/supplier-invoices',
-        icon: ShoppingCart,
-      },
-      { name: 'CAI', href: '/dashboard/invoicing/cais', icon: Shield },
-      { name: 'Tasas de Impuesto', href: '/dashboard/invoicing/tax-rates', icon: Percent },
-    ],
-  },
-  {
-    name: 'Contactos',
-    groupIcon: Users2,
-    defaultHref: '/dashboard/contacts',
-    items: [{ name: 'Directorio', href: '/dashboard/contacts', icon: Users2 }],
-  },
-  {
-    name: 'Inventarios',
-    groupIcon: Package,
-    defaultHref: '/dashboard/inventory/products',
-    items: [
-      { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
-      { name: 'Stock On-Hand', href: '/dashboard/inventory/stock', icon: BarChart3 },
-      { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: SlidersHorizontal },
-      { name: 'Valorización', href: '/dashboard/inventory/reports', icon: TrendingUp },
-      { name: 'Almacenes', href: '/dashboard/inventory/warehouses', icon: Warehouse },
-      { name: 'Lotes y Series', href: '/dashboard/inventory/lots', icon: Layers },
-      { name: 'Recepciones', href: '/dashboard/inventory/receptions', icon: PackageCheck },
-      { name: 'Movimientos', href: '/dashboard/inventory/moves', icon: GitMerge },
-    ],
-  },
-  {
-    name: 'Compras',
-    groupIcon: ClipboardList,
-    defaultHref: '/dashboard/purchasing/purchase-orders',
-    items: [
-      {
-        name: 'Órdenes de Compra',
-        href: '/dashboard/purchasing/purchase-orders',
-        icon: ClipboardList,
-      },
-    ],
-  },
-  {
-    name: 'Ventas',
-    groupIcon: TrendingUp,
-    defaultHref: '/dashboard/sales/orders',
-    items: [
-      { name: 'Oportunidades', href: '/dashboard/sales/opportunities', icon: TrendingUp },
-      { name: 'Pedidos', href: '/dashboard/sales/orders', icon: Banknote },
-    ],
-  },
-];
-
-// Color de acento único por categoría (para resaltar el ícono activo en modo colapsado)
-const groupAccentColor: Record<string, string> = {
-  Core: '#3b82f6',
-  Contabilidad: '#10b981',
-  Facturación: '#f59e0b',
-  Contactos: '#8b5cf6',
-  Inventarios: '#06b6d4',
-  Compras: '#f97316',
-  Ventas: '#6366f1',
-};
+import { navigation } from '@/constants/navigation';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -252,7 +108,7 @@ export function DashboardSidebar() {
       >
         {navigation.map((group) => {
           const isGroupOpen = openGroups[group.name] ?? false;
-          const accentColor = groupAccentColor[group.name] ?? '#3b82f6';
+          const accentColor = group.accentColor;
 
           // ¿Algún item de este grupo está activo?
           const isGroupActive = activeGroup?.name === group.name;

@@ -19,6 +19,7 @@ import { defineFunction } from '@aws-amplify/backend';
 export const checkCaiAlerts = defineFunction({
   name: 'check-cai-alerts',
   entry: './handler.ts',
+  runtime: 20,
   timeoutSeconds: 60,
   memoryMB: 256,
   environment: {

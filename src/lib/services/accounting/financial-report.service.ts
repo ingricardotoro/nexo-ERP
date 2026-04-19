@@ -213,10 +213,11 @@ export const financialReportService = {
     const { asOfDate } = query;
     const db = createTenantPrisma(basePrisma, companyId);
 
-    // 1. Cuentas del Balance (Activo, Pasivo, Patrimonio)
+    // 1. Cuentas del Balance (Activo, Pasivo, Patrimonio) — solo las marcadas para reportes
     const accounts = await db.account.findMany({
       where: {
         isActive: true,
+        showInReports: true,
         accountType: { in: ['ASSET', 'LIABILITY', 'EQUITY'] },
       },
       orderBy: { code: 'asc' },
@@ -281,10 +282,11 @@ export const financialReportService = {
     const { dateFrom, dateTo } = query;
     const db = createTenantPrisma(basePrisma, companyId);
 
-    // 1. Cuentas de Resultados (Ingresos, Costos, Gastos)
+    // 1. Cuentas de Resultados (Ingresos, Costos, Gastos) — solo las marcadas para reportes
     const accounts = await db.account.findMany({
       where: {
         isActive: true,
+        showInReports: true,
         accountType: { in: ['INCOME', 'COST', 'EXPENSE'] },
       },
       orderBy: { code: 'asc' },

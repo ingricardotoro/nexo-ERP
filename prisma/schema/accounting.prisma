@@ -124,6 +124,8 @@ model Account {
   /// false en cuentas padre — evita asientos directos en cuentas de agrupación
   allowDirectEntry Boolean @default(true) @map("allow_direct_entry")
   isActive         Boolean @default(true) @map("is_active")
+  /// true = la cuenta aparece en reportes financieros estándar
+  showInReports    Boolean @default(true) @map("show_in_reports")
   description      String?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -144,6 +146,7 @@ model Account {
   @@index([companyId, isActive])
   @@index([companyId, allowDirectEntry])
   @@index([companyId, systemPurpose])
+  @@index([companyId, showInReports])
   @@map("accounts")
 }
 

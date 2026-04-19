@@ -1,6 +1,7 @@
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 
 import AmplifyConfigProvider from '@/lib/amplify/config';
+import { Toaster } from '@/components/ui/sonner';
 
 import './globals.css';
 
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
         <AmplifyConfigProvider>{children}</AmplifyConfigProvider>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

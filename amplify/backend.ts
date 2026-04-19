@@ -44,13 +44,11 @@ invoicePdfStack.tags.setTag('Module', 'Invoicing-PDF');
 
 // Dead-Letter Queue: mensajes que fallaron 3 veces quedan aquí para inspección
 const invoicePdfDlq = new sqs.Queue(invoicePdfStack, 'InvoicePDFDlq', {
-  queueName: `nexoerp-invoice-pdf-dlq-${process.env.AMPLIFY_ENV ?? 'sandbox'}`,
   retentionPeriod: Duration.days(14),
 });
 
 // Cola principal: visibilityTimeout >= Lambda timeout (120 seg)
 const invoicePdfQueue = new sqs.Queue(invoicePdfStack, 'InvoicePDFQueue', {
-  queueName: `nexoerp-invoice-pdf-${process.env.AMPLIFY_ENV ?? 'sandbox'}`,
   visibilityTimeout: Duration.seconds(180),
   retentionPeriod: Duration.days(4),
   deadLetterQueue: {
@@ -84,7 +82,6 @@ documentsBucket.grantPut(backend.generateInvoicePdf.resources.lambda);
 new CfnOutput(invoicePdfStack, 'InvoicePDFQueueUrl', {
   value: invoicePdfQueue.queueUrl,
   description: 'SQS Queue URL para generación de PDFs de facturas (F3-09)',
-  exportName: `NexoERP-InvoicePDFQueueUrl-${process.env.AMPLIFY_ENV ?? 'sandbox'}`,
 });
 
 // ─── F5-E: EventBridge Scheduler — Alertas de vencimiento de CAI ────────────
@@ -94,7 +91,6 @@ caiAlertsStack.tags.setTag('Module', 'Invoicing-CAI');
 
 // Ejecutar todos los días a las 08:00 UTC (02:00 AM Honduras UTC-6)
 const caiAlertsRule = new events.Rule(caiAlertsStack, 'CaiAlertsDailyRule', {
-  ruleName: `nexoerp-cai-alerts-daily-${process.env.AMPLIFY_ENV ?? 'sandbox'}`,
   description:
     'Daily CAI expiry check — alerts 30/14/7 days before expiry, auto-deactivate on expiry',
   schedule: events.Schedule.cron({ minute: '0', hour: '8' }),
@@ -110,5 +106,4 @@ caiAlertsRule.addTarget(
 new CfnOutput(caiAlertsStack, 'CaiAlertsDailyRuleArn', {
   value: caiAlertsRule.ruleArn,
   description: 'EventBridge rule ARN para alertas diarias de CAI (F5-E)',
-  exportName: `NexoERP-CaiAlertsDailyRuleArn-${process.env.AMPLIFY_ENV ?? 'sandbox'}`,
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Package, Search, Tag } from 'lucide-react';
+import { Plus, Package, Search, Tag, Ruler, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
 import type { ProductListResult, ProductRow } from '@/lib/services/inventory/product.service';
 import type { UomRow } from '@/lib/services/inventory/uom.service';
 
@@ -398,7 +399,11 @@ export default function ProductsPage() {
             Catálogo de productos con rastreo de lote y serie
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} disabled={uoms.length === 0}>
+        <Button
+          onClick={() => setShowCreate(true)}
+          disabled={uoms.length === 0}
+          title={uoms.length === 0 ? 'Primero crea una unidad de medida' : undefined}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo producto
         </Button>
@@ -474,9 +479,17 @@ export default function ProductsPage() {
             <p className="font-medium">No hay productos</p>
             <p className="text-muted-foreground mt-1 text-sm">
               {uoms.length === 0
-                ? 'Primero crea una unidad de medida para poder agregar productos.'
+                ? 'Crea una unidad de medida antes de agregar productos.'
                 : 'Crea el primer producto para comenzar.'}
             </p>
+            {uoms.length === 0 && (
+              <Link href="/dashboard/inventory/uoms" className="mt-3">
+                <Button size="sm" variant="outline">
+                  <Ruler className="mr-1.5 h-3.5 w-3.5" />
+                  Ir a Unidades de Medida
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -534,15 +547,27 @@ export default function ProductsPage() {
         </Card>
       )}
 
-      {/* UoM hint */}
-      {uoms.length === 0 && (
-        <Card>
-          <CardContent className="flex items-center gap-3 py-4">
-            <Tag className="text-muted-foreground h-5 w-5 shrink-0" />
-            <p className="text-muted-foreground text-sm">
-              No hay unidades de medida configuradas. Contacta a un administrador para crearlas
-              antes de agregar productos.
-            </p>
+      {/* UoM required banner */}
+      {uoms.length === 0 && !loading && (
+        <Card className="border-orange-400 bg-orange-500 dark:border-orange-600 dark:bg-orange-600">
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-3">
+              <Ruler className="h-5 w-5 shrink-0 text-white" />
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Se requiere al menos una unidad de medida
+                </p>
+                <p className="text-xs text-orange-100">
+                  Los productos necesitan una unidad (ej. UND, KG, LT) antes de poder crearse.
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/inventory/uoms">
+              <Button size="sm" variant="secondary" className="shrink-0 bg-white text-orange-700 hover:bg-orange-50">
+                Crear unidad
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}

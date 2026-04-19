@@ -24,6 +24,8 @@ import {
   Banknote,
   TrendingUp,
   LayoutDashboard,
+  Ruler,
+  Tag,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -107,6 +109,8 @@ export const navigation: NavigationGroup[] = [
     accentColor: '#06b6d4',
     items: [
       { name: 'Productos', href: '/dashboard/inventory/products', icon: Package },
+      { name: 'Unidades de Medida', href: '/dashboard/inventory/uoms', icon: Ruler },
+      { name: 'Categorías', href: '/dashboard/inventory/categories', icon: Tag },
       { name: 'Stock On-Hand', href: '/dashboard/inventory/stock', icon: BarChart3 },
       { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: SlidersHorizontal },
       { name: 'Valorización', href: '/dashboard/inventory/reports', icon: TrendingUp },

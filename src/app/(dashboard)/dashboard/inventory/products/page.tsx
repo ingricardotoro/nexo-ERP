@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Package, Search, Tag, Ruler, ArrowRight } from 'lucide-react';
+import { Plus, Package, Search, Ruler, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -563,7 +563,11 @@ export default function ProductsPage() {
               </div>
             </div>
             <Link href="/dashboard/inventory/uoms">
-              <Button size="sm" variant="secondary" className="shrink-0 bg-white text-orange-700 hover:bg-orange-50">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="shrink-0 bg-white text-orange-700 hover:bg-orange-50"
+              >
                 Crear unidad
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>

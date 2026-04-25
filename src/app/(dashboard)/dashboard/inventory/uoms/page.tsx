@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Ruler, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -77,7 +76,9 @@ function UomFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{editRow ? 'Editar unidad de medida' : 'Nueva unidad de medida'}</DialogTitle>
+          <DialogTitle>
+            {editRow ? 'Editar unidad de medida' : 'Nueva unidad de medida'}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">

@@ -8,10 +8,7 @@ import { updateUnitOfMeasureSchema } from '@/lib/validations/inventory.schema';
 import { handleApiError } from '@/lib/api/handle-error';
 
 /** PATCH /api/v1/inventory/uoms/[id] */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = getAuthContextFromHeaders(request);
     await checkPermission(auth, 'inventory.product.create');

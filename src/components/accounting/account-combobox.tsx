@@ -80,7 +80,7 @@ export function AccountCombobox({
             className="text-xs"
           />
           <CommandList>
-            <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">
+            <CommandEmpty className="text-muted-foreground py-3 text-center text-xs">
               Sin resultados
             </CommandEmpty>
             <CommandGroup>
@@ -96,9 +96,12 @@ export function AccountCombobox({
                   className="text-xs"
                 >
                   <Check
-                    className={cn('mr-2 h-3 w-3 shrink-0', value === a.id ? 'opacity-100' : 'opacity-0')}
+                    className={cn(
+                      'mr-2 h-3 w-3 shrink-0',
+                      value === a.id ? 'opacity-100' : 'opacity-0',
+                    )}
                   />
-                  <span className="font-mono text-muted-foreground mr-1.5">{a.code}</span>
+                  <span className="text-muted-foreground mr-1.5 font-mono">{a.code}</span>
                   <span className="truncate">{a.name}</span>
                 </CommandItem>
               ))}

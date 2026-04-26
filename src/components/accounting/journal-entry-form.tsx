@@ -57,12 +57,16 @@ interface AccountNode extends AccountOption {
 }
 
 function flattenAccounts(nodes: AccountNode[]): AccountOption[] {
-
   const result: AccountOption[] = [];
   const stack = [...nodes];
   while (stack.length > 0) {
     const node = stack.pop()!;
-    result.push({ id: node.id, code: node.code, name: node.name, allowDirectEntry: node.allowDirectEntry });
+    result.push({
+      id: node.id,
+      code: node.code,
+      name: node.name,
+      allowDirectEntry: node.allowDirectEntry,
+    });
     if (node.children?.length) stack.push(...node.children);
   }
   return result;
@@ -407,7 +411,9 @@ export function JournalEntryForm({ open, onOpenChange, onCreated }: JournalEntry
                   <AccountCombobox
                     accounts={accounts}
                     value={lines[index]?.accountId ?? ''}
-                    onChange={(v) => setValue(`lines.${index}.accountId`, v, { shouldValidate: true })}
+                    onChange={(v) =>
+                      setValue(`lines.${index}.accountId`, v, { shouldValidate: true })
+                    }
                     hasError={!!errors.lines?.[index]?.accountId}
                   />
                   {errors.lines?.[index]?.accountId && (

@@ -113,7 +113,14 @@ export const fiscalYearService = {
       include: {
         _count: { select: { fiscalPeriods: true } },
         fiscalPeriods: {
-          select: { id: true, periodNumber: true, name: true, startDate: true, endDate: true, status: true },
+          select: {
+            id: true,
+            periodNumber: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+          },
           orderBy: { periodNumber: 'asc' },
         },
       },

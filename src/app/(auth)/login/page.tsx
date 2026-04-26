@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn, confirmSignIn } from 'aws-amplify/auth';
 import type { Route } from 'next';
-import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +29,25 @@ const totpSchema = z.object({
     .regex(/^\d+$/, 'Solo se permiten números'),
 });
 
+const newPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
+      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
+      .regex(/\d/, 'Debe contener al menos un número')
+      .regex(/[^A-Za-z0-9]/, 'Debe contener al menos un carácter especial'),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
+
 type CredentialsForm = z.infer<typeof credentialsSchema>;
 type TotpForm = z.infer<typeof totpSchema>;
+type NewPasswordForm = z.infer<typeof newPasswordSchema>;
 
 // ─── Error messages ──────────────────────────────────────────────────────────
 
@@ -62,7 +79,7 @@ function getAuthErrorMessage(error: unknown): string {
 
 // ─── Login page ──────────────────────────────────────────────────────────────
 
-type Step = 'credentials' | 'totp';
+type Step = 'credentials' | 'totp' | 'new-password';
 
 function LoginContent() {
   const router = useRouter();
@@ -83,6 +100,12 @@ function LoginContent() {
   const totpForm = useForm<TotpForm>({
     resolver: zodResolver(totpSchema),
     defaultValues: { code: '' },
+  });
+
+  // ── New password form ─────────────────────────────────────────────────────
+  const newPasswordForm = useForm<NewPasswordForm>({
+    resolver: zodResolver(newPasswordSchema),
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -108,7 +131,11 @@ function LoginContent() {
         return;
       }
 
-      // Otros pasos no manejados en UI (ej: NEW_PASSWORD_REQUIRED en primera sesión)
+      if (signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
+        setStep('new-password');
+        return;
+      }
+
       setAuthError(`Se requiere una acción adicional (${signInStep}). Contacta al administrador.`);
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
@@ -127,6 +154,23 @@ function LoginContent() {
       }
 
       setAuthError('No se pudo completar la verificación. Intenta nuevamente.');
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error));
+    }
+  };
+
+  const handleNewPasswordSubmit = async (data: NewPasswordForm) => {
+    setAuthError(null);
+    try {
+      const result = await confirmSignIn({ challengeResponse: data.password });
+
+      if (result.isSignedIn) {
+        router.replace(redirectTo as Route);
+        router.refresh();
+        return;
+      }
+
+      setAuthError('No se pudo establecer la contraseña. Intenta nuevamente.');
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
     }
@@ -235,7 +279,7 @@ function LoginContent() {
               </form>
             </CardContent>
           </>
-        ) : (
+        ) : step === 'totp' ? (
           <>
             <CardHeader className="pb-4">
               <div className="mb-1 flex items-center gap-2">
@@ -306,7 +350,81 @@ function LoginContent() {
               </form>
             </CardContent>
           </>
-        )}
+        ) : step === 'new-password' ? (
+          <>
+            <CardHeader className="pb-4">
+              <div className="mb-1 flex items-center gap-2">
+                <KeyRound className="text-primary-600 h-5 w-5" />
+                <CardTitle className="text-xl">Establecer nueva contraseña</CardTitle>
+              </div>
+              <CardDescription>
+                Es tu primer acceso. Debes establecer una contraseña permanente para continuar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={newPasswordForm.handleSubmit(handleNewPasswordSubmit)}
+                className="space-y-4"
+                noValidate
+              >
+                {authError && (
+                  <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-password">Nueva contraseña</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoFocus
+                    autoComplete="new-password"
+                    {...newPasswordForm.register('password')}
+                  />
+                  {newPasswordForm.formState.errors.password && (
+                    <p className="text-destructive text-xs">
+                      {newPasswordForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirm-password">Confirmar contraseña</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    {...newPasswordForm.register('confirmPassword')}
+                  />
+                  {newPasswordForm.formState.errors.confirmPassword && (
+                    <p className="text-destructive text-xs">
+                      {newPasswordForm.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={newPasswordForm.formState.isSubmitting}
+                >
+                  {newPasswordForm.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Establecer contraseña'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </>
+        ) : null}
       </Card>
 
       {/* Footer */}

@@ -1,6 +1,8 @@
 'use client';
 
 import { Amplify } from 'aws-amplify';
+import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
+import { CookieStorage } from 'aws-amplify/utils';
 import { type ReactNode } from 'react';
 
 /**
@@ -50,6 +52,19 @@ Amplify.configure(
   },
   { ssr: true },
 );
+
+// Amplify v6 stores tokens in localStorage by default even with `ssr: true`.
+// The Edge middleware (proxy.ts) runs server-side and cannot access localStorage,
+// so tokens must be in cookies. Configuring CookieStorage here ensures that
+// signIn/confirmSignIn persist tokens as cookies that the middleware can read.
+if (typeof window !== 'undefined') {
+  cognitoUserPoolsTokenProvider.setKeyValueStorage(
+    new CookieStorage({
+      secure: window.location.protocol === 'https:',
+      sameSite: 'strict',
+    }),
+  );
+}
 
 export default function AmplifyConfigProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;

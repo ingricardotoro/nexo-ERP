@@ -1,12 +1,11 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn, confirmSignIn } from 'aws-amplify/auth';
-import type { Route } from 'next';
 import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -82,7 +81,6 @@ function getAuthErrorMessage(error: unknown): string {
 type Step = 'credentials' | 'totp' | 'new-password';
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('from') ?? '/dashboard';
 
@@ -108,6 +106,14 @@ function LoginContent() {
     defaultValues: { password: '', confirmPassword: '' },
   });
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // Full page reload garantiza que el middleware reciba los cookies recién
+  // emitidos por Amplify sin depender del timing del router de Next.js.
+  function navigateAfterSignIn() {
+    window.location.replace(redirectTo);
+  }
+
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleCredentialsSubmit = async (data: CredentialsForm) => {
@@ -119,8 +125,7 @@ function LoginContent() {
       });
 
       if (result.isSignedIn) {
-        router.replace(redirectTo as Route);
-        router.refresh();
+        navigateAfterSignIn();
         return;
       }
 
@@ -148,8 +153,7 @@ function LoginContent() {
       const result = await confirmSignIn({ challengeResponse: data.code });
 
       if (result.isSignedIn) {
-        router.replace(redirectTo as Route);
-        router.refresh();
+        navigateAfterSignIn();
         return;
       }
 
@@ -165,8 +169,7 @@ function LoginContent() {
       const result = await confirmSignIn({ challengeResponse: data.password });
 
       if (result.isSignedIn) {
-        router.replace(redirectTo as Route);
-        router.refresh();
+        navigateAfterSignIn();
         return;
       }
 
@@ -206,7 +209,6 @@ function LoginContent() {
                 className="space-y-4"
                 noValidate
               >
-                {/* Error general */}
                 {authError && (
                   <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -214,7 +216,6 @@ function LoginContent() {
                   </div>
                 )}
 
-                {/* Email */}
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Correo electrónico</Label>
                   <Input
@@ -232,7 +233,6 @@ function LoginContent() {
                   )}
                 </div>
 
-                {/* Contraseña */}
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Contraseña</Label>
                   <div className="relative">
@@ -261,7 +261,6 @@ function LoginContent() {
                   )}
                 </div>
 
-                {/* Submit */}
                 <Button
                   type="submit"
                   className="w-full"
@@ -297,7 +296,6 @@ function LoginContent() {
                 className="space-y-4"
                 noValidate
               >
-                {/* Error general */}
                 {authError && (
                   <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -305,7 +303,6 @@ function LoginContent() {
                   </div>
                 )}
 
-                {/* Código TOTP */}
                 <div className="space-y-1.5">
                   <Label htmlFor="code">Código de autenticación</Label>
                   <Input
@@ -326,7 +323,6 @@ function LoginContent() {
                   )}
                 </div>
 
-                {/* Submit */}
                 <Button type="submit" className="w-full" disabled={totpForm.formState.isSubmitting}>
                   {totpForm.formState.isSubmitting ? (
                     <>
@@ -350,7 +346,7 @@ function LoginContent() {
               </form>
             </CardContent>
           </>
-        ) : step === 'new-password' ? (
+        ) : (
           <>
             <CardHeader className="pb-4">
               <div className="mb-1 flex items-center gap-2">
@@ -424,7 +420,7 @@ function LoginContent() {
               </form>
             </CardContent>
           </>
-        ) : null}
+        )}
       </Card>
 
       {/* Footer */}

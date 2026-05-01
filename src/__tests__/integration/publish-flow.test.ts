@@ -54,7 +54,7 @@ const IDS = {
   fiscalYear: '00000000-0000-0000-0005-000000000060',
   fiscalPeriodMar: '00000000-0000-0000-0005-000000000070',
   // Período de Abril — necesario para que cancelInvoice cree el asiento de reversión
-  // (cancelInvoice busca un período OPEN para "hoy", y hoy es 2026-04-01)
+  // (cancelInvoice busca un período OPEN para "hoy"; cubre Apr-Dic 2026)
   fiscalPeriodApr: '00000000-0000-0000-0005-000000000071',
   accountAR: '00000000-0000-0000-0005-000000000080', // 1103
   accountISV: '00000000-0000-0000-0005-000000000081', // 2102
@@ -238,7 +238,7 @@ beforeAll(async () => {
     }),
   );
 
-  // Período fiscal Abril 2026 (cubre la fecha de cancelación — "hoy" = 2026-04-01)
+  // Período fiscal Q2-Q4 2026 (cubre cualquier fecha de cancelación durante el año)
   // cancelInvoice busca un período OPEN para "today" al crear el asiento de reversión.
   await withRLSContext(prismaOwner, IDS.companyA, (tx) =>
     tx.fiscalPeriod.create({
@@ -247,9 +247,9 @@ beforeAll(async () => {
         companyId: IDS.companyA,
         fiscalYearId: IDS.fiscalYear,
         periodNumber: 4,
-        name: 'Abril 2026',
+        name: 'Abril-Diciembre 2026',
         startDate: new Date('2026-04-01'),
-        endDate: new Date('2026-04-30'),
+        endDate: new Date('2026-12-31'),
         status: 'OPEN',
       },
     }),

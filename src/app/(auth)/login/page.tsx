@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { signIn, confirmSignIn } from 'aws-amplify/auth';
+import { signIn, confirmSignIn, signOut } from 'aws-amplify/auth';
 import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -83,10 +83,23 @@ type Step = 'credentials' | 'totp' | 'new-password';
 function LoginContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('from') ?? '/dashboard';
+  const errorParam = searchParams.get('error');
 
   const [step, setStep] = useState<Step>('credentials');
   const [authError, setAuthError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const accountErrorMessages: Record<string, string> = {
+    account_not_configured:
+      'Tu cuenta no está configurada correctamente. Contacta al administrador del sistema.',
+  };
+  const accountError = errorParam ? (accountErrorMessages[errorParam] ?? null) : null;
+
+  useEffect(() => {
+    if (errorParam === 'account_not_configured') {
+      signOut().catch(() => {});
+    }
+  }, [errorParam]);
 
   // ── Credentials form ────────────────────────────────────────────────────
   const credentialsForm = useForm<CredentialsForm>({
@@ -209,6 +222,12 @@ function LoginContent() {
                 className="space-y-4"
                 noValidate
               >
+                {accountError && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{accountError}</span>
+                  </div>
+                )}
                 {authError && (
                   <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />

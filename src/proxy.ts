@@ -20,6 +20,12 @@ function buildLoginRedirect(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
+function buildAccountErrorRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('error', 'account_not_configured');
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function proxy(request: NextRequest) {
   if (request.method === 'OPTIONS') {
     return NextResponse.next();
@@ -65,7 +71,15 @@ export async function proxy(request: NextRequest) {
       },
     });
   } catch (error) {
-    if (isDashboardRoute) return buildLoginRedirect(request);
+    if (isDashboardRoute) {
+      if (
+        error instanceof AuthError &&
+        (error.code === 'INVALID_TOKEN' || error.code === 'INVALID_TOKEN_USE')
+      ) {
+        return buildAccountErrorRedirect(request);
+      }
+      return buildLoginRedirect(request);
+    }
 
     if (error instanceof AuthError) {
       return NextResponse.json(

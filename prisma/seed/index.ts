@@ -3,22 +3,28 @@
 
 import { config as loadDotenv } from 'dotenv';
 
-// tsx no carga .env.local automáticamente → cargar manualmente
-loadDotenv({ path: '.env.local' });
+// tsx no carga .env.local automáticamente → cargar manualmente.
+// SEED_DATABASE_URL permite apuntar a staging sin modificar .env.local.
+if (!process.env.SEED_DATABASE_URL) {
+  loadDotenv({ path: '.env.local' });
+}
 
 import { PrismaClient, SystemRole } from '@prisma/client';
 
 import { seedAccountingChartOfAccounts } from './accounting-chart-of-accounts';
 import { seedAccountingJournals } from './accounting-journals';
 
-const prisma = new PrismaClient();
+const dbUrl = process.env.SEED_DATABASE_URL ?? process.env.DATABASE_URL;
+const prisma = new PrismaClient({
+  datasources: { db: { url: dbUrl } },
+});
 
 async function main() {
   console.log('🌱 Iniciando seed de NexoERP...');
 
   // UUID fijo para la empresa demo — permite configurar Cognito custom:company_id
   // sin necesidad de consultar la BD después del seed.
-  const DEMO_COMPANY_ID = 'aaaaaaaa-0000-4000-a000-000000000001';
+  const DEMO_COMPANY_ID = '1360f768-f6e8-4d7a-98a1-2589dec76660';
 
   // Empresa demo para desarrollo
   const demoCompany = await prisma.company.upsert({

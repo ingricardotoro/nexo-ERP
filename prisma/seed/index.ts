@@ -907,6 +907,10 @@ async function main() {
   }
   console.log(`✅ Monedas: ${currencies.length} creadas (HNL, USD, EUR)`);
 
+  // Establecer contexto RLS para la empresa demo antes de insertar data tenant-específica
+  // (tax_rates, accounts, journals tienen RLS habilitado y requieren app.current_company_id)
+  await prisma.$executeRaw`SELECT set_config('app.current_company_id', ${demoCompany.id}::text, false)`;
+
   // === Tasas de Impuesto (ISV Honduras) — solo para empresa demo ===
   const taxRates = [
     { code: 'ISV15', name: 'ISV 15%', rate: 0.15, isActive: true },

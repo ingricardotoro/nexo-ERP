@@ -16,11 +16,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed de NexoERP...');
 
+  // UUID fijo para la empresa demo — permite configurar Cognito custom:company_id
+  // sin necesidad de consultar la BD después del seed.
+  const DEMO_COMPANY_ID = 'aaaaaaaa-0000-4000-a000-000000000001';
+
   // Empresa demo para desarrollo
   const demoCompany = await prisma.company.upsert({
     where: { rtn: '0801-1990-00001' },
     update: {},
     create: {
+      id: DEMO_COMPANY_ID,
       legalName: 'Empresa Demo S.A. de C.V.',
       tradeName: 'Demo NexoERP',
       rtn: '0801-1990-00001',
